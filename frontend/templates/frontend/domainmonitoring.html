@@ -1,0 +1,119 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% block title %}
+    Domain Monitoring
+{% endblock title %}
+{% block vendor_css %}
+    <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/libs/flatpickr/flatpickr.css' %}">
+{% endblock vendor_css %}
+{% block page_css %}
+    <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css' %}">
+    <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css' %}">
+    <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.css' %}">
+    <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.css' %}">
+    <!-- Row Group CSS -->
+    <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/libs/datatables-rowgroup-bs5/rowgroup.bootstrap5.css' %}">
+    <!-- Form Validation -->
+    <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/libs/@form-validation/umd/styles/index.css' %}">
+    <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/libs/tagify/tagify.css' %}" />
+{% endblock page_css %}
+{% block additional_css %}
+    <style>
+    tr td:not(:first-child):not(.cursor-pointer) {
+        cursor: default !important;
+    }
+    </style>
+{% endblock additional_css %}
+{% block content_title %}
+    Domain Monitoring
+{% endblock content_title %}
+{% block content_body %}
+    <div class="nav-tabs-shadow nav-align-top ms-4 me-4">
+        <ul class="nav nav-tabs nav-fill" role="tablist">
+            {% for tab in tabs %}
+                <li class="nav-item">
+                    <button type="button"
+                            id="{{ tab.id }}-tab"
+                            class="nav-link{% if tab.active %} active{% endif %}"
+                            role="tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#{{ tab.id }}"
+                            aria-controls="{{ tab.id }}"
+                            aria-selected="{{ tab.active }}">
+                        {{ tab.label }}
+                        <span class="badge rounded-pill bg-label-primary px-2 ms-1">{{ tab.badge_count }}</span>
+                    </button>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="tab-content">
+        {% for tab in tabs %}
+            <div class="tab-pane {% if tab.active %}show active{% endif %}"
+                 id="{{ tab.id }}"
+                 role="tab">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            {% if tab.id == "alerts" or tab.id == "lookalike-domains" %}
+                                <div class="card-body">
+                                    <form id="{{ tab.id }}-search-form" novalidate>
+                                    </form>
+                                </div>
+                                <hr class="mt-0">
+                            {% endif %}
+                            <div class="card-datatable table-responsive">
+                                <table id="datatable-{{ tab.id }}" class="table">
+                                    <thead>
+                                        <tr>
+                                            {% for header in tab.headers %}<th>{{ header }}</th>{% endfor %}
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock content_body %}
+{% block vendor_js %}
+    <script src="{% static 'frontend/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js' %}"></script>
+    <!-- Flat Picker -->
+    <script src="{% static 'frontend/assets/vendor/libs/moment/moment.js' %}"></script>
+    <script src="{% static 'frontend/assets/vendor/libs/flatpickr/flatpickr.js' %}"></script>
+    <!-- Form Validation -->
+    <script src="{% static 'frontend/assets/vendor/libs/@form-validation/umd/bundle/popular.min.js' %}"></script>
+    <script src="{% static 'frontend/assets/vendor/libs/@form-validation/umd/plugin-bootstrap5/index.min.js' %}"></script>
+    <script src="{% static 'frontend/assets/vendor/libs/@form-validation/umd/plugin-auto-focus/index.min.js' %}"></script>
+    <script src="{% static 'frontend/assets/vendor/libs/tagify/tagify.js' %}"></script>
+{% endblock vendor_js %}
+{% block page_js %}
+{% endblock page_js %}
+{% block js %}
+    <script>
+        const urls = {
+            watchedResources: "{% url 'watched-resources-list' %}",
+            monitoredDomains: "{% url 'monitored-domains-list' %}",
+            sslCertificates: "{% url 'ssl-certificates-list' %}",
+            alerts: "{% url 'monitored-domain-alerts-list' %}",
+            alertComments: "{% url 'monitored-domain-alert-comments-list' %}",
+            lookalikeDomains: "{% url 'lookalike-domains-list' %}",
+            lookalikeDomainComments: "{% url 'lookalike-domain-comments-list' %}",
+            companies: "{% url 'companies-list' %}",
+        };
+    </script>
+    <script src="{% static 'frontend/form-generator.js' %}"></script>
+    <script src="{% static 'frontend/modal-generator.js' %}"></script>
+    <script src="{% static 'frontend/datatable-generator.js' %}"></script>
+    <script src="{% static 'frontend/app-domain-monitoring.js' %}"></script>
+{% endblock js %}

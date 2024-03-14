@@ -1,0 +1,139 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% block title %}
+    Text Formatter
+{% endblock title %}
+{% block content_title %}
+    Text Formatter
+{% endblock content_title %}
+{% block content_body %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-content">
+                    <div class="card-body">
+                        <form id="form-query">
+                            <!-- Input IOCs -->
+                            <div class="col-12">
+                                <fieldset>
+                                    <label for="textarea-query">
+                                        <b>Enter Text</b>
+                                    </label>
+                                    <textarea name="query"
+                                              form="form-query"
+                                              placeholder="Enter text, comma or line seperated"
+                                              id="textarea-query"
+                                              class="form-control"
+                                              style="resize:none"
+                                              rows="3"
+                                              autofocus></textarea>
+                                </fieldset>
+                                <ul class="list-unstyled mb-0 mt-2">
+                                    <li class="d-inline-block me-2">
+                                        <!-- Extract IOCs -->
+                                        <div class="form-check">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="ExtractIOCs"
+                                                   name="checklist"
+                                                   value="iocs"
+                                                   disabled>
+                                            <label class="form-check-label" for="ExtractIOCs">Extract IOCs</label>
+                                        </div>
+                                    </li>
+                                    <li class="d-inline-block me-2">
+                                        <!-- Fang -->
+                                        <div class="form-check">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="UncheckedFang"
+                                                   name="checklist"
+                                                   value="fang">
+                                            <label class="form-check-label" for="UncheckedFang">Fang</label>
+                                        </div>
+                                    </li>
+                                    <li class="d-inline-block me-2">
+                                        <!-- Defang -->
+                                        <div class="form-check">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="UncheckedDefang"
+                                                   name="checklist"
+                                                   value="defang">
+                                            <label class="form-check-label" for="UncheckedDefang">Defang</label>
+                                        </div>
+                                    </li>
+                                    <li class="d-inline-block me-2">
+                                        <!-- Extract Domain -->
+                                        <div class="form-check">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="UncheckedDomain"
+                                                   name="checklist"
+                                                   value="domain">
+                                            <label class="form-check-label" for="UncheckedDomain">Extract Domain</label>
+                                        </div>
+                                    </li>
+                                    <li class="d-inline-block me-2">
+                                        <!-- Add Comma -->
+                                        <div class="form-check">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="Delimiter"
+                                                   name="checklist"
+                                                   value="comma">
+                                            <label class="form-check-label" for="Delimiter">Add Delimiter ( , )</label>
+                                        </div>
+                                    </li>
+                                    <li class="d-inline-block me-2">
+                                        <!-- Remove Duplicates -->
+                                        <div class="form-check">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="Duplicates"
+                                                   name="checklist"
+                                                   value="duplicates">
+                                            <label class="form-check-label" for="Duplicates">Remove Duplicates</label>
+                                        </div>
+                                    </li>
+                                    <li class="d-inline-block me-2">
+                                        <!-- Lower Case -->
+                                        <div class="form-check">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="UncheckedLowerCase"
+                                                   name="checklist"
+                                                   value="lowercase">
+                                            <label class="form-check-label" for="UncheckedLowerCase">Lower Case</label>
+                                        </div>
+                                    </li>
+                                    <li class="d-inline-block">
+                                        <!-- Upper Case -->
+                                        <div class="form-check">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="UncheckedUpperCase"
+                                                   name="checklist"
+                                                   value="uppercase">
+                                            <label class="form-check-label" for="UncheckedUpperCase">Upper Case</label>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-12 text-center">
+                                <div class="form-group d-grid mt-3">
+                                    <button class="btn btn-primary waves-effect waves-light">Submit</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="formattedtext" class="col-12 mt-4"></div>
+        <div id="extracted-iocs" class="col-12 mt-4"></div>
+    </div>
+{% endblock content_body %}
+{% block js %}
+    <script src="{% static 'frontend/app-textformatter.js' %}"></script>
+{% endblock js %}

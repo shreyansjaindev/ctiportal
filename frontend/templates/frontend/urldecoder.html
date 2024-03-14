@@ -1,0 +1,58 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% block title %}
+    URL Decoder
+{% endblock title %}
+{% block content_title %}
+    URL Decoder
+{% endblock content_title %}
+{% block content_body %}
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-12">
+                    <label for="encoded">
+                        <b>Encoded URL</b>
+                    </label>
+                    <textarea class="form-control"
+                              id="encoded"
+                              style="resize:none"
+                              rows="5"
+                              autofocus
+                              placeholder="Paste Encoded URL"
+                              autocomplete="off"></textarea>
+                    <div class="row">
+                        <div class="d-grid col-lg-6 col-md-6 col-12 mt-3">
+                            <button onclick="o365DecodeURL()"
+                                    class="btn btn-primary waves-effect waves-light">
+                                O365
+                                Safelink Decode
+                            </button>
+                        </div>
+                        <div class="d-grid col-lg-6 col-md-6 col-12 mt-3">
+                            <button onclick="proofpointDecodeURL()"
+                                    class="btn btn-primary waves-effect waves-light">
+                                Proofpoint
+                                TAP Decode
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4 mx-n4">
+            <div class="mt-3 row">
+                <div class="col-12">
+                    <div>
+                        <label for="decoded">
+                            <b>Decoded URL</b>
+                        </label>
+                        <textarea class="form-control" id="decoded" style="resize:none;" rows="5"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content_body %}
+{% block js %}
+    <script src="{% static 'frontend/app-urldecoder.js' %}"></script>
+{% endblock js %}

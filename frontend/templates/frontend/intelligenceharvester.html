@@ -1,0 +1,147 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% block title %}
+    Intelligence Harvester
+{% endblock title %}
+{% block vendor_css %}
+{% endblock vendor_css %}
+{% block page_css %}
+{% endblock page_css %}
+{% block additional_css %}
+    <style>
+    .custom-icon {
+        height: 25px;
+    }
+    </style>
+{% endblock additional_css %}
+{% block content_title %}
+    Intelligence Harvester
+{% endblock content_title %}
+{% block content_body %}
+    <div id="to-do" class="row mb-4">
+        <div class="col-12">
+            <div class="card todo-form">
+                <div class="card-content">
+                    <form id="form-add-todo">
+                        <div class="d-flex justify-content-between align-items-center p-3">
+                            <div class="col">
+                                <input class="new-todo-item-title form-control border-0 shadow-none"
+                                       type="text"
+                                       placeholder="Enter IP | URL | CVE | Hash | Domain | Email Address">
+                            </div>
+                            <div class="col-xs">
+                                <button type="submit" class="btn">
+                                    <i class="ti ti-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="todo-table" class="row d-none">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-content">
+                    <div class="table-responsive">
+                        <form id="form-checkbox">
+                            <table class="table mb-0">
+                                <thead class="todo-task-head-wrapper text-center">
+                                    <tr class="align-middle">
+                                        <th hidden>ID</th>
+                                        <th id="th-search" class="th-checkbox">
+                                            <span class="checkbox-wrapper">
+                                                <input type="checkbox" name="search-head" hidden checked>
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     width="20"
+                                                     height="20"
+                                                     viewBox="0 0 24 24"
+                                                     fill="none"
+                                                     stroke="currentColor"
+                                                     stroke-width="2"
+                                                     stroke-linecap="round"
+                                                     stroke-linejoin="round"
+                                                     class="feather feather-check-circle text-success cursor-pointer">
+                                                    <circle cx="12" cy="12" r="10" visibility="hidden"></circle>
+                                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                                </svg>
+                                            </span>
+                                        </th>
+                                        <th>QUERY</th>
+                                        <th hidden>TYPE</th>
+                                        {% for source_name, source in sources.items %}
+                                            <th id="th-{{ source_name }}" class="th-checkbox">
+                                                <span class="checkbox-wrapper">
+                                                    <input type="checkbox" name="{{ source_name }}-head" hidden>
+                                                    <img src="{% static source.url %}"
+                                                         class="custom-icon cursor-pointer"
+                                                         alt="{{ source.title }}"
+                                                         data-toggle="tooltip"
+                                                         data-placement="top"
+                                                         title="{{ source.title }}"
+                                                         height="25px"
+                                                         width="25px">
+                                                </span>
+                                            </th>
+                                        {% endfor %}
+                                        <th id="th-search" class="th-checkbox">
+                                            <span class="delete-selected cursor-pointer"
+                                                  data-toggle="tooltip"
+                                                  data-placement="top"
+                                                  title="Remove Selected">
+                                                <i class="ti ti-x ti-md text-danger"></i>
+                                            </span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="todo-task-list-wrapper text-center">
+                                </tbody>
+                            </table>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card mb-0">
+                <div class="card-body">
+                    <form id="form-download">
+                        <div class="row">
+                            <div class="d-grid col-lg-10 col-md-9 col-7">
+                                <button id="search_all"
+                                        type="button"
+                                        class="btn btn-primary btn-block waves-effect waves-light fw-bolder">
+                                    Search
+                                </button>
+                            </div>
+                            <div class="d-grid col-lg-2 col-md-3 col-5">
+                                <button id="export_all"
+                                        type="button"
+                                        class="btn btn-outline-primary btn-block waves-effect waves-light fw-bolder">
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content_body %}
+{% block vendor_js %}
+{% endblock vendor_js %}
+{% block pagevendor_js %}
+{% endblock pagevendor_js %}
+{% block page_js %}
+{% endblock page_js %}
+{% block js %}
+    <script>
+        const sourceInfo = JSON.parse("{{ sources|escapejs }}".replace(/'/g, '"'));
+        const additionalSources = JSON.parse("{{ additional_sources|escapejs }}".replace(/'/g, '"'));
+        const staticLocation = '{% static "frontend/assets/img/icons/brands/" %}';
+    </script>
+    <script src="{% static 'frontend/app-intelligenceharvester.js' %}"></script>
+    <script src="{% static 'frontend/cards-actions.js' %}"></script>
+{% endblock js %}

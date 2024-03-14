@@ -1,0 +1,95 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% block title %}
+  Login
+{% endblock title %}
+{% block page_css %}
+  <!-- Form Validation -->
+  <link rel="stylesheet"
+        href="{% static 'frontend/assets/vendor/libs/@form-validation/umd/styles/index.css' %}">
+  <link rel="stylesheet"
+        href="{% static 'frontend/assets/vendor/css/pages/page-auth.css' %}">
+{% endblock page_css %}
+{% block additional_css %}
+{% endblock additional_css %}
+{% block body %}
+  <div class="authentication-wrapper authentication-basic container-p-y">
+    <div class="authentication-inner py-4">
+      <!-- Login -->
+      <div class="card">
+        <div class="card-body">
+          <!-- Logo -->
+          <div class="app-brand justify-content-center mb-4 mt-2">
+            <a href="{% url 'frontend-home' %}" class="app-brand-link">
+              <img src="{% static 'frontend/assets/img/branding/logo.png' %}"
+                   alt="logo"
+                   width="57"
+                   height="40">
+              <span class="app-brand-text demo text-body fw-bold ms-1">CTI Portal</span>
+            </a>
+          </div>
+          <!-- /Logo -->
+          <h5 class="mb-1 pt-2">Welcome to CTI Portal! 👋</h5>
+          <p class="mb-4">Please sign-in to your account</p>
+          <form class="mb-3">
+            <div class="mb-3">
+              <label for="email" class="form-label">Email or Username</label>
+              <input type="text"
+                     class="form-control"
+                     id="user"
+                     name="user"
+                     placeholder="Enter your email or username"
+                     autofocus>
+            </div>
+            <div class="mb-3 form-password-toggle">
+              <div class="d-flex justify-content-between">
+                <label class="form-label" for="password">Password</label>
+              </div>
+              <div class="input-group input-group-merge">
+                <input type="password"
+                       id="password"
+                       class="form-control"
+                       name="password"
+                       placeholder="············"
+                       aria-describedby="password">
+                <span class="input-group-text cursor-pointer"><i class="ti ti-eye-off"></i></span>
+              </div>
+            </div>
+            <div class="mb-3">
+              <button class="btn btn-primary d-grid w-100" type="submit">Sign in</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <!-- /Register -->
+    </div>
+  </div>
+{% endblock body %}
+{% block vendor_js %}
+  <!-- Form Validation -->
+  <script src="{% static 'frontend/assets/vendor/libs/@form-validation/umd/bundle/popular.min.js' %}"></script>
+  <script src="{% static 'frontend/assets/vendor/libs/@form-validation/umd/plugin-bootstrap5/index.min.js' %}"></script>
+  <script src="{% static 'frontend/assets/vendor/libs/@form-validation/umd/plugin-auto-focus/index.min.js' %}"></script>
+{% endblock vendor_js %}
+{% block page_js %}
+  <script>
+    document.querySelector('form').addEventListener('submit', function(event) {
+      event.preventDefault(); // Prevent the form from submitting normally
+
+      const user = document.querySelector('#user').value;
+      const password = document.querySelector('#password').value;
+
+      fetch('/api_login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json',"X-CSRFToken": "{{csrf_token}}"},
+        body: JSON.stringify({ user: user, password: password })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data) {
+          window.location.href = '/';
+        }
+      });
+    });
+  </script>
+{% endblock page_js %}
