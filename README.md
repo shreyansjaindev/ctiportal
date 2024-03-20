@@ -10,8 +10,8 @@ The `ctiportal` web application serves as a comprehensive toolset for Cybersecur
 
 1. **Intelligence Harvester:**
 
-   - Extracts IoCs from major intelligence sources with bulk query support.
-   - Current supported IOCs and sources include domains, IPs, URLs, and more.
+   - Collects and displays information on indicators (domains, URLs, IPs, hashes, emails, CVEs, etc) from 16+ intelligence sources.
+   - Supports bulk queries and the functionality to export the results to an Excel file.
 
 2. **URL Decoder:**
 
