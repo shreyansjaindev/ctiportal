@@ -6,14 +6,17 @@ import os
 API_KEYS = os.getenv("VIRUSTOTAL").split(",")
 
 
+def make_api_request(endpoint, headers):
+    url = f"https://www.virustotal.com/api/v3/{endpoint}"
+    response = requests.get(url, headers=headers)
+    return response.json()
+
+
 def file(query, headers):
     file_data = {}
 
-    url = f"https://www.virustotal.com/api/v3/files/{query}"
-    response = requests.get(url, headers=headers)
-
-    data = response.json().get("data")
-
+    response_data = make_api_request(f"files/{query}", headers)
+    data = response_data.get("data")
     attributes = data.get("attributes", {})
 
     file_data["Detection"] = attributes.get("last_analysis_stats", {})
@@ -28,19 +31,16 @@ def file(query, headers):
 def domain(query, headers):
     domain_data = {}
 
-    url = f"https://www.virustotal.com/api/v3/domains/{query}"
-    response = requests.get(url, headers=headers)
-
-    data = response.json().get("data")
+    response_data = make_api_request(f"domains/{query}", headers)
+    data = response_data.get("data")
     attributes = data.get("attributes", {})
 
     domain_data["Detection"] = attributes.get("last_analysis_stats", {})
     domain_data["Categories"] = attributes.get("categories")
 
-    url = f"https://www.virustotal.com/api/v3/domains/{query}/subdomains?limit=30"
-    response = requests.get(url, headers=headers)
+    response_data = make_api_request(f"domains/{query}/subdomains?limit=30", headers)
+    data = response_data.get("data")
 
-    data = response.json().get("data")
     subdomains = []
     for value in data:
         subdomains.append(value.get("id"))
@@ -51,19 +51,16 @@ def domain(query, headers):
 
 def url(query, headers):
     encoded_query = urllib.parse.quote(query, safe="")
-    url = f"https://www.virustotal.com/api/v3/urls/{encoded_query}"
-    response = requests.get(url, headers=headers)
+    response_data = make_api_request(f"urls/{encoded_query}", headers)
 
-    return response.json()
+    return response_data
 
 
 def ip_address(query, headers):
     ip_data = {}
 
-    url = f"https://www.virustotal.com/api/v3/ip_addresses/{query}"
-    response = requests.get(url, headers=headers)
-
-    data = response.json().get("data")
+    response_data = make_api_request(f"ip_addresses/{query}", headers)
+    data = response_data.get("data")
     attributes = data.get("attributes", {})
 
     ip_data["Detection"] = attributes.get("last_analysis_stats", {})

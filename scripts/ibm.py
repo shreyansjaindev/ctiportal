@@ -2,7 +2,9 @@ import requests
 import sys
 import os
 import urllib.parse
+import logging
 
+logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("IBM_XFORCE", "").split(",")[0]
 
@@ -117,7 +119,8 @@ def ibm_hash(hash, headers):
 
 def ibm(query, input_type):
     if not API_KEY:
-        return {"error": "API key not found."}
+        logger.error("API key not found")
+        return {"error": "API key not found"}
 
     data = {}
 

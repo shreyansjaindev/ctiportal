@@ -1,7 +1,9 @@
 import requests
 import sys
 import os
+import logging
 
+logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("APILAYER", "").split(",")[0]
 
@@ -11,7 +13,8 @@ API_KEY = os.getenv("APILAYER", "").split(",")[0]
 
 def get_result(email):
     if not API_KEY:
-        return {"error": "API key not found."}
+        logger.error("API key not found")
+        return {"error": "API key not found"}
     url = f"http://apilayer.net/api/check?access_key={API_KEY}&email={email}&smtp=1"
     response = requests.get(url).json()
     return response

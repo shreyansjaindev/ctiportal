@@ -2,7 +2,9 @@ import requests
 import time
 import sys
 import os
+import logging
 
+logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("SECURITYTRAILS", "").split(",")[0]
 HEADERS = {
@@ -13,7 +15,8 @@ HEADERS = {
 
 def get_whois(domain, value_type):
     if not API_KEY:
-        return {"error": "API key not found."}
+        logger.error("API key not found")
+        return {"error": "API key not found"}
 
     url = f"https://api.securitytrails.com/v1/domain/{domain}/whois"
 
@@ -63,7 +66,7 @@ def get_whois(domain, value_type):
 
 def get_dns_records(domain):
     if not API_KEY:
-        return {"error": "API key not found."}
+        return {"error": "API key not found"}
 
     data = {"a": [], "mx": [], "spf": ""}
 

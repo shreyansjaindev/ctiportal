@@ -1,7 +1,9 @@
 import requests
 import sys
 import os
+import logging
 
+logger = logging.getLogger(__name__)
 
 API_ENDPOINT = "https://www.hybrid-analysis.com/api/v2/search/hash"
 API_KEY = os.getenv("HYBRIDANALYSIS", "").split(",")[0]
@@ -9,7 +11,8 @@ API_KEY = os.getenv("HYBRIDANALYSIS", "").split(",")[0]
 
 def get_results(hash):
     if not API_KEY:
-        return {"error": "API key not found."}
+        logger.error("API key not found")
+        return {"error": "API key not found"}
 
     hash_data = {}
     headers = {

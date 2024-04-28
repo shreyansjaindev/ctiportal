@@ -4,7 +4,9 @@ import tldextract
 import re
 import time
 import os
+import logging
 
+logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("URLSCAN_IO").split(",")[0]
 
@@ -130,7 +132,8 @@ def filter(data):
 # Supports Domain and URL
 def urlscan(query, input_type):
     if not API_KEY:
-        return {"error": "API key not found."}
+        logger.error("API key not found")
+        return {"error": "API key not found"}
 
     data = {}
 

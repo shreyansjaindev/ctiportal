@@ -2,7 +2,9 @@ from urllib.parse import urlparse
 import requests
 import sys
 import os
+import logging
 
+logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("PHISHTANK").split(",")[0]
 API_URL = "https://checkurl.phishtank.com/checkurl/"
@@ -33,7 +35,8 @@ def get_results(url):
 
 def phishtank(value, value_type="url"):
     if not API_KEY:
-        return {"error": "API key not found."}
+        logger.error("API key not found")
+        return {"error": "API key not found"}
 
     url = check_url(value)
     return get_results(url)

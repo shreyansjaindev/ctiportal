@@ -2,7 +2,9 @@ import requests
 import sys
 import hashlib
 import os
+import logging
 
+logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("WEBSCRAPING_AI").split(",")[0]
 
@@ -35,7 +37,8 @@ def stringHash(string):
 
 def run(query, input_type):
     if not API_KEY:
-        return {"error": "API key not found."}
+        logger.error("API key not found")
+        return {"error": "API key not found"}
 
     data = {}
 

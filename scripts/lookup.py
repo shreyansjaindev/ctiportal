@@ -7,7 +7,9 @@ import dns.reversename
 from ipwhois.net import Net
 from ipwhois.asn import IPASN
 from .securitytrails import get_dns_records
+import logging
 
+logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("IPAPI").split(",")[0]
 DNS_RECORDS = ["A", "NS", "CNAME", "SOA", "MX", "TXT"]
@@ -122,7 +124,8 @@ def ip_to_asn(ip):
 # https://ipapi.com
 def iplocation(ip):
     if not API_KEY:
-        return {"error": "API key not found."}
+        logger.error("API key not found")
+        return {"error": "API key not found"}
 
     url = f"http://api.ipapi.com/api/{ip}?access_key={API_KEY}"
     data = {}

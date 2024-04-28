@@ -2,7 +2,9 @@ import requests
 import sys
 import base64
 import os
+import logging
 
+logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("SCREENSHOTLAYER").split(",")[0]
 
@@ -25,7 +27,8 @@ def fullpage_screenshot(query, fullpage=0):
 
 def screenshot(query):
     if not API_KEY:
-        return '{"error": "API key not found."}'
+        logger.error("API key not found")
+        return '{"error": "API key not found"}'
 
     try:
         return fullpage_screenshot(query)

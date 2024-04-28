@@ -1,12 +1,16 @@
 import requests
 import os
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def abuseipdb(ip):
+def abuseipdb(ip, value_type):
     api_key = os.getenv("ABUSEIPDB", "").split(",")[0]
     if not api_key:
-        return {"error": "API key not found."}
+        logger.error("API key not found")
+        return {"error": "API key not found"}
     url = "https://api.abuseipdb.com/api/v2/check"
     params = {"ipAddress": ip, "maxAgeInDays": "90"}
     headers = {"Accept": "application/json", "Key": api_key}
@@ -18,11 +22,11 @@ def abuseipdb(ip):
         return decodedResponse["data"]
 
     except requests.RequestException as e:
-        print(f"Error making the API request: {e}")
+        logger.error(f"Error making the API request: {e}")
         return {}
 
     except KeyError as e:
-        print(f"Invalid response format: {e}")
+        logger.error(f"Invalid response format: {e}")
         return {}
 
 

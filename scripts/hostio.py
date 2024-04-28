@@ -2,6 +2,9 @@ import requests
 import sys
 import math
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("HOST_IO", "").split(",")[0]
 
@@ -68,7 +71,8 @@ def hostio_email(params, email):
 
 def hostio(query, input_type):
     if not API_KEY:
-        return {"error": "API key not found."}
+        logger.error("API key not found")
+        return {"error": "API key not found"}
 
     data = {}
 

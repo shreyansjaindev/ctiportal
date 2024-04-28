@@ -9,14 +9,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
-# Configure logging
 logging.basicConfig(
-    filename="app.log",
-    filemode="w",
-    format="%(name)s - %(levelname)s - %(message)s",
+    filename="domain_monitoring.log",
+    filemode="a",
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
 )
+logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("WHOISXMLAPI_NRD_FEED")
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}")
@@ -35,7 +34,9 @@ def generate_filename(date):
 
 def generate_file_path(date):
     filename = generate_filename(date)
-    filepath = os.path.join(BASE_DIR, "additional_scripts", "nrd_data", filename)
+    filepath = os.path.join(
+        BASE_DIR, "scripts", "domain_monitoring", "nrd_data", filename
+    )
     return filepath
 
 
@@ -56,8 +57,8 @@ def download_file(date):
     retry_delay = 1800  # seconds
 
     if not API_KEY:
-        logging.error("API key not found.")
-        return
+        logger.error("API key not found")
+        return None
 
     if is_date_in_correct_format(date):
         filepath = generate_file_path(date)
@@ -70,31 +71,28 @@ def download_file(date):
                     r.raise_for_status()
                     with open(filepath, "wb") as f:
                         f.write(r.content)
-                    logging.info(f"File downloaded to {filepath}.")
-                    return
+                    logger.info(f"File downloaded to {filepath}")
+                    return filepath
                 else:
-                    logging.error(f"Error downloading file: {r.status_code}")
+                    logger.error(f"Error downloading file: {r.status_code}")
                     if i < max_retries - 1:
-                        logging.info(f"Retrying in {retry_delay} seconds...")
+                        logger.info(f"Retrying in {retry_delay} seconds...")
                         time.sleep(retry_delay)
 
-        logging.error(f"File not available after {max_retries} retries, exiting...")
+        logger.error(f"File not available after {max_retries} retries, exiting...")
     else:
-        logging.error("Invalid date format.")
+        logger.error("Invalid date format")
 
 
 def get_newly_registered_domains_df(date):
-    logging.info("Downloading file...")
-    download_file(date)
-    logging.info("File downloaded.")
-
-    filepath = generate_file_path(date)
-
-    logging.info("Reading file...")
-    df = pd.read_csv(filepath, compression="gzip", usecols=["domainName"])
-    logging.info("File read.")
-    return df
+    logger.info("Downloading file...")
+    filepath = download_file(date)
+    if filepath:
+        logger.info("Reading file...")
+        df = pd.read_csv(filepath, compression="gzip", usecols=["domainName"])
+        return df
+    return None
 
 
 if __name__ == "__main__":
-    print(get_newly_registered_domains_df("2023-11-11"))
+    print(get_newly_registered_domains_df("2024-04-24"))

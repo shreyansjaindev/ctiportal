@@ -37,7 +37,7 @@ def format_data(data, keys):
 def request(session, all_count, value):
     temp_data = []
     if not API_KEY:
-        return {"error": "API key not found."}
+        return {"error": "API key not found"}
 
     keys = [
         "status",
@@ -63,7 +63,7 @@ def request(session, all_count, value):
 
 def threatstream_export_iocs(filters, update_id):
     if not API_KEY:
-        return {"error": "API key not found."}
+        return {"error": "API key not found"}
 
     data_list = []
 
@@ -100,7 +100,7 @@ def threatstream_export_iocs(filters, update_id):
 
 def threatstream_export(filters):
     if not API_KEY:
-        return {"error": "API key not found."}
+        return {"error": "API key not found"}
 
     total_count = 1001
     update_id = 0
@@ -131,7 +131,7 @@ def threatstream_export(filters):
 
 def threatstream_export_feeds(csv_file, is_exclude=False, update_id=0):
     if not API_KEY:
-        return {"error": "API key not found."}
+        return {"error": "API key not found"}
 
     all_count = 1 if is_exclude else 0
 
@@ -186,7 +186,7 @@ def threatstream_import_indicators(
     source_confidence_weight=40,
 ):
     if not API_KEY:
-        return {"error": "API key not found."}
+        return {"error": "API key not found"}
 
     tags = [{"name": tag} for tag in tags]
 
@@ -213,7 +213,7 @@ def threatstream_import_indicators_without_approval(
     allow_unresolved=True,
 ):
     if not API_KEY:
-        return {"error": "API key not found."}
+        return {"error": "API key not found"}
 
     tags = [{"name": tag} for tag in tags]
 
@@ -240,7 +240,7 @@ def threatstream_import_indicators_without_approval(
 
 def threatstream_import_indicators_stix(file_path, classification, confidence, tags):
     if not API_KEY:
-        return {"error": "API key not found."}
+        return {"error": "API key not found"}
 
     with open(file_path, "rb") as file:
         files = {

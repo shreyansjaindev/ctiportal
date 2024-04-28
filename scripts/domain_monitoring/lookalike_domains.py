@@ -5,7 +5,9 @@ import sys
 import re
 import idna
 from difflib import SequenceMatcher
-from whoisxmlapi import get_newly_registered_domains_df
+from whoisxmlapi import (
+    get_newly_registered_domains_df,
+)
 from api_calls import (
     get_active_companies,
     get_watched_resources,

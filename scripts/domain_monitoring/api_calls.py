@@ -1,43 +1,62 @@
+import os
 import requests
 from datetime import datetime, timedelta
 import pytz
-from api_endpoints import *
-import os
+import logging
+
 from dotenv import load_dotenv
+from api_endpoints import *
 
 load_dotenv()
 
-headers = {
+logger = logging.getLogger(__name__)
+
+API_TOKEN = os.getenv("DRF_AUTH_TOKEN")
+
+HEADERS = {
     "Content-Type": "application/json",
-    "Authorization": f"Token {os.environ.get('DRF_AUTH_TOKEN')}",
+    "Authorization": f"Token {API_TOKEN}",
 }
+
+
+def make_api_request(method, endpoint, params=None, data=None):
+    try:
+        response = requests.request(
+            method, endpoint, headers=HEADERS, params=params, json=data
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request to {endpoint} failed: {e}")
+        return None
 
 
 def get_active_companies():
     params = {"status": "active"}
-    response = requests.get(COMPANIES_ENDPOINT, headers=headers, params=params)
-    return [result["name"] for result in response.json().get("results")]
+    response_data = make_api_request("GET", COMPANIES_ENDPOINT, params=params)
+    return [result["name"] for result in response_data.get("results", [])]
 
 
 def get_watched_resources(company):
     params = {"company": company, "status": "active"}
-    response = requests.get(WATCHED_RESOURCES_ENDPOINT, headers=headers, params=params)
-    results = response.json().get("results", {})
-    return [
-        {
-            "value": result.get("value", "").strip().lower(),
-            "resource_type": result.get("resource_type", ""),
-            "properties": result.get("properties", []),
-            "exclude_keywords": result.get("exclude_keywords", []),
-        }
-        for result in results
-    ]
+    response_data = make_api_request("GET", WATCHED_RESOURCES_ENDPOINT, params=params)
+    if response_data:
+        return [
+            {
+                "value": result.get("value", "").strip().lower(),
+                "resource_type": result.get("resource_type", ""),
+                "properties": result.get("properties", []),
+                "exclude_keywords": result.get("exclude_keywords", []),
+            }
+            for result in response_data.get("results", [])
+        ]
+    return []
 
 
 def get_monitored_domains():
     params = {"status": "active"}
-    response = requests.get(MONITORED_DOMAINS_ENDPOINT, headers=headers, params=params)
-    results = response.json().get("results", {})
+    response_data = make_api_request("GET", MONITORED_DOMAINS_ENDPOINT, params=params)
+    results = response_data.get("results", {})
     monitored_domains = (
         [{"value": domain["value"], "company": domain["company"]} for domain in results]
         if results
@@ -55,7 +74,7 @@ def add_lookalike_domain(resource_match, date, company):
         "status": "open",
         "company": company,
     }
-    response = requests.post(LOOKALIKE_DOMAINS_ENDPOINT, headers=headers, json=data)
+    response = requests.post(LOOKALIKE_DOMAINS_ENDPOINT, headers=HEADERS, json=data)
     return response
 
 
@@ -66,15 +85,15 @@ def add_ssl_certificate(*args, **kwargs):
         "watched_domain": kwargs["watched_domain"],
         "company": kwargs["company"],
     }
-    response = requests.post(SSL_CERTIFICATES_ENDPOINT, headers=headers, json=data)
+    response = requests.post(SSL_CERTIFICATES_ENDPOINT, headers=HEADERS, json=data)
     return response
 
 
 def get_monitored_domains_with_past_check_date():
     today = datetime.now(pytz.utc).strftime("%Y-%m-%d")
     params = {"last_checked__lt": today, "status": "active"}
-    response = requests.get(MONITORED_DOMAINS_ENDPOINT, headers=headers, params=params)
-    monitored_domains = response.json().get("results", {})
+    response_data = make_api_request("GET", MONITORED_DOMAINS_ENDPOINT, params=params)
+    monitored_domains = response_data.get("results", {})
     return monitored_domains
 
 
@@ -85,14 +104,14 @@ def get_ssl_certificates_for_domain_and_company(domain, company):
         "watched_domain": domain,
         "company": company,
     }
-    response = requests.get(SSL_CERTIFICATES_ENDPOINT, headers=headers, params=params)
-    data = response.json().get("results", [])
+    response_data = make_api_request("GET", SSL_CERTIFICATES_ENDPOINT, params=params)
+    data = response_data.get("results", [])
     return [d["cert_domain"] for d in data]
 
 
 # def get_latest_monitored_domain_alert(domain, company):
 #     params = {"domain_name": domain, "company": company, "ordering": "-created"}
-#     response = requests.get(MONITORED_DOMAIN_ALERTS_ENDPOINT, headers=headers, params=params)
+#     response = requests.get(MONITORED_DOMAIN_ALERTS_ENDPOINT, headers=HEADERS, params=params)
 #     alerts = response.json().get("results", [])
 #     return alerts[0] if alerts else None
 
@@ -100,7 +119,7 @@ def get_ssl_certificates_for_domain_and_company(domain, company):
 def post_monitored_domain_alert(data):
     return requests.post(
         MONITORED_DOMAIN_ALERTS_ENDPOINT,
-        headers=headers,
+        headers=HEADERS,
         json=data,
     )
 
@@ -109,7 +128,7 @@ def update_monitored_domain(monitored_domain_id, data):
     data["last_checked"] = datetime.now(pytz.utc).strftime("%Y-%m-%d")
     response = requests.patch(
         f"{MONITORED_DOMAINS_ENDPOINT}{monitored_domain_id}/",
-        headers=headers,
+        headers=HEADERS,
         json=data,
     )
     if response.status_code == 200:

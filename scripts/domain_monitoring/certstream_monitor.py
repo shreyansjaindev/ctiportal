@@ -2,7 +2,10 @@ import certstream
 import time
 import concurrent.futures
 import re
-from api_calls import get_monitored_domains, add_ssl_certificate
+from api_calls import (
+    get_monitored_domains,
+    add_ssl_certificate,
+)
 
 monitored_domains = []
 

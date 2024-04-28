@@ -1,17 +1,27 @@
-from virustotal import get_subdomains
+import logging
+import time
 from concurrent.futures import ThreadPoolExecutor
-from siterelic import get_dns_records, get_website_status, get_website_screenshot
+
 from ipwhois import IPWhois
 import tldextract
-import time
-from image_utils import is_screenshots_similar
+
 from api_calls import (
     get_monitored_domains_with_past_check_date,
     update_monitored_domain,
     get_ssl_certificates_for_domain_and_company,
     post_monitored_domain_alert,
 )
-import logging
+from image_utils import is_screenshots_similar
+from siterelic import get_dns_records, get_website_status, get_website_screenshot
+from virustotal import get_subdomains
+
+logging.basicConfig(
+    filename="domain_monitoring.log",
+    filemode="a",
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
 
 
 def extract_and_filter(raw_list, transformation=None):
@@ -48,7 +58,8 @@ def get_asns_from_ip_list(ip_list):
         try:
             obj = IPWhois(ip)
             results = obj.lookup_rdap()
-        except:
+        except Exception as e:
+            logger.error(f"Error looking up ASN for IP {ip}: {str(e)}")
             results["asn"] = ""
         asn = results.get("asn", "")
         if asn:
@@ -124,26 +135,32 @@ def create_alert(domain_name, company, data, changes):
     if changes:
         changes["domain_name"] = domain_name
         changes["company"] = company
-        response = post_monitored_domain_alert(changes)
-
-        if response.status_code == 201:
-            return True
+        try:
+            response = post_monitored_domain_alert(changes)
+            if response.status_code == 201:
+                return True
+        except Exception as e:
+            logger.error(f"Error creating alert for domain {domain_name}: {str(e)}")
     return False
 
 
 def get_domain_data(domain, company):
-    print(domain)
+    logger.info(f"Fetching DNS records for domain: {domain}")
     dns_records = get_dns_records(domain)
+    logger.info(f"Fetching SSL certificates for domain: {domain}")
     website_certificate = get_ssl_certificates_for_domain_and_company(domain, company)
+    logger.info(f"Fetching subdomains for domain: {domain}")
     subdomains = get_subdomains(domain)
 
     website_status = {"url": "", "code": ""}
     website_screenshot = ""
 
     if dns_records.get("a"):
+        logger.info(f"Fetching website status for domain: {domain}")
         website_status = get_website_status(domain)
 
         if website_status.get("code") == 200:
+            logger.info(f"Fetching website screenshot for domain: {domain}")
             website_screenshot = get_website_screenshot(domain)
 
     return {
@@ -174,23 +191,26 @@ def detect_domain_changes(monitored_domain_data):
     if last_checked != "1900-01-01" and changes:
         create_alert(domain, company, monitored_domain_data, changes)
 
-    print(domain, "updated")
     update_monitored_domain(monitored_domain_data["id"], data)
+    logger.info(f"Domain {domain} updated")
 
 
 def monitor_domains():
     while True:
-        monitored_domains = get_monitored_domains_with_past_check_date()
+        try:
+            monitored_domains = get_monitored_domains_with_past_check_date()
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            futures = [
-                executor.submit(detect_domain_changes, domain)
-                for domain in monitored_domains
-            ]
-            for future in futures:
-                if future.result():
-                    break
-        time.sleep(10)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                futures = [
+                    executor.submit(detect_domain_changes, domain)
+                    for domain in monitored_domains
+                ]
+                for future in futures:
+                    if future.result():
+                        break
+            time.sleep(10)
+        except Exception as e:
+            logger.error(f"Error in monitoring loop: {str(e)}")
 
 
 if __name__ == "__main__":

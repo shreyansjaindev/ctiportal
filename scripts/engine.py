@@ -1,9 +1,10 @@
-from datetime import datetime
 import concurrent.futures
-import sys
-import pytz
-import json
+from datetime import datetime, timezone
 import hashlib
+import json
+import logging
+
+from intelligence_harvester.models import Source
 
 from .lookup import lookup
 from .ibm import ibm
@@ -21,7 +22,15 @@ from .urlscan import urlscan
 from .httpstatus import httpstatus
 from .hostio import hostio
 from .phishtank import phishtank
-from intelligence_harvester.models import Source
+
+
+logging.basicConfig(
+    filename="intelligence_harvester.log",
+    filemode="a",
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
 
 
 SOURCE_INFO = {
@@ -122,7 +131,7 @@ def get_cached_data(hashed_value, source):
 
     if cached_data:
         timestamp_created = cached_data[0].created
-        timestamp_now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        timestamp_now = datetime.now(timezone.utc)
 
         # Time elapsed (in minutes)
         time_elapsed = (
@@ -217,7 +226,7 @@ def update_results_and_database(threads_info, results):
                 )
 
             except Exception as e:
-                print(f"Error: {e}")
+                logger.error(f"Error processing {source} for {value}: {e}")
                 results[value]["source_data"].update(
                     {source: {"results": {"Error": str(e)}}}
                 )
@@ -331,10 +340,3 @@ def collect_data(input_data):
             return results
 
     return None
-
-
-if __name__ == "__main__":
-    value = sys.argv[1]
-    input_type = sys.argv[2]
-    sources = sys.argv[3]
-    print(collect_data(value, input_type, sources))
