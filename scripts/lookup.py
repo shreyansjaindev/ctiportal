@@ -15,7 +15,7 @@ API_KEY = os.getenv("IPAPI").split(",")[0]
 DNS_RECORDS = ["A", "NS", "CNAME", "SOA", "MX", "TXT"]
 
 
-def dns_records(domain, value_type):
+def dns_records(domain, value_type="domain"):
     dns_data = {}
 
     for record in DNS_RECORDS:
@@ -142,11 +142,6 @@ def iplocation(ip):
     return data
 
 
-def domain_lookup(domain):
-    data = get_dns_records(domain)
-    return data
-
-
 def ip_lookup(ip):
     data = ip_to_hostname(ip)
     data.update(ip_to_asn(ip))
@@ -156,9 +151,9 @@ def ip_lookup(ip):
 
 def lookup(query, input_type):
     lookup_dict = {
-        "domain": domain_lookup,
-        "url": lambda query: domain_lookup(
-            tldextract.extract(query).registered_domain, input_type
+        "domain": get_dns_records,
+        "url": lambda query: get_dns_records(
+            tldextract.extract(query).registered_domain
         ),
         "ipv4": ip_lookup,
         "ipv6": ip_lookup,

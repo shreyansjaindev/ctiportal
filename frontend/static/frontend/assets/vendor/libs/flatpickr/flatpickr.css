@@ -50,11 +50,11 @@ html:not([dir=rtl]) .flatpickr-calendar.hasWeeks .flatpickr-days {
 [dir=rtl] .flatpickr-calendar.hasWeeks .flatpickr-days {
   border-bottom-right-radius: 0 !important;
 }
+.flatpickr-calendar.hasTime {
+  padding-bottom: 0;
+}
 .flatpickr-calendar.hasTime .flatpickr-time {
   height: 40px;
-}
-.flatpickr-calendar.noCalendar.hasTime {
-  padding-bottom: 0;
 }
 .flatpickr-calendar.noCalendar.hasTime .flatpickr-time {
   height: auto;

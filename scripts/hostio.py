@@ -2,6 +2,7 @@ import requests
 import sys
 import math
 import os
+from urllib.parse import urlparse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -83,6 +84,9 @@ def hostio(query, input_type):
     if input_type == "domain":
         data = hostio_related(params, query)
         # data.update(hostio_redirects(params, query))
+    elif input_type == "url":
+        data = hostio_related(params, urlparse(query).netloc)
+
     elif input_type == "ipv4" or input_type == "ipv6":
         data = hostio_ip(params, query)
     elif input_type == "email":

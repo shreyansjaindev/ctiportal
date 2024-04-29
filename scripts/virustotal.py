@@ -1,6 +1,6 @@
 import requests
 import sys
-import urllib.parse
+import base64
 import os
 
 API_KEYS = os.getenv("VIRUSTOTAL").split(",")
@@ -50,10 +50,17 @@ def domain(query, headers):
 
 
 def url(query, headers):
-    encoded_query = urllib.parse.quote(query, safe="")
+    url_data = {}
+    encoded_query = base64.b64encode(query.encode()).decode()
     response_data = make_api_request(f"urls/{encoded_query}", headers)
+    data = response_data.get("data")
+    attributes = data.get("attributes", {})
 
-    return response_data
+    url_data["Detection"] = attributes.get("last_analysis_stats", {})
+    url_data["Redirection Chain"] = attributes.get("redirection_chain", [])
+    url_data["Final URL"] = attributes.get("last_final_url", "")
+
+    return url_data
 
 
 def ip_address(query, headers):

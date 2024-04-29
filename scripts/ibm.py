@@ -9,11 +9,24 @@ logger = logging.getLogger(__name__)
 API_KEY = os.getenv("IBM_XFORCE", "").split(",")[0]
 
 
-def ibm_ip(ip, headers):
-    url = "https://api.xforce.ibmcloud.com/ipr/history/" + ip
+def make_api_request(endpoint, headers):
+    url = f"https://api.xforce.ibmcloud.com/{endpoint}"
 
-    response = requests.get(url, headers=headers)
-    data = response.json()
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+    except Exception as e:
+        logger.error(f"Error in API request to {url}: {e}")
+        return {"error": str(e)}
+
+    return response.json()
+
+
+def ibm_ip(ip, headers):
+    data = make_api_request(f"ipr/history/{ip}", headers)
+
+    if data.get("error", None):
+        return {"error": data["error"]}
 
     ip_category = str(data["history"][-1]["cats"]).translate(
         {ord(i): None for i in "{'}"}
@@ -31,10 +44,10 @@ def ibm_cve(cve, headers):
     cve_data = {}
     temp_list = []
 
-    url = "https://api.xforce.ibmcloud.com/vulnerabilities/search/" + cve
+    data = make_api_request(f"vulnerabilities/search/{cve}", headers)[0]
 
-    response = requests.get(url, headers=headers)
-    data = response.json()[0]
+    if data.get("error", None):
+        return data
 
     if data.get("xfdbid", None):
         cve_data["ID"] = data.get("xfdbid", "Not Found")
@@ -77,12 +90,13 @@ def ibm_cve(cve, headers):
 def ibm_url(query, headers):
     url_data = {}
     encoded_query = urllib.parse.quote(query, safe="")
-    url = "https://api.xforce.ibmcloud.com/url/" + encoded_query
 
-    response = requests.get(url, headers=headers)
-    data = response.json()
+    data = make_api_request(f"url/{encoded_query}", headers)
+
+    if data.get("error", None):
+        return data
+
     data = data.get("result")
-
     if data:
         url_data["Risk"] = data.get("score", "Not Found")
         url_data["URL"] = data.get("url", "Not Found")
@@ -96,10 +110,12 @@ def ibm_url(query, headers):
 
 def ibm_hash(hash, headers):
     hash_data = {}
-    url = "https://api.xforce.ibmcloud.com/api/malware/" + hash
 
-    response = requests.get(url, headers=headers)
-    data = response.json()
+    data = make_api_request(f"malware/{hash}", headers)
+
+    if data.get("error", None):
+        return data
+
     data = data.get("malware")
 
     if data:
@@ -109,7 +125,6 @@ def ibm_hash(hash, headers):
         hash_data["First Seen"] = external_source_data.get("firstSeen")
         hash_data["Last Seen"] = external_source_data.get("lastSeen")
         hash_data["Malware Type"] = external_source_data.get("malwareType")
-        hash_data["Platform"] = external_source_data.get("platform")
         hash_data["Platform"] = external_source_data.get("platform")
         hash_data["Detection Coverage"] = external_source_data.get("detectionCoverage")
         hash_data["Malware Family"] = external_source_data.get("family")

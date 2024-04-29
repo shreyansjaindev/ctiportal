@@ -211,7 +211,8 @@ table.dataTable.dtr-column > tbody > tr > th.control:before {
   font-family: "Courier New", Courier, monospace;
   content: "+";
   top: 50%;
-  transform: translateY(-50%);
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 table.dataTable.dtr-column > tbody > tr.parent td.dtr-control:before,

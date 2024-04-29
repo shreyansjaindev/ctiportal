@@ -2,6 +2,7 @@ import requests
 import time
 import sys
 import os
+from urllib.parse import urlparse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,21 +14,32 @@ HEADERS = {
 }
 
 
-def get_whois(domain, value_type):
+def get_whois(value, value_type):
+    if value_type == "domain":
+        domain = value
+    elif value_type == "url":
+        domain = urlparse(value).netloc
+    else:
+        return {"error": "Invalid value type"}
+
     if not API_KEY:
         logger.error("API key not found")
         return {"error": "API key not found"}
 
     url = f"https://api.securitytrails.com/v1/domain/{domain}/whois"
 
-    for _ in range(5):  # Maximum of 10 retries
+    for _ in range(5):  # Maximum of 5 retries
         try:
             response = requests.get(url, headers=HEADERS)
-            response.raise_for_status()  # Raises a HTTPError if the status is 4xx, 5xx
-        except requests.exceptions.RequestException as e:
-            print(e)
-            time.sleep(2)
-            continue
+            if response.status_code == 429:
+                time.sleep(2)
+                continue
+            elif response.status_code == 403:
+                return {"error": response.json().get("message", {})}
+
+        except Exception as e:
+            logger.error(f"Error in API request to {url}: {e}")
+            break
 
         results = response.json()
 

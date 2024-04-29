@@ -16,7 +16,7 @@ const createAdditionalLinks = (type, value) => {
     case 'domain':
       additional_links = {
         anomali: `${baseUrls.anomali}/${type}/${value}`,
-        alienvault: `${baseUrls.alienvault}/${type}/${value}`,
+        alienvault: `${baseUrls.alienvault}/indicator/${type}/${value}`,
         talos: `${baseUrls.talos}/lookup?search=${value}`,
         securitytrails: `${baseUrls.securitytrails}/${type}/${value}`,
         ctlsearch: `${baseUrls.ctlsearch}/?q=${value}`,
@@ -26,14 +26,14 @@ const createAdditionalLinks = (type, value) => {
     case 'email':
       additional_links = {
         anomali: `${baseUrls.anomali}/${type}/${value}`,
-        alienvault: `${baseUrls.alienvault}/${type}/${value}`,
+        alienvault: `${baseUrls.alienvault}/indicator/${type}/${value}`,
       };
       break;
     case 'ipv4':
     case 'ipv6':
       additional_links = {
         anomali: `${baseUrls.anomali}/ip/${value}`,
-        alienvault: `${baseUrls.alienvault}/ip/${value}`,
+        alienvault: `${baseUrls.alienvault}/indicator/ip/${value}`,
         talos: `${baseUrls.talos}/lookup?search=${value}`,
         securitytrails: `${baseUrls.securitytrails}/list/ip/${value}`,
         spur: `${baseUrls.spur}/context/${value}`,
@@ -45,7 +45,7 @@ const createAdditionalLinks = (type, value) => {
     case 'sha512':
       additional_links = {
         anomali: `${baseUrls.anomali}/hash/${value}`,
-        alienvault: `${baseUrls.alienvault}/file/${value}`,
+        alienvault: `${baseUrls.alienvault}/indicator/file/${value}`,
       };
       break;
     case 'cve':

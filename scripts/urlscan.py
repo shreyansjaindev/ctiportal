@@ -118,13 +118,13 @@ def filter(data):
         page = data.get("page", {})
         filtered_data = {
             "id": id,
-            "time": task.get("time"),
-            "url": task.get("url"),
-            "domain": page.get("domain"),
-            "ip": page.get("ip"),
-            "asn_name": page.get("asnname"),
-            "asn": page.get("asn"),
-            "link": data.get("result"),
+            "time": task.get("time", ""),
+            "url": task.get("url", ""),
+            "domain": page.get("domain", ""),
+            "ip": page.get("ip", ""),
+            "asn_name": page.get("asnname", ""),
+            "asn": page.get("asn", ""),
+            "link": data.get("result", "").replace("api/v1/", "", 1),
         }
     return filtered_data
 
@@ -136,6 +136,7 @@ def urlscan(query, input_type):
         return {"error": "API key not found"}
 
     data = {}
+    print("Query: ", query)
 
     if input_type in ["domain", "url", "ipv4"]:
         data = filter(search(query, input_type))

@@ -38,9 +38,14 @@ def blacklists(query, value_type):
         status = "Blacklisted" if blacklists else "Not Listed"
         data = {
             "status": status,
-            "blacklists": list(blacklists),
-            "count": len(blacklists),
         }
+        if status == "Blacklisted":
+            data.update(
+                {
+                    "blacklists": list(blacklists),
+                    "count": len(blacklists),
+                }
+            )
         return data
 
 

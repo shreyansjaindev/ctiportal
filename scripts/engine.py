@@ -61,7 +61,7 @@ SOURCE_INFO = {
     "symantec": {
         "title": "Symantec Sitereview",
         "function": symantec_sitereview,
-        "supported_types": ["domain", "url"],
+        "supported_types": ["domain", "url", "ipv4"],
     },
     "nvd": {"title": "NVD", "function": nvd, "supported_types": ["cve"]},
     "hybridanalysis": {
@@ -82,7 +82,7 @@ SOURCE_INFO = {
     "virustotal": {
         "title": "VirusTotal",
         "function": virustotal,
-        "supported_types": ["domain", "ipv4", "md5", "sha1", "sha256", "sha512"],
+        "supported_types": ["domain", "ipv4", "url", "md5", "sha1", "sha256", "sha512"],
     },
     "abuseipdb": {
         "title": "AbuseIPDB",
@@ -97,12 +97,12 @@ SOURCE_INFO = {
     "urlscan": {
         "title": "urlscan.io",
         "function": urlscan,
-        "supported_types": ["domain"],
+        "supported_types": ["domain", "url", "ipv4"],
     },
     "httpstatus": {
         "title": "HTTP Status",
         "function": httpstatus,
-        "supported_types": ["domain", "url"],
+        "supported_types": ["domain", "url", "ipv4"],
     },
     "hostio": {
         "title": "host.io",
@@ -112,7 +112,7 @@ SOURCE_INFO = {
     "phishtank": {
         "title": "PhishTank",
         "function": phishtank,
-        "supported_types": ["domain", "url"],
+        "supported_types": ["domain", "url", "ipv4"],
     },
     "blacklists": {
         "title": "Blacklists",
@@ -214,7 +214,10 @@ def update_results_and_database(threads_info, results):
                     }
                 )
 
-                if result.get("error") or source == "screenshot":
+                if source == "screenshot":
+                    continue
+
+                if result.get("error"):
                     continue
 
                 Source.objects.update_or_create(
@@ -230,7 +233,6 @@ def update_results_and_database(threads_info, results):
                 results[value]["source_data"].update(
                     {source: {"results": {"Error": str(e)}}}
                 )
-
     return results
 
 

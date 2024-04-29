@@ -10,12 +10,12 @@ API_KEY = os.getenv("PHISHTANK").split(",")[0]
 API_URL = "https://checkurl.phishtank.com/checkurl/"
 
 
-def check_url(url):
-    valid_url = urlparse(url)
+def check_url(value):
+    valid_url = urlparse(value)
     if valid_url.scheme in ["http", "https"]:
-        return url
+        return value
 
-    return "http://" + url
+    return "http://" + value
 
 
 def get_results(url):
