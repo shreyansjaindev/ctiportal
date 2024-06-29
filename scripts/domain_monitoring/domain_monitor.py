@@ -12,6 +12,9 @@ from api_calls import (
     post_monitored_domain_alert,
 )
 from image_utils import is_screenshots_similar
+# from securitytrails import get_dns_records
+# from screenshotmachine import get_website_screenshot
+# from website_status import get_website_status
 from siterelic import get_dns_records, get_website_status, get_website_screenshot
 from virustotal import get_subdomains
 
@@ -98,7 +101,7 @@ def change_validator(existing_data, new_data):
     if new_data.get("website_certificate"):
         results["website_certificate"] = new_data["website_certificate"]
 
-    if new_data.get("website_status_code") == 200:
+    if new_data.get("website_status_code") == "200" or new_data.get("website_status_code") == 200:
         old_website_screenshot = existing_data.get("website_screenshot")
         new_website_screenshot = new_data.get("website_screenshot")
 
@@ -159,7 +162,7 @@ def get_domain_data(domain, company):
         logger.info(f"Fetching website status for domain: {domain}")
         website_status = get_website_status(domain)
 
-        if website_status.get("code") == 200:
+        if website_status.get("code") == "200" or website_status.get("code") == 200:
             logger.info(f"Fetching website screenshot for domain: {domain}")
             website_screenshot = get_website_screenshot(domain)
 

@@ -19,7 +19,7 @@ import Levenshtein
 import logging
 
 QUERY_LENGTH_THRESHOLD = 15
-DISTANCE_RATIO = 4.5
+DISTANCE_RATIO = 4
 
 
 def levenshtein_distance(s1, s2):
@@ -71,7 +71,7 @@ def calculate_similarity_domain(query_domain, domain, properties):
     query_domain_name = query_domain.split(".", 1)[0]
     query_domain_name_without_hyphen = query_domain_name.replace("-", "")
     query_domain_name_translated = query_domain_name.translate(
-        str.maketrans("gl", "qi")
+        str.maketrans("glw", "qiv")
     )
 
     unidecoded_domain = unidecode(domain)
@@ -82,7 +82,7 @@ def calculate_similarity_domain(query_domain, domain, properties):
     unidecoded_domain_name_without_hyphen = unidecoded_domain_name.replace("-", "")
     unidecoded_domain_name_with_tld = unidecoded_domain.replace(".", "")
     unidecoded_domain_name_translated = unidecoded_domain_name.translate(
-        str.maketrans("gl", "qi")
+        str.maketrans("glw", "qiv")
     )
 
     if not typo_match:
@@ -281,11 +281,7 @@ def identify_lookalike_domains(queries, company, date, df):
             else:
                 best_resource_match["risk"] = 0
 
-            if best_resource_match.get(
-                "resource_type"
-            ) == "domain" and not best_resource_match.get(
-                "first_character_match", False
-            ):
+            if best_resource_match.get("resource_type") == "domain" and not best_resource_match.get("first_character_match", False):
                 best_resource_match["risk"] -= 1
 
             if best_resource_match["risk"] > 0:

@@ -7,15 +7,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-API_KEYS = os.getenv("SCREENSHOTMACHINE")
+API_KEYS = os.getenv("SCREENSHOTMACHINE").split(",")
 
 
 def generate_api_url(api_key, query):
-    dimension = "1366x768"
+    dimension = "1920x1080"
     if not query.startswith(("http://", "https://")):
         query = "http://" + query
-
-    return f"https://api.screenshotmachine.com/?key={api_key}&url={query}&dimension={dimension}"
+    return f"https://api.screenshotmachine.com/?key={api_key}&url={query}&device=desktop&dimension={dimension}&format=png&cacheLimit=0&delay=2000"
 
 
 def get_website_screenshot(query):
@@ -24,9 +23,9 @@ def get_website_screenshot(query):
     while True:
         filename = str(uuid.uuid4()) + ".png"
         filepath = os.path.join(SCREENSHOT_DIRECTORY, filename)
-        if not os.path.exists(filepath):
-            break
-
+        if os.path.exists(filepath):
+            continue
+        break
     for customer_key in API_KEYS:
         api_url = generate_api_url(customer_key, query)
         response = requests.get(api_url)
@@ -45,3 +44,5 @@ def get_website_screenshot(query):
         return filename
 
     return filename
+
+get_website_screenshot("fisglobal.com")

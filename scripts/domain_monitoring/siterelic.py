@@ -26,6 +26,7 @@ def post_request(url, payload):
 
     try:
         response = requests.post(url, headers=headers, data=payload, timeout=10)
+        print(response.content)
         response.raise_for_status()
         return response.json()
     except RequestException as e:
@@ -120,4 +121,4 @@ def get_website_status(query):
 
 if __name__ == "__main__":
     query = sys.argv[1]
-    print(get_website_status(query))
+    print(get_dns_records(query))

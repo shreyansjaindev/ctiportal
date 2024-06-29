@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.INFO)
 
-base_dir = r"D:\VM Share\ctiportal"
+base_dir = r"D:\apps\ctiportal"
 venv_python = os.path.join(base_dir, "venv", "Scripts", "python.exe")
 
 ctiportal_script_path = os.path.join(base_dir, "runserver.py")

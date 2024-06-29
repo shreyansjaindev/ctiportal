@@ -260,5 +260,5 @@ if __name__ == "__main__":
         "value__exact": "26953b9fc21c38f2933c0a114a0f7091f082b0321780afef6086ccc5cf1619f3",
         "type__exact": "hash",
     }
-    print(threatstream_import_indicators())
-    # print(threatstream_export(query))
+    print(API_KEY)
+    print(threatstream_export(query))
