@@ -1,5 +1,5 @@
 BASE_URL = "http://localhost/api/domain-monitoring/"
-API_LOGIN_URL = "http://localhost/api_login/"
+API_LOGIN_URL = "http://localhost/api-login/"
 
 COMPANIES_ENDPOINT = BASE_URL + "companies/"
 WATCHED_RESOURCES_ENDPOINT = BASE_URL + "watched-resources/"

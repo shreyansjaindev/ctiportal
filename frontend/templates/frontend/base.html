@@ -295,11 +295,9 @@
     {% block page_js %}
     {% endblock page_js %}
     <!-- JS/JQuery-->
+    <script>window.CSRFToken = '{{ csrf_token }}';</script>
     <script src="{% static 'frontend/utils.js' %}"></script>
-    <script src="{% static 'frontend/auth.js' %}"></script>
-    <script>
-      window.CSRFToken = '{{ csrf_token }}';
-    </script>
+    <script src="{% static 'frontend/logout.js' %}"></script>
     {% block js %}
     {% endblock js %}
   </body>

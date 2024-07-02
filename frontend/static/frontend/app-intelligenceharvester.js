@@ -9,6 +9,14 @@ const baseUrls = {
   spur: 'https://spur.us',
 };
 
+const generateSVGIcon = (cursorPointer, textClass, checked) => {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${textClass} ${cursorPointer ? 'cursor-pointer' : ''}">
+    <circle cx="12" cy="12" r="10" visibility="${checked ? 'hidden' : 'visible'}"></circle>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" visibility=${checked ? 'visible' : ''}></path>
+    <polyline points="22 4 12 14.01 9 11.01" visibility=${checked ? 'visible' : 'hidden'}></polyline>
+  </svg>`;
+}
+
 const createAdditionalLinks = (type, value) => {
   let additional_links = {};
 
@@ -66,9 +74,8 @@ const createAdditionalLinks = (type, value) => {
 const appendAdditionalLinks = (id, additional_links) => {
   $.each(additional_links, (key, value) => {
     const html = `
-      <a href="${value}" class="btn btn-white mb-1 me-2 p-2 border shadow-sm rounded-circle" target="_blank" data-toggle="tooltip" data-placement="top" title="${
-      additionalSources[key]
-    }">
+      <a href="${value}" class="btn btn-white mb-1 me-2 p-2 border shadow-sm rounded-circle" target="_blank" data-toggle="tooltip" data-placement="top" title="${additionalSources[key]
+      }">
         <img src="${staticLocation + key}.png" class="custom-icon cursor-pointer" alt="${additionalSources[key]}" />
       </a>
     `;
@@ -96,11 +103,11 @@ const createItemElement = (id, value) => `
   </div>
 `;
 
-const createCardElement = (id, check, sourceInfo, reloadIcon) => `
+const createCardElement = (id, check, sourcesInfo, reloadIcon) => `
   <div class="col-lg-4 col-12 mb-4">
     <div class="card card-action">
       <div class="card-header">
-        <h4 class="card-action-title">${sourceInfo[check].title}</h4>
+        <h4 class="card-action-title">${sourcesInfo[check].title}</h4>
         <div class="card-action-element">
           <ul id="${check}-${id}-card-action-element" class="list-inline mb-0">
             <li class="list-inline-item"><a href="javascript:void(0);" class="card-reload">${reloadIcon}</a></li>
@@ -162,8 +169,8 @@ const createObjectHtml = (temp_check, temp_data) => {
       formattedValue = Array.isArray(value)
         ? value.join('<br>')
         : Object.entries(value)
-            .map(([k, v]) => `${k}: ${v}<br>`)
-            .join('');
+          .map(([k, v]) => `${k}: ${v}<br>`)
+          .join('');
     }
 
     let formattedKey = key.replace(/_/g, ' ').toUpperCase();
@@ -178,12 +185,9 @@ const createObjectHtml = (temp_check, temp_data) => {
 };
 
 $(document).ready(function () {
-  const circleIcon =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cursor-pointer"><circle cx="12" cy="12" r="10"></circle><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" visibility="hidden"></path><polyline points="22 4 12 14.01 9 11.01" visibility="hidden"></polyline></svg>';
-  const mutedCircleIcon =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><circle cx="12" cy="12" r="10"></circle><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" visibility="hidden"></path><polyline points="22 4 12 14.01 9 11.01" visibility="hidden"></polyline></svg>';
-  const checkedCircleIcon =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success cursor-pointer"><circle cx="12" cy="12" r="10" visibility="hidden"></circle><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+  const circleIcon = generateSVGIcon(true, '', false);
+  const mutedCircleIcon = generateSVGIcon(false, 'text-muted', false);
+  const checkedCircleIcon = generateSVGIcon(true, 'text-success', true);
   const reloadIcon = '<i class="tf-icons ti ti-rotate-clockwise-2 scaleX-n1-rtl ti-sm"></i>';
   const removeIcon = '<i class="ti ti-x ti-sm text-danger cursor-pointer"></i>';
   localStorage.setItem('vOneLocalStorage', JSON.stringify({}));
@@ -233,14 +237,13 @@ $(document).ready(function () {
                     <tr id="todo-item-${trId}" class="todo-item" style="animation-delay: 0s;">
                         <td class="todo-item-id" hidden>#${trId}</td>
                         <td class="todo-item-search"><span class="checkbox-wrapper"><input type="checkbox" name="search-list" value="search" class="item-${trId}" hidden checked></input>${checkedCircleIcon}</span></td>
-                        <td class="todo-item-value" style="min-width: 15ch; max-width: 40ch;">${
-                          isBulk ? `${todoDataLength} Queries` : value
-                        }</td>
+                        <td class="todo-item-value" style="min-width: 15ch; max-width: 40ch;">${isBulk ? `${todoDataLength} Queries` : value
+                  }</td>
                         <td class="todo-item-type" hidden>${isBulk ? 'bulk' : type}</td>
                   `;
 
                 if (!isBulk) {
-                  middle = Object.entries(sourceInfo).map(([source, info]) => {
+                  middle = Object.entries(sourcesInfo).map(([source, info]) => {
                     const checkboxEnabled = info.supported_types.includes(type) ? '' : 'disabled';
                     const checkboxSvg = checkboxEnabled ? mutedCircleIcon : circleIcon;
                     return `<td class="todo-item-${source}">
@@ -251,7 +254,7 @@ $(document).ready(function () {
                   });
                 } else {
                   $('.todo-item').remove();
-                  middle = Object.entries(sourceInfo).map(([source, info]) => {
+                  middle = Object.entries(sourcesInfo).map(([source, info]) => {
                     return `<td class="todo-item-${source}">
                                     <span class="checkbox-wrapper">
                                       <input type="checkbox" name="${source}-list" value="${source}" class="item-${trId}" hidden></input>${circleIcon}
@@ -259,8 +262,8 @@ $(document).ready(function () {
                                   </td>`;
                   });
 
-                  $('#search_all').prop('disabled', true);
-                  $('#export_all').removeClass('btn-outline-primary').addClass('btn-primary');
+                  $('#search-btn').prop('disabled', true);
+                  $('#export-btn').removeClass('btn-outline-primary').addClass('btn-primary');
                 }
 
                 end = `
@@ -362,7 +365,7 @@ $(document).ready(function () {
     }
   }
 
-  $('#export_all').on('click', (e) => {
+  $('#export-btn').on('click', (e) => {
     e.preventDefault();
 
     const todoData = JSON.parse(localStorage.getItem('vOneLocalStorage'));
@@ -434,7 +437,7 @@ $(document).ready(function () {
       .catch((error) => console.error('Error:', error));
   });
 
-  $('#search_all').on('click', function (e) {
+  $('#search-btn').on('click', function (e) {
     e.preventDefault();
 
     $('.item').remove();
@@ -460,7 +463,7 @@ $(document).ready(function () {
 
         for (i = 0; i < checklist.length; i++) {
           let check = checklist[i];
-          $(element).append(createCardElement(id, check, sourceInfo, reloadIcon));
+          $(element).append(createCardElement(id, check, sourcesInfo, reloadIcon));
         }
 
         const indicator = {

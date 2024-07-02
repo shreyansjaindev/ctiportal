@@ -5,6 +5,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import api_view
 import json
+from rest_framework.views import APIView
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 
 from scripts.constants import (
     SOURCES,
@@ -23,20 +26,35 @@ from scripts.threatstream import (
 )
 
 
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        logout(request)
+        return Response(status=status.HTTP_200_OK)
+
+
+class UserInfoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({"username": request.user.username})
+
+
 def login_user(request):
     return render(request, "frontend/auth-login.html", {})
 
 
-@api_view(["POST"])
-def api_login(request):
-    username = request.data.get("user")
-    password = request.data.get("password")
-    user = authenticate(request, username=username, password=password)
-    if user is not None:
-        login(request, user)
-        return Response({"status": "success"})
-    else:
-        return Response({"status": "invalid credentials"})
+class LoginView(APIView):
+    def post(self, request, format=None):
+        username = request.data.get("user")
+        password = request.data.get("password")
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return Response(status=status.HTTP_200_OK)
+        else:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(["POST"])
@@ -49,18 +67,6 @@ def logout_user(request):
 @login_required
 def githubmonitoring(request):
     context = {}
-    # if request.POST:
-    #     request_type = request.POST.get("type")
-    #     if request_type == 'query-keywords':
-    #         context = github_keywords(request_type)
-    #     elif request_type == 'scrape-keywords':
-    #         context = github_keywords(request_type)
-    #     else:
-    #         filters = json.loads(request.POST.get("filters"))
-    #         timeframe = json.loads(request.POST.get("timeframe"))
-    #         context = github_query(filters, timeframe)
-    #     return JsonResponse(context)
-    # else:
     return render(request, "frontend/githubmonitoring.html", context)
 
 
@@ -84,12 +90,6 @@ def threatstream(request):
 @login_required
 def nrd(request):
     context = {}
-    # if request.method == 'POST':
-    #     filters = json.loads(request.POST.get("filters"))
-    #     timeframe = json.loads(request.POST.get("timeframe"))
-    #     context = nrd_query(filters, timeframe)
-    #     return JsonResponse(context)
-    # else:
     return render(request, "frontend/nrd.html", context)
 
 

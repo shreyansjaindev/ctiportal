@@ -71,25 +71,6 @@
   <script src="{% static 'frontend/assets/vendor/libs/@form-validation/umd/plugin-bootstrap5/index.min.js' %}"></script>
   <script src="{% static 'frontend/assets/vendor/libs/@form-validation/umd/plugin-auto-focus/index.min.js' %}"></script>
 {% endblock vendor_js %}
-{% block page_js %}
-  <script>
-    document.querySelector('form').addEventListener('submit', function(event) {
-      event.preventDefault(); // Prevent the form from submitting normally
-
-      const user = document.querySelector('#user').value;
-      const password = document.querySelector('#password').value;
-
-      fetch('/api_login/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json',"X-CSRFToken": "{{csrf_token}}"},
-        body: JSON.stringify({ user: user, password: password })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data) {
-          window.location.href = '/';
-        }
-      });
-    });
-  </script>
-{% endblock page_js %}
+{% block js %}
+  <script async src="{% static 'frontend/login.js' %}"></script>
+{% endblock js %}

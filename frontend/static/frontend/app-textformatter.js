@@ -3,6 +3,35 @@ const formattedText = $('#formattedtext');
 const form = $('form');
 const url = '/textformatter/';
 
+const options = [
+  { id: 'extractIOCs', value: 'iocs', label: 'Extract IOCs', disabled: true },
+  { id: 'uncheckedFang', value: 'fang', label: 'Fang' },
+  { id: 'uncheckedDefang', value: 'defang', label: 'Defang' },
+  { id: 'uncheckedDomain', value: 'domain', label: 'Extract Domain' },
+  { id: 'delimiter', value: 'comma', label: 'Add Delimiter ( , )' },
+  { id: 'duplicates', value: 'duplicates', label: 'Remove Duplicates' },
+  { id: 'uncheckedLowerCase', value: 'lowercase', label: 'Lower Case' },
+  { id: 'uncheckedUpperCase', value: 'uppercase', label: 'Upper Case' },
+];
+
+const listItems = options
+  .map(
+    ({ id, value, label, disabled }) => `
+  <li class="d-inline-block me-2">
+    <div class="form-check">
+      <input class="form-check-input"
+             type="checkbox"
+             id="${id}"
+             name="checklist"
+             value="${value}"
+             ${disabled ? 'disabled' : ''}>
+      <label class="form-check-label" for="${id}">${label}</label>
+    </div>
+  </li>
+`
+  )
+  .join('');
+
 function generateHTML(response) {
   $.each(response.data, (key, value) => {
     const addDelimiter = response.checklist.includes('comma') && key === 'formattedtext' ? ', ' : '<br>';
@@ -44,23 +73,29 @@ function generateHTML(response) {
 }
 
 $(document).ready(() => {
-  const fangCheckbox = document.getElementById('UncheckedFang');
-  const defangCheckbox = document.getElementById('UncheckedDefang');
-  const domainCheckbox = document.getElementById('UncheckedDomain');
-  const lowercaseCheckbox = document.getElementById('UncheckedLowerCase');
-  const uppercaseCheckbox = document.getElementById('UncheckedUpperCase');
+  document.querySelector('.list-unstyled').innerHTML = listItems;
 
-  fangCheckbox.addEventListener('change', () => (defangCheckbox.checked = false));
-  defangCheckbox.addEventListener('change', () => {
-    fangCheckbox.checked = false;
-    domainCheckbox.checked = false;
-  });
+  $('.list-unstyled').on('change', 'input[type="checkbox"]', function () {
+    const { id, checked } = this;
 
-  lowercaseCheckbox.addEventListener('change', () => (uppercaseCheckbox.checked = false));
-  uppercaseCheckbox.addEventListener('change', () => (lowercaseCheckbox.checked = false));
-  domainCheckbox.addEventListener('change', () => {
-    fangCheckbox.checked = true;
-    defangCheckbox.checked = false;
+    switch (id) {
+      case 'uncheckedFang':
+        $('#uncheckedDefang').prop('checked', false);
+        break;
+      case 'uncheckedDefang':
+        $('#uncheckedFang, #uncheckedDomain').prop('checked', false);
+        break;
+      case 'uncheckedLowerCase':
+        $('#uncheckedUpperCase').prop('checked', false);
+        break;
+      case 'uncheckedUpperCase':
+        $('#uncheckedLowerCase').prop('checked', false);
+        break;
+      case 'uncheckedDomain':
+        $('#uncheckedFang').prop('checked', true);
+        $('#uncheckedDefang').prop('checked', false);
+        break;
+    }
   });
 });
 
