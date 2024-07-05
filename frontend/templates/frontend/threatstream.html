@@ -1,0 +1,246 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% block vendor_css %}
+{% endblock vendor_css %}
+{% block page_css %}
+  <link rel="stylesheet"
+        href="{% static 'frontend/assets/vendor/libs/dropzone/dropzone.css' %}">
+{% endblock page_css %}
+{% block title %}
+  Anomali ThreatStream Search
+{% endblock title %}
+{% block content_title %}
+  Anomali ThreatStream Search
+{% endblock content_title %}
+{% block content_body %}
+  <div class="row">
+    <form class="form-horizontal" novalidate>
+      <div class="card">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-lg-4 col-md-6 col-12">
+              <div class="mb-1">
+                <fieldset class="form-group">
+                  <label class="form-label" for="value">Value</label>
+                  <div class="row">
+                    <div class="col-auto">
+                      <select class="form-select" name="value">
+                        <option value="exact">Exact</option>
+                        <option value="contains">Contains</option>
+                        <option value="starts_with">Starts With</option>
+                        <option value="regex">Regex</option>
+                        <option value="regexp">Regexp</option>
+                      </select>
+                    </div>
+                    <div class="col ps-0">
+                      <input type="text" class="form-control" name="value">
+                    </div>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-6 col-12">
+              <div class="mb-1">
+                <fieldset class="form-group">
+                  <label class="form-label" for="tags.name">Tag</label>
+                  <div class="row">
+                    <div class="col-auto">
+                      <select class="form-select" name="tags.name">
+                        <option value="exact">Exact</option>
+                        <option value="contains">Contains</option>
+                        <option value="starts_with">Starts With</option>
+                      </select>
+                    </div>
+                    <div class="col ps-0">
+                      <input type="text" class="form-control" name="tags.name">
+                    </div>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-6 col-12">
+              <div class="mb-1">
+                <fieldset class="form-group">
+                  <label class="form-label" for="itype">iType</label>
+                  <div class="row">
+                    <div class="col-auto">
+                      <select class="form-select" name="itype">
+                        <option value="exact">Exact</option>
+                        <option value="contains">Contains</option>
+                        <option value="starts_with">Starts With</option>
+                        <option value="regex">Regex</option>
+                        <option value="regexp">Regexp</option>
+                      </select>
+                    </div>
+                    <div class="col ps-0">
+                      <input type="text" class="form-control" name="itype">
+                    </div>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-6 col-12">
+              <div class="mb-1">
+                <fieldset class="form-group">
+                  <label class="form-label" for="threat_type">Threat Type</label>
+                  <div class="row">
+                    <div class="col-auto">
+                      <select class="form-select" name="threat_type">
+                        <option value="contains">Contains</option>
+                        <option value="starts_with">Starts With</option>
+                        <option value="ends_with">Ends With</option>
+                      </select>
+                    </div>
+                    <div class="col ps-0">
+                      <input type="text" class="form-control" name="threat_type">
+                    </div>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-6 col-12">
+              <div class="mb-1">
+                <fieldset class="form-group">
+                  <label class="form-label" for="source_reported_confidence">Source Reported Confidence</label>
+                  <div class="row">
+                    <div class="col-auto">
+                      <select class="form-select" name="source_reported_confidence">
+                        <option value="exact">Exact</option>
+                        <option value="gt">Greater Than</option>
+                        <option value="lt">Lower Than</option>
+                        <option value="gte">Greater Than Equal To</option>
+                        <option value="lte">Lower Than Equal To</option>
+                      </select>
+                    </div>
+                    <div class="col ps-0">
+                      <input type="text" class="form-control" name="source_reported_confidence">
+                    </div>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-6 col-12">
+              <div class="mb-1">
+                <fieldset class="form-group">
+                  <label class="form-label" for="ip">IP Address</label>
+                  <div class="row">
+                    <div class="col-auto">
+                      <select class="form-select" name="ip">
+                        <option value="contains">Contains</option>
+                        <option value="starts_with">Starts With</option>
+                        <option value="ends_with">Ends With</option>
+                      </select>
+                    </div>
+                    <div class="col ps-0">
+                      <input type="text" class="form-control" name="ip">
+                    </div>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-6">
+              <div class="ps-1 pe-1 mb-1">
+                <fieldset class="form-group">
+                  <label class="form-label" for="type">Type</label>
+                  <div class="row">
+                    <select class="form-select" name="type">
+                      <option value=""></option>
+                      <option value="domain">Domain</option>
+                      <option value="email">Email Address</option>
+                      <option value="ip">IP Address</option>
+                      <option value="string">String</option>
+                      <option value="url">URL</option>
+                      <option value="hash">Hash</option>
+                      <option value="md5">MD5</option>
+                      <option value="sha1">SHA1</option>
+                      <option value="sha256">SHA256</option>
+                      <option value="sha512">SHA512</option>
+                    </select>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            <div class="col-xl-3 col-md-4 col-6">
+              <div class="ps-1 pe-1 mb-1">
+                <fieldset class="form-group">
+                  <label class="form-label" for="meta.severity">Severity</label>
+                  <div class="row">
+                    <select class="form-select" name="meta.severity">
+                      <option value=""></option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="very-high">Very High</option>
+                    </select>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            <div class="col-xl-3 col-md-4 col-6">
+              <div class="ps-1 pe-1 mb-1">
+                <fieldset class="form-group">
+                  <label class="form-label" for="status">Status</label>
+                  <div class="row">
+                    <select class="form-select" name="status">
+                      <option value=""></option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="falsepos">False Positive</option>
+                    </select>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            <div class="col-xl-3 col-md-4 col-6">
+              <div class="ps-1 pe-1 mb-1">
+                <fieldset class="form-group">
+                  <label class="form-label" for="tlp">TLP</label>
+                  <div class="row">
+                    <select class="form-select" name="tlp">
+                      <option value=""></option>
+                      <option value="white">White</option>
+                      <option value="green">Green</option>
+                      <option value="amber">Amber</option>
+                      <option value="red">Red</option>
+                    </select>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            <div class="d-grid col-12 mt-3">
+              <button id="btn-search"
+                      type="submit"
+                      class="btn btn-primary waves-effect waves-light">Export</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="row mt-3">
+    <div class="col-12">
+      <div class="card mb-4">
+        <h5 class="card-header">IoC Sources List Export</h5>
+        <div class="card-body">
+          <form class="dropzone needsclick" id="dropzone-basic">
+            <div class="dz-message needsclick">
+              Drop files here or click to upload
+              <span class="note needsclick">(This is just a demo dropzone. Selected files are <span class="fw-medium">not</span> actually uploaded.)</span>
+            </div>
+            <div class="fallback">
+              <input name="file" type="file" />
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content_body %}
+{% block vendor_js %}
+  <script src="{% static 'frontend/assets/vendor/libs/dropzone/dropzone.js' %}"></script>
+{% endblock vendor_js %}
+{% block page_js %}
+{% endblock page_js %}
+{% block js %}
+  <script src="{% static 'frontend/app-threatstream.js' %}"></script>
+{% endblock js %}

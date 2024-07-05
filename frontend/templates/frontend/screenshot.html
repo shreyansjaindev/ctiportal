@@ -1,0 +1,54 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% block title %}
+  Website Screenshot
+{% endblock title %}
+{% block additional_css %}
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css">
+{% endblock additional_css %}
+{% block content_title %}
+  Website Screenshot
+{% endblock content_title %}
+{% block content_body %}
+  <section class="basic-textarea">
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-content">
+            <div class="card-body">
+              <form id="form-query">
+                <!-- Input IOCs -->
+                <div class="col-12">
+                  <fieldset>
+                    <label for="textarea-query">
+                      <b>Enter URL(s)</b>
+                    </label>
+                    <textarea name="query"
+                              form="form-query"
+                              placeholder="Enter URL(s), comma or line seperated"
+                              id="textarea-query"
+                              class="form-control"
+                              style="resize:none"
+                              rows="3"
+                              autofocus></textarea>
+                  </fieldset>
+                </div>
+                <div class="col-12 text-center">
+                  <div class="form-group d-grid mt-3">
+                    <button class="btn btn-primary waves-effect waves-light">View</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row text-center text-lg-left mt-4" id="weburl-screenshots"></div>
+  </section>
+{% endblock content_body %}
+{% block js %}
+  <script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script>
+  <script src="{% static 'frontend/app-screenshot.js' %}"></script>
+{% endblock js %}

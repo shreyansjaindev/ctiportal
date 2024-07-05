@@ -1,0 +1,50 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% block title %}
+    Text Formatter
+{% endblock title %}
+{% block content_title %}
+    Text Formatter
+{% endblock content_title %}
+{% block content_body %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-content">
+                    <div class="card-body">
+                        <form id="form-query">
+                            <!-- Input IOCs -->
+                            <div class="col-12">
+                                <fieldset>
+                                    <label for="textarea-query">
+                                        <b>Enter Text</b>
+                                    </label>
+                                    <textarea name="query"
+                                              form="form-query"
+                                              placeholder="Enter text, comma or line seperated"
+                                              id="textarea-query"
+                                              class="form-control"
+                                              style="resize:none"
+                                              rows="3"
+                                              autofocus></textarea>
+                                </fieldset>
+                                <ul class="list-unstyled mb-0 mt-2">
+                                </ul>
+                            </div>
+                            <div class="col-12 text-center">
+                                <div class="form-group d-grid mt-3">
+                                    <button class="btn btn-primary waves-effect waves-light">Submit</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="formattedtext" class="col-12 mt-4"></div>
+        <div id="extracted-iocs" class="col-12 mt-4"></div>
+    </div>
+{% endblock content_body %}
+{% block js %}
+    <script src="{% static 'frontend/app-textformatter.js' %}"></script>
+{% endblock js %}
