@@ -161,7 +161,6 @@ def get_domain_data(domain, company):
     if dns_records.get("a"):
         logger.info(f"Fetching website status for domain: {domain}")
         website_status = get_website_status(domain)
-
         if website_status.get("code") == "200" or website_status.get("code") == 200:
             logger.info(f"Fetching website screenshot for domain: {domain}")
             website_screenshot = get_website_screenshot(domain)
@@ -185,15 +184,13 @@ def detect_domain_changes(monitored_domain_data):
 
     data = get_domain_data(domain, company)
     changes = change_validator(monitored_domain_data, data)
-
     old_screenshot = monitored_domain_data.get("website_screenshot", "")
     new_screenshot = changes.get("website_screenshot", "")
     if old_screenshot and not new_screenshot:
         data["website_screenshot"] = old_screenshot
-
+    
     if last_checked != "1900-01-01" and changes:
         create_alert(domain, company, monitored_domain_data, changes)
-
     update_monitored_domain(monitored_domain_data["id"], data)
     logger.info(f"Domain {domain} updated")
 

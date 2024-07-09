@@ -26,7 +26,6 @@ def post_request(url, payload):
 
     try:
         response = requests.post(url, headers=headers, data=payload, timeout=10)
-        print(response.content)
         response.raise_for_status()
         return response.json()
     except RequestException as e:
@@ -105,7 +104,7 @@ def get_website_screenshot(query, max_retries=5, retry_delay=1):
 
 def get_website_status(query):
     url = f"{BASE_URL}/redirectcheck"
-    payload = json.dumps({"url": query, "proxyCountry": "us"})
+    payload = json.dumps({"url": query})
 
     try:
         results = post_request(url, payload)
@@ -117,8 +116,9 @@ def get_website_status(query):
     except (RequestException, ValueError, Timeout) as e:
         logger.error(f"Error fetching website status for {query}: {e}")
         return {"url": "", "code": ""}
+    return {"url": "", "code": ""}
 
 
 if __name__ == "__main__":
     query = sys.argv[1]
-    print(get_dns_records(query))
+    print(get_website_status(query))
