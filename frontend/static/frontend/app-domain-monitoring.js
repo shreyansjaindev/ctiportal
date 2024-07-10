@@ -679,7 +679,7 @@ const initializeLookalikeDomainsDatatable = (url, filters) => {
 
   const buttons = [
     {
-      text: 'Block and Add to Monitoring',
+      text: 'Add to Monitoring',
       className: 'lookalike-domains-btn-add btn btn-primary btn-toggle ms-2',
     },
     {
@@ -940,7 +940,7 @@ $(() => {
       .toArray();
 
     addDomainsToMonitoring(selectedData);
-    blockDomains(selectedData);
+    // blockDomains(selectedData);
     selectedRows.deselect();
   });
 
@@ -949,7 +949,7 @@ $(() => {
     if (e.target.checkValidity()) {
       addDomainModal.modal('hide');
       const [{ value: domain_name }, { value: company }] = $(this).serializeArray();
-      blockDomains([{ domain_name, company }]);
+      // blockDomains([{ domain_name, company }]);
       addDomainsToMonitoring([{ domain_name, company }]);
     }
   });
