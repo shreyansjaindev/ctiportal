@@ -308,7 +308,7 @@ const addDomainsToMonitoring = async (selectedData) => {
               toastr.error(response.statusText);
             }
           } else {
-            successCount++; // increment success count
+            successCount++;
             await response.json();
           }
         } catch (error) {
@@ -323,6 +323,29 @@ const addDomainsToMonitoring = async (selectedData) => {
 
     $datatableMonitoredDomains.DataTable().ajax.reload();
     $datatableLookalikeDomains.DataTable().ajax.reload();
+  }
+};
+
+const blockDomains = async (selectedData) => {
+  const url = urls.lookalikeDomainsBlock;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': window.CSRFToken,
+      },
+      body: JSON.stringify({ domains: selectedData.map(({ domain_name }) => domain_name) }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log(data);
+  } catch (error) {
+    console.error('Error sending POST request:', error);
   }
 };
 
@@ -656,7 +679,7 @@ const initializeLookalikeDomainsDatatable = (url, filters) => {
 
   const buttons = [
     {
-      text: 'Add to Monitoring',
+      text: 'Block and Add to Monitoring',
       className: 'lookalike-domains-btn-add btn btn-primary btn-toggle ms-2',
     },
     {
@@ -917,6 +940,7 @@ $(() => {
       .toArray();
 
     addDomainsToMonitoring(selectedData);
+    blockDomains(selectedData);
     selectedRows.deselect();
   });
 
@@ -925,6 +949,7 @@ $(() => {
     if (e.target.checkValidity()) {
       addDomainModal.modal('hide');
       const [{ value: domain_name }, { value: company }] = $(this).serializeArray();
+      blockDomains([{ domain_name, company }]);
       addDomainsToMonitoring([{ domain_name, company }]);
     }
   });

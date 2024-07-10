@@ -206,11 +206,13 @@ def threatstream_import_indicators(
     return response.json()
 
 
-def threatstream_import_indicators_without_approval(
+def threatstream_import_domains_without_approval(
+    domains,
     tags,
     classification="private",
     confidence=50,
     allow_unresolved=True,
+    expiration_ts="9999-12-31T00:00:00",
 ):
     if not API_KEY:
         return {"error": "API key not found"}
@@ -222,20 +224,22 @@ def threatstream_import_indicators_without_approval(
             "classification": classification,
             "confidence": confidence,
             "allow_unresolved": allow_unresolved,
+            "expiration_ts": expiration_ts,
         },
-        "objects": [
-            {
-                "domain": "my-msi.net",
-                "itype": "mal_domain",
-                "tags": tags,
-                "severity": "high",
-            }
-        ],
+        "objects": [],
     }
 
-    response = requests.patch(API_URL, headers=HEADERS, data=json.dumps(payload))
+    for domain in domains:
+        payload["objects"].append(
+            {
+                "domain": domain,
+                "itype": "phish_domain",
+                "tags": tags,
+            }
+        )
 
-    return response.status_code
+    response = requests.patch(API_URL, headers=HEADERS, data=json.dumps(payload))
+    return response
 
 
 def threatstream_import_indicators_stix(file_path, classification, confidence, tags):
@@ -260,5 +264,14 @@ if __name__ == "__main__":
         "value__exact": "26953b9fc21c38f2933c0a114a0f7091f082b0321780afef6086ccc5cf1619f3",
         "type__exact": "hash",
     }
-    print(API_KEY)
-    print(threatstream_export(query))
+    # print(
+    #     threatstream_import_domains_without_approval(
+    #         ["testabc.com"], ["DM_Test1", "DM_Test2"]
+    #     )
+    # )
+    # print(
+    #     threatstream_import_domains_without_approval(
+    #         ["testabc.com"],
+    #         ["FIS Domain Monitoring", "GLOBAL_BLOCK", "XSOAR_TIM"],
+    #     )
+    # )

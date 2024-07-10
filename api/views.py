@@ -1,18 +1,11 @@
-from django.http import JsonResponse
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from urllib.parse import urljoin
 
 
-def error404(request, exception=None):
-    return JsonResponse({"status_code": 404, "error": "The resource was not found"})
-
-
-@api_view(["GET"])
-def get_routes(request):
-    routes = [
-        "api/domain-monitoring/",
-        "api/frontend/",
-        "api/reverse-whois-monitoring/",
-        "api/intelligence-harvester/",
-    ]
-    return Response(routes)
+class GetRoutes(APIView):
+    def get(self, request):
+        base_url = request.build_absolute_uri("/api/")
+        route_names = ["intelligence-harvester", "domain-monitoring"]
+        routes = {route: urljoin(base_url, f"{route}/") for route in route_names}
+        return Response(routes)

@@ -15,7 +15,7 @@ from scripts.constants import (
     SECURITY_HEADERS,
 )
 from scripts.textformatter import collector as text_formatter
-from scripts.fullpage_screenshot import bulk_screenshot
+from scripts.screenshotmachine import bulk_screenshot
 from scripts.mha import mha as mha_analyzer
 from scripts.ad_users import get_aduser
 from scripts.threatstream import (

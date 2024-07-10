@@ -1,12 +1,13 @@
 from rest_framework import filters, viewsets
 from rest_framework.permissions import IsAuthenticated
-
 from rest_framework.response import Response
+from rest_framework import status
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import *
 from .serializers import *
 from .filters import *
 from urllib.parse import parse_qs
+from scripts.threatstream import threatstream_import_domains_without_approval
 
 
 # Company
@@ -43,6 +44,15 @@ class MonitoredDomainViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = MonitoredDomainFilter
     permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
 
 # Monitored Domain Alerts
@@ -152,3 +162,26 @@ class NewlyRegisteredDomainViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = NewlyRegisteredDomainFilter
     permission_classes = [IsAuthenticated]
+
+
+class LookalikeDomainsBlockViewSet(viewsets.ViewSet):
+    def create(self, request, *args, **kwargs):
+        serializer = DomainsSerializer(data=request.data)
+        if serializer.is_valid():
+            response = threatstream_import_domains_without_approval(
+                serializer.validated_data["domains"],
+                ["DM_Test1", "DM_Test2"],
+            )
+            if response.status_code == 202:
+                return Response(
+                    {
+                        "message": "Domains successfully imported to Anomali Threatstream"
+                    },
+                    status=status.HTTP_201_CREATED,
+                )
+            else:
+                return Response(
+                    {"error": "Failed to import domains to Anomali Threatstream"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

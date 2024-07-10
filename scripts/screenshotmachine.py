@@ -1,31 +1,34 @@
+import os
 import requests
 import base64
 import sys
-import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+API_KEYS = os.getenv("SCREENSHOTMACHINE").split(",")
 
 
 def bulk_screenshot(query_list):
     img = {}
     for query in query_list:
-        img[query] = screenshotmachine(query)
+        img[query] = get_website_screenshot(query)
     return img
 
 
-def generate_api_url(customer_key, query):
-    dimension = f"1366x768"
-
+def generate_api_url(api_key, query):
+    dimension = "1920x1080"
     if not query.startswith(("http://", "https://")):
         query = "http://" + query
+    return f"https://api.screenshotmachine.com/?key={api_key}&url={query}&device=desktop&dimension={dimension}&format=png&cacheLimit=0&delay=2000"
 
-    return f"https://api.screenshotmachine.com/?key={customer_key}&url={query}&dimension={dimension}"
 
-
-def screenshotmachine(value, value_type="domain"):
-    customer_keys = os.getenv("SCREENSHOTMACHINE", "").split(",")
-    if not customer_keys:
+def get_website_screenshot(value, value_type="domain"):
+    if not API_KEYS:
         return {}
 
-    for customer_key in customer_keys:
+    for customer_key in API_KEYS:
         error = None
 
         api_url = generate_api_url(customer_key, value)
@@ -43,4 +46,4 @@ def screenshotmachine(value, value_type="domain"):
 
 
 if __name__ == "__main__":
-    print(screenshotmachine(sys.argv[1]))
+    print(get_website_screenshot(sys.argv[1]))

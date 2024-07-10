@@ -119,3 +119,6 @@ GitHub.sublime-settings
 temp_profile/
 staticfiles/
 nrd_data/
+
+# YARA files
+*.yara

@@ -10,6 +10,13 @@ load_dotenv()
 API_KEYS = os.getenv("SCREENSHOTMACHINE").split(",")
 
 
+def bulk_screenshot(query_list):
+    img = {}
+    for query in query_list:
+        img[query] = get_website_screenshot(query)
+    return img
+
+
 def generate_api_url(api_key, query):
     dimension = "1920x1080"
     if not query.startswith(("http://", "https://")):
@@ -44,5 +51,3 @@ def get_website_screenshot(query):
         return filename
 
     return filename
-
-get_website_screenshot("fisglobal.com")

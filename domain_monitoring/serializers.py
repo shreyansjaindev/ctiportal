@@ -102,3 +102,7 @@ class SslCertificateSerializer(serializers.ModelSerializer):
     class Meta:
         model = SSLCertificate
         fields = "__all__"
+
+
+class DomainsSerializer(serializers.Serializer):
+    domains = serializers.ListField(child=serializers.CharField(max_length=255))

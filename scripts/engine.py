@@ -12,7 +12,7 @@ from .securitytrails import get_whois as whois
 from .symantec_sitereview import symantec_sitereview
 from .nvd import nvd
 from .hybrid_analysis import hybridanalysis
-from .fullpage_screenshot import screenshotmachine
+from .screenshotmachine import get_website_screenshot
 from .pulse_dive import pulse_dive
 from .virustotal import virustotal
 from .blacklists import blacklists
@@ -71,7 +71,7 @@ SOURCE_INFO = {
     },
     "screenshot": {
         "title": "Screenshot",
-        "function": screenshotmachine,
+        "function": get_website_screenshot,
         "supported_types": ["domain", "url", "ipv4"],
     },
     "pulsedive": {
