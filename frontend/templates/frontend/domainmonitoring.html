@@ -57,9 +57,9 @@
     </div>
     <div class="tab-content">
         {% for tab in tabs %}
-            <div class="tab-pane {% if tab.active %}show active{% endif %}"
+            <div class="tab-pane fade{% if tab.active %} show active{% endif %}"
                  id="{{ tab.id }}"
-                 role="tab">
+                 role="tabpanel">
                 <div class="row">
                     <div class="col-12">
                         <div class="card">
