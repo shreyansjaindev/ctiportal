@@ -1087,7 +1087,7 @@ body.swal2-toast-shown .swal2-container.swal2-bottom-end, body.swal2-toast-shown
 .swal2-modal.swal2-popup .swal2-title {
   margin: 1.875rem 0 1rem 0;
   max-width: 16em;
-  line-height: 1.47;
+  line-height: 1.375;
 }
 .swal2-modal.swal2-popup .swal2-content {
   margin: 0 0 1rem 0;
@@ -1160,34 +1160,34 @@ body.swal2-toast-shown .swal2-container.swal2-bottom-end, body.swal2-toast-shown
 }
 .light-style .swal2-modal.swal2-popup {
   font-family: var(--bs-font-sans-serif);
-  box-shadow: 0 0.31rem 1.25rem 0 rgba(75, 70, 92, 0.4);
+  box-shadow: 0 0.25rem 1.125rem 0 rgba(47, 43, 61, 0.16);
   border-radius: 0.375rem;
 }
 .light-style .swal2-container.swal2-shown {
-  background: rgba(75, 70, 92, 0.5);
+  background: rgba(151, 149, 158, 0.5);
 }
 .light-style .swal2-popup .swal2-title {
-  font-size: 2rem;
+  font-size: 2.375rem;
   font-weight: 500;
-  color: #6f6b7d;
+  color: #6d6b77;
 }
 .light-style .swal2-popup .swal2-content {
-  color: #a5a3ae;
-  line-height: 1.47;
+  color: #acaab1;
+  line-height: 1.375;
   font-size: 1.125rem;
   font-weight: 300;
 }
 .light-style .swal2-popup .swal2-input,
 .light-style .swal2-popup .swal2-file,
 .light-style .swal2-popup .swal2-textarea {
-  border: var(--bs-border-width) solid #dbdade !important;
+  border: var(--bs-border-width) solid #d1d0d4 !important;
   font-size: 1rem;
-  color: #6f6b7d;
+  color: #6d6b77;
   border-radius: 0.5rem;
 }
 .light-style .swal2-popup .swal2-validationerror {
-  color: #6f6b7d;
-  background: rgba(75, 70, 92, 0.05);
+  color: #6d6b77;
+  background: rgba(47, 43, 61, 0.1);
 }
 .light-style .swal2-popup .swal2-icon.swal2-success {
   border-color: #28c76f;
@@ -1199,22 +1199,22 @@ body.swal2-toast-shown .swal2-container.swal2-bottom-end, body.swal2-toast-shown
   background-color: #28c76f;
 }
 .light-style .swal2-popup .swal2-icon.swal2-question {
-  border-color: rgba(168, 170, 174, 0.4);
-  color: #a8aaae;
+  border-color: rgba(128, 131, 144, 0.4);
+  color: #808390;
 }
 .light-style .swal2-popup .swal2-icon.swal2-info {
-  border-color: rgba(0, 207, 232, 0.4);
-  color: #00cfe8;
+  border-color: rgba(0, 186, 209, 0.4);
+  color: #00bad1;
 }
 .light-style .swal2-popup .swal2-icon.swal2-warning {
   border-color: rgba(255, 159, 67, 0.8);
   color: #ff9f43;
 }
 .light-style .swal2-popup .swal2-icon.swal2-error {
-  border-color: rgba(234, 84, 85, 0.6);
+  border-color: rgba(255, 76, 81, 0.6);
 }
 .light-style .swal2-popup .swal2-icon.swal2-error [class^=swal2-x-mark-line] {
-  border-color: #ea5455;
+  border-color: #ff4c51;
 }
 
 .dark-style .swal2-container {
@@ -1229,43 +1229,43 @@ body.swal2-toast-shown .swal2-container.swal2-bottom-end, body.swal2-toast-shown
 .dark-style .swal2-modal.swal2-popup {
   background: #2f3349;
   font-family: var(--bs-font-sans-serif);
-  box-shadow: 0 0.31rem 1.25rem 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0.25rem 1.125rem 0 rgba(19, 17, 32, 0.22);
   border-radius: 0.375rem;
 }
 .dark-style .swal2-container.swal2-shown {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(23, 25, 37, 0.6);
 }
 .dark-style .swal2-popup .swal2-title {
-  font-size: 2rem;
+  font-size: 2.375rem;
   font-weight: 500;
-  color: #b6bee3;
+  color: #acabc1;
 }
 .dark-style .swal2-popup .swal2-content {
   font-weight: 300;
-  color: #7983bb;
-  line-height: 1.47;
+  color: #76778e;
+  line-height: 1.375;
   font-size: 1.125rem;
 }
 .dark-style .swal2-popup .swal2-content pre {
-  color: #b6bee3;
+  color: #acabc1;
 }
 .dark-style .swal2-popup .swal2-footer {
-  border-top: 1px solid #434968;
+  border-top: 1px solid #44485e;
 }
 .dark-style .swal2-popup .swal2-html-container {
-  color: #b6bee3;
+  color: #acabc1;
 }
 .dark-style .swal2-popup .swal2-input,
 .dark-style .swal2-popup .swal2-file,
 .dark-style .swal2-popup .swal2-textarea {
-  color: #b6bee3;
-  border: var(--bs-border-width) solid #434968 !important;
+  color: #acabc1;
+  border: var(--bs-border-width) solid #56596f !important;
   font-size: 1rem;
   border-radius: 0.5rem;
 }
 .dark-style .swal2-popup .swal2-validationerror {
-  color: #b6bee3;
-  background: rgba(255, 255, 255, 0.8);
+  color: #acabc1;
+  background: rgba(225, 222, 245, 0.1);
 }
 .dark-style .swal2-popup .swal2-icon.swal2-success {
   border-color: #28c76f;
@@ -1277,22 +1277,22 @@ body.swal2-toast-shown .swal2-container.swal2-bottom-end, body.swal2-toast-shown
   background-color: #28c76f;
 }
 .dark-style .swal2-popup .swal2-icon.swal2-question {
-  border-color: rgba(168, 170, 174, 0.4);
-  color: #a8aaae;
+  border-color: rgba(128, 131, 144, 0.4);
+  color: #808390;
 }
 .dark-style .swal2-popup .swal2-icon.swal2-info {
-  border-color: rgba(0, 207, 232, 0.4);
-  color: #00cfe8;
+  border-color: rgba(0, 186, 209, 0.4);
+  color: #00bad1;
 }
 .dark-style .swal2-popup .swal2-icon.swal2-warning {
   border-color: rgba(255, 159, 67, 0.8);
   color: #ff9f43;
 }
 .dark-style .swal2-popup .swal2-icon.swal2-error {
-  border-color: rgba(234, 84, 85, 0.6);
+  border-color: rgba(255, 76, 81, 0.6);
 }
 .dark-style .swal2-popup .swal2-icon.swal2-error [class^=swal2-x-mark-line] {
-  border-color: #ea5455;
+  border-color: #ff4c51;
 }
 
 .swal2-popup .swal2-actions.swal2-loading :not(.swal2-styled).swal2-confirm::after {

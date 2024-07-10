@@ -12,12 +12,11 @@ body > :not(.invoice-print) {
   font-size: 15px !important;
 }
 .invoice-print svg {
-  fill: #6f6b7d !important;
+  fill: #6d6b77 !important;
 }
 
 .invoice-print * {
-  border-color: rgba(75, 70, 92, 0.5) !important;
-  color: #6f6b7d !important;
+  color: #6d6b77 !important;
 }
 
 .dark-style .invoice-print th {

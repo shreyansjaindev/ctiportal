@@ -443,7 +443,7 @@ div.dt-button-background {
 div.dataTables_wrapper .dt-button-collection {
   border: 0;
   border-radius: var(--bs-border-radius);
-  padding: 0.5rem 0;
+  padding: 0.5rem 0.5rem;
   width: auto;
 }
 div.dataTables_wrapper .dt-button-collection > div[role=menu] {
@@ -475,10 +475,10 @@ div.dt-buttons div.dropdown-menu .dt-button {
   color: #28c76f;
 }
 .light-style .dt-button-info {
-  box-shadow: 0 0.31rem 1.25rem 0 rgba(75, 70, 92, 0.4);
+  box-shadow: 0 0.31rem 1.25rem 0 rgba(47, 43, 61, 0.4);
 }
 .light-style .dt-button-collection .dropdown-item {
-  padding: 0.42rem 1rem;
+  padding: 0.543rem 1rem;
 }
 
 .dark-style div.dataTables_wrapper .dt-button-collection {
@@ -488,10 +488,10 @@ div.dt-buttons div.dropdown-menu .dt-button {
   color: #28c76f;
 }
 .dark-style .dt-button-info {
-  box-shadow: 0 0.31rem 1.25rem 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0.31rem 1.25rem 0 rgba(47, 51, 73, 0.4);
 }
 .dark-style .dt-button-collection .dropdown-item {
-  padding: 0.42rem 1rem;
+  padding: 0.543rem 1rem;
 }
 
 .dt-button-info {
@@ -499,7 +499,7 @@ div.dt-buttons div.dropdown-menu .dt-button {
   border-radius: 0.375rem !important;
 }
 .dt-button-info h2 {
-  font-size: 1.375rem !important;
+  font-size: 1.5rem !important;
 }
 
 .dt-buttons {
@@ -509,6 +509,10 @@ div.dt-buttons div.dropdown-menu .dt-button {
   text-align: right;
 }
 .dt-buttons.btn-group button {
-  border-color: transparent;
+  border-color: transparent !important;
   border-radius: 0.375rem !important;
+}
+
+div.dt-buttons .dropdown-menu .dt-button {
+  border-radius: 0.375rem;
 }

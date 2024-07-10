@@ -20,9 +20,17 @@
 }
 
 .light-style .bg-faq-section {
-  background-color: rgba(75, 75, 75, 0.04);
+  background-color: rgba(47, 43, 61, 0.06);
+}
+.light-style .faq-header .input-wrapper .input-group-text,
+.light-style .faq-header .input-wrapper .form-control {
+  background-color: #fff;
 }
 
 .dark-style .bg-faq-section {
-  background-color: rgba(134, 146, 208, 0.04);
+  background-color: rgba(225, 222, 245, 0.06);
+}
+.dark-style .faq-header .input-wrapper .input-group-text,
+.dark-style .faq-header .input-wrapper .form-control {
+  background-color: #2f3349;
 }

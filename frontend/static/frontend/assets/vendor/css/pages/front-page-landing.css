@@ -34,16 +34,13 @@
 .landing-hero .hero-title {
   background: linear-gradient(to right, #28c76f 0%, #5a4aff 47.92%, #ff3739 100%);
   background-size: 200% auto;
-  color: #5d596c;
+  color: #444050;
   background-clip: text;
   line-height: 1.2;
   text-fill-color: transparent;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: shine 2s ease-in-out infinite alternate;
-}
-.landing-hero .hero-sub-title {
-  line-height: 28px;
 }
 .landing-hero .landing-hero-btn .hero-btn-item {
   inset-inline-start: -86%;
@@ -116,6 +113,7 @@
 }
 .landing-reviews .swiper-reviews-carousel .swiper-slide {
   height: auto;
+  padding: 0.8125rem;
 }
 .landing-reviews .swiper-reviews-carousel .client-logo {
   height: 1.375rem;
@@ -149,6 +147,8 @@
 .landing-team .team-image-box .card-img-position {
   height: 15rem;
   transform: translateX(-50%);
+  max-width: 100%;
+  object-fit: cover;
 }
 @media (max-width: 991.98px) {
   .landing-team .team-image-box .card-img-position {
@@ -168,14 +168,21 @@
   border-radius: 3.75rem;
 }
 .landing-pricing .pricing-plans-item {
-  inset-inline-end: -60%;
-  bottom: 0;
+  inset-inline-end: -56%;
+  bottom: -0.5rem;
 }
 @media (max-width: 767.98px) {
   .landing-pricing .pricing-plans-item {
     inset-inline-end: 0;
     bottom: 1rem;
   }
+}
+.landing-pricing .pricing-list .badge.badge-center {
+  width: 1rem;
+  height: 1rem;
+}
+.landing-pricing .pricing-list .badge.badge-center i {
+  margin-top: -3px;
 }
 .landing-pricing .price-yearly-toggle {
   position: absolute;
@@ -186,6 +193,7 @@
 .landing-pricing .card .card-header,
 .landing-pricing .card .card-body {
   padding: 2rem;
+  padding-top: 3rem;
 }
 
 .landing-faq {
@@ -195,6 +203,15 @@
 .landing-faq .faq-image {
   max-width: 20rem;
   width: 80%;
+}
+
+.landing-cta .cta-title {
+  font-size: 2.125rem;
+}
+@media (max-width: 767.98px) {
+  .landing-cta .cta-title {
+    font-size: 1.8rem;
+  }
 }
 
 .landing-contact .text-heading {

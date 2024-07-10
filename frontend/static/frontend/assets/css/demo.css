@@ -36,7 +36,7 @@
   padding-top: 64px !important;
 }
 .layout-navbar-fixed .layout-wrapper:not(.layout-horizontal):not(.layout-without-menu) .layout-page {
-  padding-top: 78px !important;
+  padding-top: 72px !important;
 }
 /* Navbar page z-index issue solution */
 .content-wrapper .navbar {

@@ -1144,27 +1144,27 @@ a.plyr__control::after, a.plyr__control::before {
 }
 
 .light-style .plyr__tooltip {
-  line-height: 1;
-  font-size: 0.75rem;
+  line-height: 1.125;
+  font-size: 0.8125rem;
 }
 
 .dark-style .plyr__tooltip {
-  line-height: 1;
-  font-size: 0.75rem;
+  line-height: 1.125;
+  font-size: 0.8125rem;
 }
 .dark-style .plyr--audio .plyr__controls {
-  color: #b6bee3;
+  color: #acabc1;
   background-color: #2f3349;
 }
 .dark-style .plyr--full-ui.plyr--audio input[type=range]::-webkit-slider-runnable-track {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(225, 222, 245, 0.1);
 }
 .dark-style .plyr--full-ui.plyr--audio input[type=range]::-moz-range-track {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(225, 222, 245, 0.1);
 }
 .dark-style .plyr--full-ui.plyr--audio input[type=range]::-ms-track {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(225, 222, 245, 0.1);
 }
 .dark-style .plyr--audio .plyr__progress__buffer {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(225, 222, 245, 0.12);
 }

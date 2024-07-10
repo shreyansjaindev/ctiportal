@@ -256,20 +256,20 @@
 }
 
 .shepherd-element {
-  box-shadow: 0 0.25rem 1rem rgba(165, 163, 174, 0.45) !important;
+  box-shadow: 0 0.1875rem 0.75rem 0 rgba(47, 43, 61, 0.14);
   background-color: #fff !important;
 }
 .shepherd-element .shepherd-content .shepherd-header {
   background: #fff !important;
 }
 .shepherd-element .shepherd-content .shepherd-header .shepherd-title {
-  color: #5d596c !important;
+  color: #444050 !important;
 }
 .shepherd-element .shepherd-content .shepherd-header .shepherd-cancel-icon {
-  color: #a5a3ae !important;
+  color: #acaab1 !important;
 }
 .shepherd-element .shepherd-content .shepherd-text {
-  color: #6f6b7d !important;
+  color: #6d6b77 !important;
 }
 .shepherd-element .shepherd-arrow:before {
   background-color: #fff !important;
@@ -277,20 +277,20 @@
 }
 
 .dark-style .shepherd-element {
-  box-shadow: 0 0.25rem 1rem rgba(15, 20, 34, 0.55) !important;
+  box-shadow: 0 0.1875rem 0.75rem 0 rgba(19, 17, 32, 0.2);
   background: #2f3349 !important;
 }
 .dark-style .shepherd-element .shepherd-content .shepherd-header {
   background: #2f3349 !important;
 }
 .dark-style .shepherd-element .shepherd-content .shepherd-header .shepherd-title {
-  color: #cfd3ec !important;
+  color: #cfcde4 !important;
 }
 .dark-style .shepherd-element .shepherd-content .shepherd-header .shepherd-cancel-icon {
-  color: #7983bb !important;
+  color: #76778e !important;
 }
 .dark-style .shepherd-element .shepherd-content .shepherd-text {
-  color: #b6bee3 !important;
+  color: #acabc1 !important;
 }
 .dark-style .shepherd-arrow:before {
   background-color: #2f3349 !important;

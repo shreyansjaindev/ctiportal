@@ -11,20 +11,20 @@
 let config = {
   colors: {
     primary: '#7367f0',
-    secondary: '#a8aaae',
+    secondary: '#808390',
     success: '#28c76f',
-    info: '#00cfe8',
+    info: '#00bad1',
     warning: '#ff9f43',
-    danger: '#ea5455',
+    danger: '#FF4C51',
     dark: '#4b4b4b',
     black: '#000',
     white: '#fff',
     cardColor: '#fff',
     bodyBg: '#f8f7fa',
-    bodyColor: '#6f6b7d',
-    headingColor: '#5d596c',
-    textMuted: '#a5a3ae',
-    borderColor: '#dbdade',
+    bodyColor: '#6d6b77',
+    headingColor: '#444050',
+    textMuted: '#acaab1',
+    borderColor: '#e6e6e8',
   },
   colors_label: {
     primary: '#7367f029',
@@ -38,10 +38,10 @@ let config = {
   colors_dark: {
     cardColor: '#2f3349',
     bodyBg: '#25293c',
-    bodyColor: '#b6bee3',
-    headingColor: '#cfd3ec',
-    textMuted: '#7983bb',
-    borderColor: '#434968',
+    bodyColor: '#b2b1cb',
+    headingColor: '#cfcce4',
+    textMuted: '#8285a0',
+    borderColor: '#565b79',
   },
   enableMenuLocalStorage: true, // Enable menu state with local storage support
 };

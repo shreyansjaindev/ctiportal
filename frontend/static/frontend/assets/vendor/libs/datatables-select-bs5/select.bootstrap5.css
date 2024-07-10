@@ -86,9 +86,14 @@ table.dataTable tbody > tr > .selected td {
 .light-style table.dataTable tbody tr.selected td,
 .light-style table.dataTable tbody th.selected td,
 .light-style table.dataTable tbody td.selected td {
-  color: #6f6b7d !important;
+  color: #6d6b77 !important;
 }
 
+.dark-style table.dataTable tbody > tr.selected > *,
+.dark-style table.dataTable tbody > tr > .selected > * {
+  box-shadow: inset 0 0 0 rgba(225, 222, 245, 0.06);
+  color: #acabc1;
+}
 .dark-style table.dataTable tbody tr.selected td,
 .dark-style table.dataTable tbody th.selected td,
 .dark-style table.dataTable tbody td.selected td {

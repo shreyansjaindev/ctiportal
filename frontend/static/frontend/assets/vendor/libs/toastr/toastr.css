@@ -240,7 +240,7 @@ button.toast-close-button {
 
 .toast-title {
   margin-left: 0.75rem;
-  color: #5d596c;
+  color: #444050;
   margin-bottom: 0.25rem;
 }
 [dir=rtl] .toast-title {
@@ -326,7 +326,7 @@ button.toast-close-button {
   right: 1.25rem !important;
   top: 0.5rem;
   text-shadow: none;
-  color: #a5a3ae !important;
+  color: #acaab1 !important;
   padding: auto;
   font-size: 1.625rem;
 }
@@ -342,14 +342,14 @@ button.toast-close-button {
   font-weight: 300;
 }
 .light-style #toast-container > div {
-  box-shadow: 0 0.25rem 1rem rgba(165, 163, 174, 0.45);
+  box-shadow: 0 0.1875rem 0.75rem 0 rgba(47, 43, 61, 0.14);
   border-radius: 0.375rem;
 }
 .light-style #toast-container > .toast-success,
 .light-style #toast-container .toast-error,
 .light-style #toast-container .toast-info,
 .light-style #toast-container .toast-warning {
-  color: #5d596c;
+  color: #444050;
   background-color: #fff;
 }
 
@@ -358,13 +358,13 @@ button.toast-close-button {
 }
 .dark-style #toast-container .toast-close-button {
   font-weight: 300;
-  color: #7983bb !important;
+  color: #76778e !important;
 }
 .dark-style #toast-container .toast-title {
-  color: #cfd3ec;
+  color: #cfcde4;
 }
 .dark-style #toast-container > div {
-  box-shadow: 0 0.25rem 1rem rgba(15, 20, 34, 0.55);
+  box-shadow: 0 0.1875rem 0.75rem 0 rgba(19, 17, 32, 0.2);
   border-radius: 0.375rem;
 }
 .dark-style #toast-container .toast-progress {
@@ -374,7 +374,7 @@ button.toast-close-button {
 .dark-style #toast-container .toast-error,
 .dark-style #toast-container .toast-info,
 .dark-style #toast-container .toast-warning {
-  color: #cfd3ec;
+  color: #cfcde4;
   background-color: #2f3349;
 }
 

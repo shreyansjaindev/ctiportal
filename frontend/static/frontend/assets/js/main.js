@@ -4,9 +4,9 @@
 
 'use strict';
 
-let isRtl = window.Helpers.isRtl(),
-  isDarkStyle = window.Helpers.isDarkStyle(),
-  menu,
+window.isRtl = window.Helpers.isRtl();
+window.isDarkStyle = window.Helpers.isDarkStyle();
+let menu,
   animate,
   isHorizontalLayout = false;
 
@@ -21,10 +21,18 @@ if (document.getElementById('layout-menu')) {
 
   if (typeof Waves !== 'undefined') {
     Waves.init();
-    Waves.attach(".btn[class*='btn-']:not([class*='btn-outline-']):not([class*='btn-label-'])", ['waves-light']);
-    Waves.attach("[class*='btn-outline-']");
-    Waves.attach("[class*='btn-label-']");
+    Waves.attach(
+      ".btn[class*='btn-']:not(.position-relative):not([class*='btn-outline-']):not([class*='btn-label-'])",
+      ['waves-light']
+    );
+    Waves.attach("[class*='btn-outline-']:not(.position-relative)");
+    Waves.attach("[class*='btn-label-']:not(.position-relative)");
     Waves.attach('.pagination .page-item .page-link');
+    Waves.attach('.dropdown-menu .dropdown-item');
+    Waves.attach('.light-style .list-group .list-group-item-action');
+    Waves.attach('.dark-style .list-group .list-group-item-action', ['waves-light']);
+    Waves.attach('.nav-tabs:not(.nav-tabs-widget) .nav-item .nav-link');
+    Waves.attach('.nav-pills .nav-item .nav-link', ['waves-light']);
   }
 
   // Initialize menu
@@ -39,8 +47,8 @@ if (document.getElementById('layout-menu')) {
       showDropdownOnHover: localStorage.getItem('templateCustomizer-' + templateName + '--ShowDropdownOnHover') // If value(showDropdownOnHover) is set in local storage
         ? localStorage.getItem('templateCustomizer-' + templateName + '--ShowDropdownOnHover') === 'true' // Use the local storage value
         : window.templateCustomizer !== undefined // If value is set in config.js
-        ? window.templateCustomizer.settings.defaultShowDropdownOnHover // Use the config.js value
-        : true, // Use this if you are not using the config.js and want to set value directly from here
+          ? window.templateCustomizer.settings.defaultShowDropdownOnHover // Use the config.js value
+          : true // Use this if you are not using the config.js and want to set value directly from here
     });
     // Change parameter to true if you want scroll animation
     window.Helpers.scrollToActive((animate = false));
@@ -49,8 +57,8 @@ if (document.getElementById('layout-menu')) {
 
   // Initialize menu togglers and bind click on each
   let menuToggler = document.querySelectorAll('.layout-menu-toggle');
-  menuToggler.forEach((item) => {
-    item.addEventListener('click', (event) => {
+  menuToggler.forEach(item => {
+    item.addEventListener('click', event => {
       event.preventDefault();
       window.Helpers.toggleCollapsed();
       // Enable menu state with local storage support if enableMenuLocalStorage = true from config.js
@@ -115,6 +123,9 @@ if (document.getElementById('layout-menu')) {
   //Style Switcher (Light/Dark/System Mode)
   let styleSwitcher = document.querySelector('.dropdown-style-switcher');
 
+  // Active class on style switcher dropdown items
+  const activeStyle = document.documentElement.getAttribute('data-style');
+
   // Get style from local storage or use 'system' as default
   let storedStyle =
     localStorage.getItem('templateCustomizer-' + templateName + '--Style') || //if no template style then use Customizer style
@@ -124,6 +135,7 @@ if (document.getElementById('layout-menu')) {
   if (window.templateCustomizer && styleSwitcher) {
     let styleSwitcherItems = [].slice.call(styleSwitcher.children[1].querySelectorAll('.dropdown-item'));
     styleSwitcherItems.forEach(function (item) {
+      item.classList.remove('active');
       item.addEventListener('click', function () {
         let currentStyle = this.getAttribute('data-theme');
         if (currentStyle === 'light') {
@@ -134,6 +146,11 @@ if (document.getElementById('layout-menu')) {
           window.templateCustomizer.setStyle('system');
         }
       });
+
+      if (item.getAttribute('data-theme') === activeStyle) {
+        // Add 'active' class to the item if it matches the activeStyle
+        item.classList.add('active');
+      }
     });
 
     // Update style switcher icon based on the stored style
@@ -144,25 +161,101 @@ if (document.getElementById('layout-menu')) {
       styleSwitcherIcon.classList.add('ti-sun');
       new bootstrap.Tooltip(styleSwitcherIcon, {
         title: 'Light Mode',
-        fallbackPlacements: ['bottom'],
+        fallbackPlacements: ['bottom']
       });
     } else if (storedStyle === 'dark') {
-      styleSwitcherIcon.classList.add('ti-moon');
+      styleSwitcherIcon.classList.add('ti-moon-stars');
       new bootstrap.Tooltip(styleSwitcherIcon, {
         title: 'Dark Mode',
-        fallbackPlacements: ['bottom'],
+        fallbackPlacements: ['bottom']
       });
     } else {
-      styleSwitcherIcon.classList.add('ti-device-desktop');
+      styleSwitcherIcon.classList.add('ti-device-desktop-analytics');
       new bootstrap.Tooltip(styleSwitcherIcon, {
         title: 'System Mode',
-        fallbackPlacements: ['bottom'],
+        fallbackPlacements: ['bottom']
       });
     }
   }
 
   // Run switchImage function based on the stored style
   switchImage(storedStyle);
+
+  // Internationalization (Language Dropdown)
+  // ---------------------------------------
+
+  if (typeof i18next !== 'undefined' && typeof i18NextHttpBackend !== 'undefined') {
+    i18next
+      .use(i18NextHttpBackend)
+      .init({
+        lng: window.templateCustomizer ? window.templateCustomizer.settings.lang : 'en',
+        debug: false,
+        fallbackLng: 'en',
+        backend: {
+          loadPath: assetsPath + 'json/locales/{{lng}}.json'
+        },
+        returnObjects: true
+      })
+      .then(function (t) {
+        localize();
+      });
+  }
+
+  let languageDropdown = document.getElementsByClassName('dropdown-language');
+
+  if (languageDropdown.length) {
+    let dropdownItems = languageDropdown[0].querySelectorAll('.dropdown-item');
+
+    for (let i = 0; i < dropdownItems.length; i++) {
+      dropdownItems[i].addEventListener('click', function () {
+        let currentLanguage = this.getAttribute('data-language');
+        let textDirection = this.getAttribute('data-text-direction');
+
+        for (let sibling of this.parentNode.children) {
+          var siblingEle = sibling.parentElement.parentNode.firstChild;
+
+          // Loop through each sibling and push to the array
+          while (siblingEle) {
+            if (siblingEle.nodeType === 1 && siblingEle !== siblingEle.parentElement) {
+              siblingEle.querySelector('.dropdown-item').classList.remove('active');
+            }
+            siblingEle = siblingEle.nextSibling;
+          }
+        }
+        this.classList.add('active');
+
+        i18next.changeLanguage(currentLanguage, (err, t) => {
+          window.templateCustomizer ? window.templateCustomizer.setLang(currentLanguage) : '';
+          directionChange(textDirection);
+          if (err) return console.log('something went wrong loading', err);
+          localize();
+        });
+      });
+    }
+    function directionChange(textDirection) {
+      if (textDirection === 'rtl') {
+        if (localStorage.getItem('templateCustomizer-' + templateName + '--Rtl') !== 'true')
+          window.templateCustomizer ? window.templateCustomizer.setRtl(true) : '';
+      } else {
+        if (localStorage.getItem('templateCustomizer-' + templateName + '--Rtl') === 'true')
+          window.templateCustomizer ? window.templateCustomizer.setRtl(false) : '';
+      }
+    }
+  }
+
+  function localize() {
+    let i18nList = document.querySelectorAll('[data-i18n]');
+    // Set the current language in dd
+    let currentLanguageEle = document.querySelector('.dropdown-item[data-language="' + i18next.language + '"]');
+
+    if (currentLanguageEle) {
+      currentLanguageEle.click();
+    }
+
+    i18nList.forEach(function (item) {
+      item.innerHTML = i18next.t(item.dataset.i18n);
+    });
+  }
 
   // Notification
   // ------------
@@ -171,16 +264,16 @@ if (document.getElementById('layout-menu')) {
 
   // Notification: Mark as all as read
   if (notificationMarkAsReadAll) {
-    notificationMarkAsReadAll.addEventListener('click', (event) => {
-      notificationMarkAsReadList.forEach((item) => {
+    notificationMarkAsReadAll.addEventListener('click', event => {
+      notificationMarkAsReadList.forEach(item => {
         item.closest('.dropdown-notifications-item').classList.add('marked-as-read');
       });
     });
   }
   // Notification: Mark as read/unread onclick of dot
   if (notificationMarkAsReadList) {
-    notificationMarkAsReadList.forEach((item) => {
-      item.addEventListener('click', (event) => {
+    notificationMarkAsReadList.forEach(item => {
+      item.addEventListener('click', event => {
         item.closest('.dropdown-notifications-item').classList.toggle('marked-as-read');
       });
     });
@@ -188,8 +281,8 @@ if (document.getElementById('layout-menu')) {
 
   // Notification: Mark as read/unread onclick of dot
   const notificationArchiveMessageList = document.querySelectorAll('.dropdown-notifications-archive');
-  notificationArchiveMessageList.forEach((item) => {
-    item.addEventListener('click', (event) => {
+  notificationArchiveMessageList.forEach(item => {
+    item.addEventListener('click', event => {
       item.closest('.dropdown-notifications-item').remove();
     });
   });
@@ -403,7 +496,7 @@ if (typeof $ !== 'undefined') {
       var searchData = $.ajax({
         url: assetsPath + 'json/' + searchJson, //? Use your own search api instead
         dataType: 'json',
-        async: false,
+        async: false
       }).responseJSON;
       // Init typeahead on searchInput
       searchInput.each(function () {
@@ -415,8 +508,8 @@ if (typeof $ !== 'undefined') {
               classNames: {
                 menu: 'tt-menu navbar-search-suggestion',
                 cursor: 'active',
-                suggestion: 'suggestion d-flex justify-content-between px-3 py-2 w-100',
-              },
+                suggestion: 'suggestion d-flex justify-content-between px-4 py-2 w-100'
+              }
             },
             // ? Add/Update blocks as per need
             // Pages
@@ -426,7 +519,7 @@ if (typeof $ !== 'undefined') {
               limit: 5,
               source: filterConfig(searchData.pages),
               templates: {
-                header: '<h6 class="suggestions-header text-primary mb-0 mx-3 mt-3 pb-2">Pages</h6>',
+                header: '<h6 class="suggestions-header text-primary mb-0 mx-4 mt-3 pb-2">Pages</h6>',
                 suggestion: function ({ url, icon, name }) {
                   return (
                     '<a href="' +
@@ -444,11 +537,11 @@ if (typeof $ !== 'undefined') {
                   );
                 },
                 notFound:
-                  '<div class="not-found px-3 py-2">' +
+                  '<div class="not-found px-4 py-2">' +
                   '<h6 class="suggestions-header text-primary mb-2">Pages</h6>' +
                   '<p class="py-2 mb-0"><i class="ti ti-alert-circle ti-xs me-2"></i> No Results Found</p>' +
-                  '</div>',
-              },
+                  '</div>'
+              }
             },
             // Files
             {
@@ -457,7 +550,7 @@ if (typeof $ !== 'undefined') {
               limit: 4,
               source: filterConfig(searchData.files),
               templates: {
-                header: '<h6 class="suggestions-header text-primary mb-0 mx-3 mt-3 pb-2">Files</h6>',
+                header: '<h6 class="suggestions-header text-primary mb-0 mx-4 mt-3 pb-2">Files</h6>',
                 suggestion: function ({ src, name, subtitle, meta }) {
                   return (
                     '<a href="javascript:;">' +
@@ -484,11 +577,11 @@ if (typeof $ !== 'undefined') {
                   );
                 },
                 notFound:
-                  '<div class="not-found px-3 py-2">' +
+                  '<div class="not-found px-4 py-2">' +
                   '<h6 class="suggestions-header text-primary mb-2">Files</h6>' +
                   '<p class="py-2 mb-0"><i class="ti ti-alert-circle ti-xs me-2"></i> No Results Found</p>' +
-                  '</div>',
-              },
+                  '</div>'
+              }
             },
             // Members
             {
@@ -497,7 +590,7 @@ if (typeof $ !== 'undefined') {
               limit: 4,
               source: filterConfig(searchData.members),
               templates: {
-                header: '<h6 class="suggestions-header text-primary mb-0 mx-3 mt-3 pb-2">Members</h6>',
+                header: '<h6 class="suggestions-header text-primary mb-0 mx-4 mt-3 pb-2">Members</h6>',
                 suggestion: function ({ name, src, subtitle }) {
                   return (
                     '<a href="app-user-view-account.html">' +
@@ -521,11 +614,11 @@ if (typeof $ !== 'undefined') {
                   );
                 },
                 notFound:
-                  '<div class="not-found px-3 py-2">' +
+                  '<div class="not-found px-4 py-2">' +
                   '<h6 class="suggestions-header text-primary mb-2">Members</h6>' +
                   '<p class="py-2 mb-0"><i class="ti ti-alert-circle ti-xs me-2"></i> No Results Found</p>' +
-                  '</div>',
-              },
+                  '</div>'
+              }
             }
           )
           //On typeahead result render.
@@ -564,7 +657,7 @@ if (typeof $ !== 'undefined') {
       $('.navbar-search-suggestion').each(function () {
         psSearch = new PerfectScrollbar($(this)[0], {
           wheelPropagation: false,
-          suppressScrollX: true,
+          suppressScrollX: true
         });
       });
 

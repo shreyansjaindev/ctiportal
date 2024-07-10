@@ -645,7 +645,7 @@
 
 .light-style .ql-editor blockquote,
 .light-style .ql-content blockquote {
-  font-size: 1.171875rem;
+  font-size: 0.9375rem;
   margin-bottom: 1rem;
 }
 .light-style .ql-editor .ql-font-serif,
@@ -662,16 +662,16 @@
 }
 .light-style .ql-editor .ql-size-huge,
 .light-style .ql-content .ql-size-huge {
-  font-size: 1.25rem;
+  font-size: 1.1875rem;
 }
 .light-style .ql-editor .ql-size-small,
 .light-style .ql-content .ql-size-small {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 
 .dark-style .ql-editor blockquote,
 .dark-style .ql-content blockquote {
-  font-size: 1.171875rem;
+  font-size: 0.9375rem;
   margin-bottom: 1rem;
 }
 .dark-style .ql-editor .ql-font-monospace,
@@ -684,7 +684,7 @@
 }
 .dark-style .ql-editor .ql-size-huge,
 .dark-style .ql-content .ql-size-huge {
-  font-size: 1.25rem;
+  font-size: 1.1875rem;
 }
 .dark-style .ql-editor .ql-size-large,
 .dark-style .ql-content .ql-size-large {
@@ -692,5 +692,5 @@
 }
 .dark-style .ql-editor .ql-size-small,
 .dark-style .ql-content .ql-size-small {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }

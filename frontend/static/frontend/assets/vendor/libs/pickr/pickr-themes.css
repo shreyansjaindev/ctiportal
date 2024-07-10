@@ -1211,7 +1211,7 @@
 }
 
 .light-style .pcr-app .pcr-interaction input:focus {
-  box-shadow: 0 0.25rem 1rem rgba(165, 163, 174, 0.45);
+  box-shadow: 0 0.1875rem 0.75rem 0 rgba(47, 43, 61, 0.14);
 }
 
 .dark-style .pcr-app {
@@ -1223,5 +1223,5 @@
   color: #fff !important;
 }
 .dark-style .pcr-app .pcr-interaction input:focus {
-  box-shadow: 0 0.25rem 1rem rgba(15, 20, 34, 0.55);
+  box-shadow: 0 0.1875rem 0.75rem 0 rgba(19, 17, 32, 0.2);
 }
