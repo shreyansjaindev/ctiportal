@@ -10,12 +10,14 @@ const baseUrls = {
 };
 
 const generateSVGIcon = (cursorPointer, textClass, checked) => {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${textClass} ${cursorPointer ? 'cursor-pointer' : ''}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${textClass} ${
+    cursorPointer ? 'cursor-pointer' : ''
+  }">
     <circle cx="12" cy="12" r="10" visibility="${checked ? 'hidden' : 'visible'}"></circle>
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" visibility=${checked ? 'visible' : ''}></path>
     <polyline points="22 4 12 14.01 9 11.01" visibility=${checked ? 'visible' : 'hidden'}></polyline>
   </svg>`;
-}
+};
 
 const createAdditionalLinks = (type, value) => {
   let additional_links = {};
@@ -74,8 +76,9 @@ const createAdditionalLinks = (type, value) => {
 const appendAdditionalLinks = (id, additional_links) => {
   $.each(additional_links, (key, value) => {
     const html = `
-      <a href="${value}" class="btn btn-white mb-1 me-2 p-2 border shadow-sm rounded-circle" target="_blank" data-toggle="tooltip" data-placement="top" title="${additionalSources[key]
-      }">
+      <a href="${value}" class="btn btn-white mb-1 me-2 p-2 border shadow-sm rounded-circle" target="_blank" data-bs-toggle="tooltip" data-bs-placement="top" title="${
+      additionalSources[key]
+    }">
         <img src="${staticLocation + key}.png" class="custom-icon cursor-pointer" alt="${additionalSources[key]}" />
       </a>
     `;
@@ -117,11 +120,9 @@ const createCardElement = (id, check, sourcesInfo, reloadIcon) => `
           </ul>
         </div>
       </div>
-      <div class="card-content">
-        <div id="${check}-${id}" class="card-body">
-          <div id="${check}-${id}-spinner" class="d-flex justify-content-center my-1">
-            <div class="spinner-border" role="status" aria-hidden="true"></div>
-          </div>
+      <div id="${check}-${id}" class="card-body">
+        <div id="${check}-${id}-spinner" class="d-flex justify-content-center my-1">
+          <div class="spinner-border" role="status" aria-hidden="true"></div>
         </div>
       </div>
     </div>
@@ -169,8 +170,8 @@ const createObjectHtml = (temp_check, temp_data) => {
       formattedValue = Array.isArray(value)
         ? value.join('<br>')
         : Object.entries(value)
-          .map(([k, v]) => `${k}: ${v}<br>`)
-          .join('');
+            .map(([k, v]) => `${k}: ${v}<br>`)
+            .join('');
     }
 
     let formattedKey = key.replace(/_/g, ' ').toUpperCase();
@@ -237,8 +238,9 @@ $(document).ready(function () {
                     <tr id="todo-item-${trId}" class="todo-item" style="animation-delay: 0s;">
                         <td class="todo-item-id" hidden>#${trId}</td>
                         <td class="todo-item-search"><span class="checkbox-wrapper"><input type="checkbox" name="search-list" value="search" class="item-${trId}" hidden checked></input>${checkedCircleIcon}</span></td>
-                        <td class="todo-item-value" style="min-width: 15ch; max-width: 40ch;">${isBulk ? `${todoDataLength} Queries` : value
-                  }</td>
+                        <td class="todo-item-value" style="min-width: 15ch; max-width: 40ch;">${
+                          isBulk ? `${todoDataLength} Queries` : value
+                        }</td>
                         <td class="todo-item-type" hidden>${isBulk ? 'bulk' : type}</td>
                   `;
 
@@ -546,9 +548,7 @@ $(document).ready(function () {
                   <div class="card-header">
                     <h4 class="card-action-title">Additional Links</h4>
                   </div>
-                  <div class="card-content">
-                    <div id="additional-links-${id}" class="card-body"></div>
-                  </div>
+                  <div id="additional-links-${id}" class="card-body"></div>
                 </div>
               </div>
             `);

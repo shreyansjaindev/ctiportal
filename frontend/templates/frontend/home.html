@@ -12,22 +12,20 @@
             <div class="col-lg-2 col-sm-4 col-6 mb-4">
                 <a href="{% url app.url %}">
                     <div class="card text-center h-100">
-                        <div class="card-content">
-                            <div class="card-body">
-                                <div class="card-icon mb-3">
-                                    <span class="badge bg-{{ app.color }} rounded-pill p-2">
-                                        {% if app.icon %}
-                                            <i class="ti ti-{{ app.icon }} ti-md"></i>
-                                        {% elif app.image %}
-                                            <img src="{% static app.image %}"
-                                                 alt="{{ app.name }}"
-                                                 width="30"
-                                                 height="30">
-                                        {% endif %}
-                                    </span>
-                                </div>
-                                <h6 class="fw-bold">{{ app.name }}</h6>
+                        <div class="card-body">
+                            <div class="card-icon mb-3">
+                                <span class="badge bg-{{ app.color }} rounded-pill p-2">
+                                    {% if app.icon %}
+                                        <i class="ti ti-{{ app.icon }} ti-lg"></i>
+                                    {% elif app.image %}
+                                        <img src="{% static app.image %}"
+                                             alt="{{ app.name }}"
+                                             width="25"
+                                             height="25">
+                                    {% endif %}
+                                </span>
                             </div>
+                            <h6 class="fw-bold">{{ app.name }}</h6>
                         </div>
                     </div>
                 </a>

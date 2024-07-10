@@ -11,95 +11,93 @@
         <div class="row">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-content">
-                        <div class="card-body">
-                            {% if mha %}
-                                <div class="text-left">
-                                    <!-- Summary -->
-                                    <b>Subject:</b>&nbsp;{{ mha.Subject }}
+                    <div class="card-body">
+                        {% if mha %}
+                            <div class="text-left">
+                                <!-- Summary -->
+                                <b>Subject:</b>&nbsp;{{ mha.Subject }}
+                                <br>
+                                <b>Message-ID:</b>&nbsp;{{ mha.MessageID }}
+                                <br>
+                                <b>Creation time (Date):</b>&nbsp;{{ mha.Date }}
+                                <br>
+                                <b>From:</b>&nbsp;{{ mha.From }}
+                                <br>
+                                <b>To:</b>&nbsp;{{ mha.To }}
+                                <br>
+                                {% if mha.Cc %}
+                                    <b>Cc:</b>&nbsp;{{ mha.Cc }}
                                     <br>
-                                    <b>Message-ID:</b>&nbsp;{{ mha.MessageID }}
-                                    <br>
-                                    <b>Creation time (Date):</b>&nbsp;{{ mha.Date }}
-                                    <br>
-                                    <b>From:</b>&nbsp;{{ mha.From }}
-                                    <br>
-                                    <b>To:</b>&nbsp;{{ mha.To }}
-                                    <br>
-                                    {% if mha.Cc %}
-                                        <b>Cc:</b>&nbsp;{{ mha.Cc }}
-                                        <br>
-                                    {% endif %}
-                                    {% if mha.ReturnPath %}
-                                        <b>Return-Path:</b>&nbsp;{{ mha.ReturnPath }}
-                                        <br>
-                                    {% endif %}
-                                    <hr>
-                                    <!-- Received Headers -->
-                                    <b>Received Headers</b>
-                                    <hr class="bg-dark">
-                                    {% for hop in mha.Received reversed %}
-                                        <b>Hop {{ forloop.counter }}:</b>&nbsp;{{ hop }}
-                                        <hr>
-                                    {% endfor %}
-                                    <!-- Security Headers -->
-                                    <b>Security Headers</b>
-                                    <hr class="bg-dark">
-                                    {% for key, value in mha.items %}
-                                        {% if key in security_headers or key == 'X-Forefront-Antispam-Report' %}
-                                            <small><b>{{ key }}:</b>&nbsp;{{ value }}</small>
-                                            <hr>
-                                        {% endif %}
-                                    {% endfor %}
-                                    <!-- X-Headers -->
-                                    <b>X-Headers</b>
-                                    <hr class="bg-dark">
-                                    {% for key, value in mha.items %}
-                                        {% if 'X-' in key and key != 'X-Forefront-Antispam-Report' %}
-                                            <small><b>{{ key }}:</b>&nbsp;{{ value }}</small>
-                                            <hr>
-                                        {% endif %}
-                                    {% endfor %}
-                                    <!-- Other Headers -->
-                                    <b>Other Headers</b>
-                                    <hr class="bg-dark">
-                                    {% for key, value in mha.items %}
-                                        {% if key not in summary_headers and key not in security_headers and 'X-' not in key %}
-                                            <small><b>{{ key }}:</b>&nbsp;{{ value }}</small>
-                                            <hr>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <!-- Input IOCs -->
-                                            <form id="form-query"
-                                                  action="{% url 'frontend-mha' %}"
-                                                  method="post"
-                                                  enctype="multipart/form-data">
-                                                {% csrf_token %}
-                                                <div class="form-group">
-                                                    <textarea name="header"
-                                                              form="form-query"
-                                                              placeholder="Paste the email header"
-                                                              id="textarea-header"
-                                                              class="form-control rounded"
-                                                              style="resize:none"
-                                                              rows="8"
-                                                              autofocus></textarea>
-                                                </div>
-                                                <div class="form-group d-grid mt-3">
-                                                    <button id="button-view"
-                                                            type="submit"
-                                                            class="btn btn-primary waves-effect waves-light">
-                                                        Analyze
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
                                 {% endif %}
-                            </div>
+                                {% if mha.ReturnPath %}
+                                    <b>Return-Path:</b>&nbsp;{{ mha.ReturnPath }}
+                                    <br>
+                                {% endif %}
+                                <hr>
+                                <!-- Received Headers -->
+                                <b>Received Headers</b>
+                                <hr class="bg-dark">
+                                {% for hop in mha.Received reversed %}
+                                    <b>Hop {{ forloop.counter }}:</b>&nbsp;{{ hop }}
+                                    <hr>
+                                {% endfor %}
+                                <!-- Security Headers -->
+                                <b>Security Headers</b>
+                                <hr class="bg-dark">
+                                {% for key, value in mha.items %}
+                                    {% if key in security_headers or key == 'X-Forefront-Antispam-Report' %}
+                                        <small><b>{{ key }}:</b>&nbsp;{{ value }}</small>
+                                        <hr>
+                                    {% endif %}
+                                {% endfor %}
+                                <!-- X-Headers -->
+                                <b>X-Headers</b>
+                                <hr class="bg-dark">
+                                {% for key, value in mha.items %}
+                                    {% if 'X-' in key and key != 'X-Forefront-Antispam-Report' %}
+                                        <small><b>{{ key }}:</b>&nbsp;{{ value }}</small>
+                                        <hr>
+                                    {% endif %}
+                                {% endfor %}
+                                <!-- Other Headers -->
+                                <b>Other Headers</b>
+                                <hr class="bg-dark">
+                                {% for key, value in mha.items %}
+                                    {% if key not in summary_headers and key not in security_headers and 'X-' not in key %}
+                                        <small><b>{{ key }}:</b>&nbsp;{{ value }}</small>
+                                        <hr>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <div class="row">
+                                    <div class="col-12">
+                                        <!-- Input IOCs -->
+                                        <form id="form-query"
+                                              action="{% url 'frontend-mha' %}"
+                                              method="post"
+                                              enctype="multipart/form-data">
+                                            {% csrf_token %}
+                                            <div class="form-group">
+                                                <textarea name="header"
+                                                          form="form-query"
+                                                          placeholder="Paste the email header"
+                                                          id="textarea-header"
+                                                          class="form-control rounded"
+                                                          style="resize:none"
+                                                          rows="8"
+                                                          autofocus></textarea>
+                                            </div>
+                                            <div class="form-group d-grid mt-3">
+                                                <button id="button-view"
+                                                        type="submit"
+                                                        class="btn btn-primary waves-effect waves-light">
+                                                    Analyze
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
