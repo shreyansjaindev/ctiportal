@@ -1,7 +1,7 @@
-from django.shortcuts import render, redirect
-from django.urls import reverse
+from django.shortcuts import render
 from rest_framework.response import Response
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.mixins import LoginRequiredMixin
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -25,15 +25,16 @@ from scripts.threatstream import (
 )
 
 
+def login_user(request):
+    return render(request, "frontend/auth-login.html", {})
+
+
 class AuthSerializer(serializers.Serializer):
     user = serializers.CharField()
     password = serializers.CharField()
 
 
 class LoginView(APIView):
-    def get(self, request):
-        render(request, "frontend/auth-login.html", {})
-
     def post(self, request, *args, **kwargs):
         serializer = AuthSerializer(data=request.data)
         if serializer.is_valid():
@@ -54,7 +55,7 @@ class LoginView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class LogoutView(APIView):
+class LogoutView(LoginRequiredMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -76,11 +77,7 @@ class UserInfoView(APIView):
         return Response({"username": request.user.username})
 
 
-def login_user(request):
-    return render(request, "frontend/auth-login.html", {})
-
-
-class ThreatstreamView(APIView):
+class ThreatstreamView(LoginRequiredMixin, APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, JSONParser]
 
@@ -97,7 +94,7 @@ class ThreatstreamView(APIView):
         return Response(context)
 
 
-class TextFormatterView(APIView):
+class TextFormatterView(LoginRequiredMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -113,7 +110,7 @@ class TextFormatterView(APIView):
         return Response(context)
 
 
-class MailHeaderAnalyzerView(APIView):
+class MailHeaderAnalyzerView(LoginRequiredMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -130,7 +127,7 @@ class MailHeaderAnalyzerView(APIView):
         return Response(context)
 
 
-class FullpageScreenshotView(APIView):
+class FullpageScreenshotView(LoginRequiredMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -142,7 +139,7 @@ class FullpageScreenshotView(APIView):
         return Response({"data": data})
 
 
-class ActiveDirectoryView(APIView):
+class ActiveDirectoryView(LoginRequiredMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -154,14 +151,14 @@ class ActiveDirectoryView(APIView):
         return Response({"data": data})
 
 
-class NewlyRegisteredDomainView(APIView):
+class NewlyRegisteredDomainView(LoginRequiredMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         return render(request, "frontend/nrd.html", {})
 
 
-class DomainMonitoringView(APIView):
+class DomainMonitoringView(LoginRequiredMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -170,7 +167,7 @@ class DomainMonitoringView(APIView):
         )
 
 
-class IntelligenceHarvesterView(APIView):
+class IntelligenceHarvesterView(LoginRequiredMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -181,14 +178,14 @@ class IntelligenceHarvesterView(APIView):
         return render(request, "frontend/intelligenceharvester.html", context)
 
 
-class HomeView(APIView):
+class HomeView(LoginRequiredMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return redirect(reverse("login"))
         return render(request, "frontend/home.html", {})
 
 
-class URLDecoderView(APIView):
+class URLDecoderView(LoginRequiredMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
