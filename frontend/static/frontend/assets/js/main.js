@@ -47,8 +47,8 @@ if (document.getElementById('layout-menu')) {
       showDropdownOnHover: localStorage.getItem('templateCustomizer-' + templateName + '--ShowDropdownOnHover') // If value(showDropdownOnHover) is set in local storage
         ? localStorage.getItem('templateCustomizer-' + templateName + '--ShowDropdownOnHover') === 'true' // Use the local storage value
         : window.templateCustomizer !== undefined // If value is set in config.js
-          ? window.templateCustomizer.settings.defaultShowDropdownOnHover // Use the config.js value
-          : true // Use this if you are not using the config.js and want to set value directly from here
+        ? window.templateCustomizer.settings.defaultShowDropdownOnHover // Use the config.js value
+        : true, // Use this if you are not using the config.js and want to set value directly from here
     });
     // Change parameter to true if you want scroll animation
     window.Helpers.scrollToActive((animate = false));
@@ -57,8 +57,8 @@ if (document.getElementById('layout-menu')) {
 
   // Initialize menu togglers and bind click on each
   let menuToggler = document.querySelectorAll('.layout-menu-toggle');
-  menuToggler.forEach(item => {
-    item.addEventListener('click', event => {
+  menuToggler.forEach((item) => {
+    item.addEventListener('click', (event) => {
       event.preventDefault();
       window.Helpers.toggleCollapsed();
       // Enable menu state with local storage support if enableMenuLocalStorage = true from config.js
@@ -158,22 +158,22 @@ if (document.getElementById('layout-menu')) {
     const styleSwitcherIcon = styleSwitcher.querySelector('i');
 
     if (storedStyle === 'light') {
-      styleSwitcherIcon.classList.add('ti-sun');
+      styleSwitcherIcon.className = 'ti ti-md ti-sun';
       new bootstrap.Tooltip(styleSwitcherIcon, {
         title: 'Light Mode',
-        fallbackPlacements: ['bottom']
+        fallbackPlacements: ['bottom'],
       });
     } else if (storedStyle === 'dark') {
-      styleSwitcherIcon.classList.add('ti-moon-stars');
+      styleSwitcherIcon.className = 'ti ti-md ti-moon-stars';
       new bootstrap.Tooltip(styleSwitcherIcon, {
         title: 'Dark Mode',
-        fallbackPlacements: ['bottom']
+        fallbackPlacements: ['bottom'],
       });
     } else {
-      styleSwitcherIcon.classList.add('ti-device-desktop-analytics');
+      styleSwitcherIcon.className = 'ti ti-md ti-device-desktop-analytics';
       new bootstrap.Tooltip(styleSwitcherIcon, {
         title: 'System Mode',
-        fallbackPlacements: ['bottom']
+        fallbackPlacements: ['bottom'],
       });
     }
   }
@@ -192,9 +192,9 @@ if (document.getElementById('layout-menu')) {
         debug: false,
         fallbackLng: 'en',
         backend: {
-          loadPath: assetsPath + 'json/locales/{{lng}}.json'
+          loadPath: assetsPath + 'json/locales/{{lng}}.json',
         },
-        returnObjects: true
+        returnObjects: true,
       })
       .then(function (t) {
         localize();
@@ -264,16 +264,16 @@ if (document.getElementById('layout-menu')) {
 
   // Notification: Mark as all as read
   if (notificationMarkAsReadAll) {
-    notificationMarkAsReadAll.addEventListener('click', event => {
-      notificationMarkAsReadList.forEach(item => {
+    notificationMarkAsReadAll.addEventListener('click', (event) => {
+      notificationMarkAsReadList.forEach((item) => {
         item.closest('.dropdown-notifications-item').classList.add('marked-as-read');
       });
     });
   }
   // Notification: Mark as read/unread onclick of dot
   if (notificationMarkAsReadList) {
-    notificationMarkAsReadList.forEach(item => {
-      item.addEventListener('click', event => {
+    notificationMarkAsReadList.forEach((item) => {
+      item.addEventListener('click', (event) => {
         item.closest('.dropdown-notifications-item').classList.toggle('marked-as-read');
       });
     });
@@ -281,8 +281,8 @@ if (document.getElementById('layout-menu')) {
 
   // Notification: Mark as read/unread onclick of dot
   const notificationArchiveMessageList = document.querySelectorAll('.dropdown-notifications-archive');
-  notificationArchiveMessageList.forEach(item => {
-    item.addEventListener('click', event => {
+  notificationArchiveMessageList.forEach((item) => {
+    item.addEventListener('click', (event) => {
       item.closest('.dropdown-notifications-item').remove();
     });
   });
@@ -496,7 +496,7 @@ if (typeof $ !== 'undefined') {
       var searchData = $.ajax({
         url: assetsPath + 'json/' + searchJson, //? Use your own search api instead
         dataType: 'json',
-        async: false
+        async: false,
       }).responseJSON;
       // Init typeahead on searchInput
       searchInput.each(function () {
@@ -508,8 +508,8 @@ if (typeof $ !== 'undefined') {
               classNames: {
                 menu: 'tt-menu navbar-search-suggestion',
                 cursor: 'active',
-                suggestion: 'suggestion d-flex justify-content-between px-4 py-2 w-100'
-              }
+                suggestion: 'suggestion d-flex justify-content-between px-4 py-2 w-100',
+              },
             },
             // ? Add/Update blocks as per need
             // Pages
@@ -540,8 +540,8 @@ if (typeof $ !== 'undefined') {
                   '<div class="not-found px-4 py-2">' +
                   '<h6 class="suggestions-header text-primary mb-2">Pages</h6>' +
                   '<p class="py-2 mb-0"><i class="ti ti-alert-circle ti-xs me-2"></i> No Results Found</p>' +
-                  '</div>'
-              }
+                  '</div>',
+              },
             },
             // Files
             {
@@ -580,8 +580,8 @@ if (typeof $ !== 'undefined') {
                   '<div class="not-found px-4 py-2">' +
                   '<h6 class="suggestions-header text-primary mb-2">Files</h6>' +
                   '<p class="py-2 mb-0"><i class="ti ti-alert-circle ti-xs me-2"></i> No Results Found</p>' +
-                  '</div>'
-              }
+                  '</div>',
+              },
             },
             // Members
             {
@@ -617,8 +617,8 @@ if (typeof $ !== 'undefined') {
                   '<div class="not-found px-4 py-2">' +
                   '<h6 class="suggestions-header text-primary mb-2">Members</h6>' +
                   '<p class="py-2 mb-0"><i class="ti ti-alert-circle ti-xs me-2"></i> No Results Found</p>' +
-                  '</div>'
-              }
+                  '</div>',
+              },
             }
           )
           //On typeahead result render.
@@ -657,7 +657,7 @@ if (typeof $ !== 'undefined') {
       $('.navbar-search-suggestion').each(function () {
         psSearch = new PerfectScrollbar($(this)[0], {
           wheelPropagation: false,
-          suppressScrollX: true
+          suppressScrollX: true,
         });
       });
 

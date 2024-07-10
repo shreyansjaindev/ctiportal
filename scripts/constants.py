@@ -141,7 +141,7 @@ APPS = [
         "name": "Website Screenshot",
         "url": "frontend-screenshot",
         "color": "label-success",
-        "icon": "camera",
+        "icon": "screenshot",
     },
     {
         "name": "Mail Header Analyzer",
