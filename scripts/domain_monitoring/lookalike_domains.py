@@ -5,14 +5,8 @@ import sys
 import re
 import idna
 from difflib import SequenceMatcher
-from whoisxmlapi import (
-    get_newly_registered_domains_df,
-)
-from api_calls import (
-    get_active_companies,
-    get_watched_resources,
-    add_lookalike_domain,
-)
+from whoisxmlapi import get_newly_registered_domains_df
+from api_calls import get_active_companies, get_watched_resources, add_lookalike_domain
 import concurrent.futures
 from substring_match import find_best_substring_match
 import Levenshtein
@@ -70,9 +64,7 @@ def calculate_similarity_domain(query_domain, domain, properties):
 
     query_domain_name = query_domain.split(".", 1)[0]
     query_domain_name_without_hyphen = query_domain_name.replace("-", "")
-    query_domain_name_translated = query_domain_name.translate(
-        str.maketrans("glw", "qiv")
-    )
+    query_domain_name_translated = query_domain_name.translate(str.maketrans("glw", "qiv"))
 
     unidecoded_domain = unidecode(domain)
     unidecoded_domain_name = unidecoded_domain.split(".")[0]
@@ -132,9 +124,7 @@ def calculate_similarity_domain(query_domain, domain, properties):
         if noise_reduction and length_difference > 0:
             continue
 
-        distance = Levenshtein.distance(
-            query_domain_name_variation, domain_name_variation
-        )
+        distance = Levenshtein.distance(query_domain_name_variation, domain_name_variation)
 
         if distance > round(query_length / DISTANCE_RATIO, 2):
             continue
@@ -156,9 +146,7 @@ def calculate_similarity_domain(query_domain, domain, properties):
             return substring_match_score, first_character_match
 
         similarity_ratio = round(
-            SequenceMatcher(
-                None, query_domain_name_variation, domain_name_variation
-            ).ratio(),
+            SequenceMatcher(None, query_domain_name_variation, domain_name_variation).ratio(),
             2,
         )
 
@@ -236,14 +224,10 @@ def identify_lookalike_domains(queries, company, date, df):
 
         if resource_matches:
             keyword_matches = [
-                match
-                for match in resource_matches
-                if match["resource_type"] == "keyword"
+                match for match in resource_matches if match["resource_type"] == "keyword"
             ]
             domain_matches = [
-                match
-                for match in resource_matches
-                if match["resource_type"] == "domain"
+                match for match in resource_matches if match["resource_type"] == "domain"
             ]
 
             perfect_domain_match = next(
@@ -257,9 +241,7 @@ def identify_lookalike_domains(queries, company, date, df):
                 best_resource_match = max(domain_matches, key=lambda x: x["similarity"])
 
             elif keyword_matches:
-                best_resource_match = max(
-                    keyword_matches, key=lambda x: x["similarity"]
-                )
+                best_resource_match = max(keyword_matches, key=lambda x: x["similarity"])
 
             similarity_ratio = best_resource_match["similarity"]
 
@@ -281,7 +263,9 @@ def identify_lookalike_domains(queries, company, date, df):
             else:
                 best_resource_match["risk"] = 0
 
-            if best_resource_match.get("resource_type") == "domain" and not best_resource_match.get("first_character_match", False):
+            if best_resource_match.get("resource_type") == "domain" and not best_resource_match.get(
+                "first_character_match", False
+            ):
                 best_resource_match["risk"] -= 1
 
             if best_resource_match["risk"] > 0:

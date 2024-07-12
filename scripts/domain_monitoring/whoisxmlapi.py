@@ -34,9 +34,7 @@ def generate_filename(date):
 
 def generate_file_path(date):
     filename = generate_filename(date)
-    filepath = os.path.join(
-        BASE_DIR, "scripts", "domain_monitoring", "nrd_data", filename
-    )
+    filepath = os.path.join(BASE_DIR, "scripts", "domain_monitoring", "nrd_data", filename)
     return filepath
 
 

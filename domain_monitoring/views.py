@@ -50,9 +50,7 @@ class MonitoredDomainViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 # Monitored Domain Alerts
@@ -106,9 +104,7 @@ class LookalikeDomainViewSet(viewsets.ModelViewSet):
             # Determine ordering dynamically from the query parameters
             ordering_fields = [
                 field
-                for field in request.GET.getlist(
-                    "columns[" + str(order_column_index) + "][data]"
-                )
+                for field in request.GET.getlist("columns[" + str(order_column_index) + "][data]")
             ]
 
             ordering = [ordering_fields[0]]  # Default to the first field
@@ -169,14 +165,11 @@ class LookalikeDomainsBlockViewSet(viewsets.ViewSet):
         serializer = DomainsSerializer(data=request.data)
         if serializer.is_valid():
             response = threatstream_import_domains_without_approval(
-                serializer.validated_data["domains"],
-                ["DM_Test1", "DM_Test2"],
+                serializer.validated_data["domains"], ["DM_Test1", "DM_Test2"]
             )
             if response.status_code == 202:
                 return Response(
-                    {
-                        "message": "Domains successfully imported to Anomali Threatstream"
-                    },
+                    {"message": "Domains successfully imported to Anomali Threatstream"},
                     status=status.HTTP_201_CREATED,
                 )
             else:

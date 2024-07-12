@@ -44,16 +44,12 @@ def find_best_match(domain_name, keywords):
 def calculate_similarity(query_domain, domain, noise_reduction):
     query_domain_name = query_domain.split(".", 1)[0]
     query_domain_name_without_hyphen = query_domain_name.replace("-", "")
-    query_domain_name_translated = query_domain_name.translate(
-        str.maketrans("gl", "qi")
-    )
+    query_domain_name_translated = query_domain_name.translate(str.maketrans("gl", "qi"))
     unidecoded_domain = unidecode(domain)
     unidecoded_domain_name = unidecoded_domain.split(".")[0]
     unidecoded_domain_name_without_hyphen = unidecoded_domain_name.replace("-", "")
     unidecoded_domain_name_with_tld = unidecoded_domain.replace(".", "")
-    unidecoded_domain_name_translated = unidecoded_domain_name.translate(
-        str.maketrans("gl", "qi")
-    )
+    unidecoded_domain_name_translated = unidecoded_domain_name.translate(str.maketrans("gl", "qi"))
 
     variations = [
         {"domain": unidecoded_domain_name, "query": query_domain_name},
@@ -82,9 +78,7 @@ def calculate_similarity(query_domain, domain, noise_reduction):
             if length_difference > 0:
                 continue
 
-        distance = Levenshtein.distance(
-            query_domain_name_variation, domain_name_variation
-        )
+        distance = Levenshtein.distance(query_domain_name_variation, domain_name_variation)
 
         if distance > round(query_length / 5):
             continue
@@ -97,9 +91,7 @@ def calculate_similarity(query_domain, domain, noise_reduction):
             return substring_match_score, query_domain, domain, None
 
         similarity_ratio = round(
-            SequenceMatcher(
-                None, query_domain_name_variation, domain_name_variation
-            ).ratio(),
+            SequenceMatcher(None, query_domain_name_variation, domain_name_variation).ratio(),
             2,
         )
 
@@ -107,5 +99,3 @@ def calculate_similarity(query_domain, domain, noise_reduction):
             best_similarity_ratio = similarity_ratio
 
     return best_similarity_ratio, query_domain, domain, distance
-
-

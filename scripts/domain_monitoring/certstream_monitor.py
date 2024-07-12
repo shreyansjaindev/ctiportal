@@ -61,9 +61,7 @@ def certstream_monitor():
             if message["message_type"] == "certificate_update":
                 executor.submit(compare, message)
 
-        certstream.listen_for_events(
-            certstream_callback, url="wss://certstream.calidog.io/"
-        )
+        certstream.listen_for_events(certstream_callback, url="wss://certstream.calidog.io/")
 
 
 if __name__ == "__main__":

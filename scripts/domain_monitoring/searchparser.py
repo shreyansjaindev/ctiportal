@@ -42,12 +42,10 @@ class SearchQueryParser:
         operatorOr = Forward()
 
         operatorWord = (
-            Group(
-                Combine(Suppress("*") + Word(alphanums + ".-") + Suppress("*"))
-            ).setResultsName("word")
-            | Group(Combine(Suppress("*") + Word(alphanums + ".-"))).setResultsName(
-                "endswith_word"
+            Group(Combine(Suppress("*") + Word(alphanums + ".-") + Suppress("*"))).setResultsName(
+                "word"
             )
+            | Group(Combine(Suppress("*") + Word(alphanums + ".-"))).setResultsName("endswith_word")
             | Group(Combine(Word(alphanums + ".-") + Suppress("*"))).setResultsName(
                 "startswith_word"
             )
@@ -55,17 +53,13 @@ class SearchQueryParser:
         )
 
         operatorParenthesis = (
-            Group(Suppress("(") + operatorOr + Suppress(")")).setResultsName(
-                "parenthesis"
-            )
+            Group(Suppress("(") + operatorOr + Suppress(")")).setResultsName("parenthesis")
             | operatorWord
         )
 
         operatorNot = Forward()
         operatorNot << (
-            Group(Suppress(Keyword("not", caseless=True)) + operatorNot).setResultsName(
-                "not"
-            )
+            Group(Suppress(Keyword("not", caseless=True)) + operatorNot).setResultsName("not")
             | operatorParenthesis
         )
 
@@ -81,9 +75,9 @@ class SearchQueryParser:
         )
 
         operatorOr << (
-            Group(
-                operatorAnd + Suppress(Keyword("or", caseless=True)) + operatorOr
-            ).setResultsName("or")
+            Group(operatorAnd + Suppress(Keyword("or", caseless=True)) + operatorOr).setResultsName(
+                "or"
+            )
             | operatorAnd
         )
 
@@ -124,9 +118,7 @@ class SearchQueryParser:
         return check_exact_match(self, word)
 
     def GetEndsWithWord(self, word):
-        return {
-            domain for domain in self.domains if domain.split(".")[0].endswith(word[0])
-        }
+        return {domain for domain in self.domains if domain.split(".")[0].endswith(word[0])}
 
     def GetStartsWithWord(self, word):
         return {domain for domain in self.domains if domain.startswith(word[0])}

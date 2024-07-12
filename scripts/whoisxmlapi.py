@@ -25,9 +25,7 @@ def whois(domain, api_key):
                 filtered_data[key] = registry_data.get(key, "")
 
             for key in registrant_keys:
-                filtered_data[f"registrant_{key}"] = registry_data["registrant"].get(
-                    key, ""
-                )
+                filtered_data[f"registrant_{key}"] = registry_data["registrant"].get(key, "")
 
         except Exception as e:
             return {"Error": "An error occurred while processing the data: " + str(e)}
@@ -71,9 +69,7 @@ def reverse_whois(query, api_key, search_type="advanced"):
 
 
 def iplocation(ip, api_key):
-    url = (
-        f"https://ip-geolocation.whoisxmlapi.com/api/v1?apiKey={api_key}&ipAddress={ip}"
-    )
+    url = f"https://ip-geolocation.whoisxmlapi.com/api/v1?apiKey={api_key}&ipAddress={ip}"
 
     response = requests.get(url)
     data = response.json()
@@ -174,10 +170,7 @@ def whoisxmlapi_main(value, query_type):
         api_credits_data = response.json().get("data")
 
         for product in api_credits_data:
-            if (
-                product["product_id"] == product_info[query_type]["id"]
-                and product["credits"] != 0
-            ):
+            if product["product_id"] == product_info[query_type]["id"] and product["credits"] != 0:
                 func = product_info[query_type]["function"]
                 if func:
                     return func(value, api_key)

@@ -19,10 +19,7 @@ from scripts.textformatter import collector as text_formatter
 from scripts.screenshotmachine import bulk_screenshot
 from scripts.mha import mha as mha_analyzer
 from scripts.ad_users import get_aduser
-from scripts.threatstream import (
-    threatstream_export,
-    threatstream_export_feeds,
-)
+from scripts.threatstream import threatstream_export, threatstream_export_feeds
 
 
 def login_user(request):
@@ -45,9 +42,7 @@ class LoginView(APIView):
             )
             if user is not None:
                 login(request, user)
-                return Response(
-                    {"message": "Login successful"}, status=status.HTTP_200_OK
-                )
+                return Response({"message": "Login successful"}, status=status.HTTP_200_OK)
             return Response(
                 {"message": "Invalid credentials"},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -61,9 +56,7 @@ class LogoutView(LoginRequiredMixin, APIView):
     def post(self, request):
         try:
             logout(request)
-            return Response(
-                {"message": "Logged out successfully"}, status=status.HTTP_200_OK
-            )
+            return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(
                 {"error": "Logout failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -162,9 +155,7 @@ class DomainMonitoringView(LoginRequiredMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        return render(
-            request, "frontend/domainmonitoring.html", {"tabs": DOMAIN_MONITORING_TABS}
-        )
+        return render(request, "frontend/domainmonitoring.html", {"tabs": DOMAIN_MONITORING_TABS})
 
 
 class IntelligenceHarvesterView(LoginRequiredMixin, APIView):

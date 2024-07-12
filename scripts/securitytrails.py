@@ -69,9 +69,7 @@ def get_whois(value, value_type):
                 if value:
                     whois_data[whois_field] = value
 
-        return {
-            k: v for k, v in whois_data.items() if v is not None
-        }  # Remove None values
+        return {k: v for k, v in whois_data.items() if v is not None}  # Remove None values
 
     return {"error": "Request Failed"}
 

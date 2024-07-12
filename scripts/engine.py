@@ -134,9 +134,7 @@ def get_cached_data(hashed_value, source):
         timestamp_now = datetime.now(timezone.utc)
 
         # Time elapsed (in minutes)
-        time_elapsed = (
-            (timestamp_now - timestamp_created).total_seconds().__floordiv__(60)
-        )
+        time_elapsed = (timestamp_now - timestamp_created).total_seconds().__floordiv__(60)
 
         if time_elapsed < 480:
             return cached_data[0].data
@@ -230,9 +228,7 @@ def update_results_and_database(threads_info, results):
 
             except Exception as e:
                 logger.error(f"Error processing {source} for {value}: {e}")
-                results[value]["source_data"].update(
-                    {source: {"results": {"Error": str(e)}}}
-                )
+                results[value]["source_data"].update({source: {"results": {"Error": str(e)}}})
     return results
 
 
@@ -283,9 +279,7 @@ def generate_external_link(source, value, value_type):
 def remove_empty_values(d):
     if not isinstance(d, dict):
         return d
-    return {
-        k: remove_empty_values(v) for k, v in d.items() if v and remove_empty_values(v)
-    }
+    return {k: remove_empty_values(v) for k, v in d.items() if v and remove_empty_values(v)}
 
 
 def collect_data(input_data):
@@ -329,9 +323,7 @@ def collect_data(input_data):
                     {
                         "value": value,
                         "value_type": value_type,
-                        "futures": thread_creator(
-                            executor, value, value_type, non_cached_sources
-                        ),
+                        "futures": thread_creator(executor, value, value_type, non_cached_sources),
                     }
                 )
 

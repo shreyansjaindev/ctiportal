@@ -20,9 +20,7 @@ class CompanySerializer(serializers.ModelSerializer):
 
 
 class CompanyDomainSerializer(serializers.ModelSerializer):
-    company = serializers.SlugRelatedField(
-        slug_field="name", queryset=Company.objects.all()
-    )
+    company = serializers.SlugRelatedField(slug_field="name", queryset=Company.objects.all())
 
     class Meta:
         model = CompanyDomain
@@ -30,9 +28,7 @@ class CompanyDomainSerializer(serializers.ModelSerializer):
 
 
 class WatchedResourceSerializer(serializers.ModelSerializer):
-    company = serializers.SlugRelatedField(
-        slug_field="name", queryset=Company.objects.all()
-    )
+    company = serializers.SlugRelatedField(slug_field="name", queryset=Company.objects.all())
 
     class Meta:
         model = WatchedResource
@@ -40,9 +36,7 @@ class WatchedResourceSerializer(serializers.ModelSerializer):
 
 
 class MonitoredDomainSerializer(serializers.ModelSerializer):
-    company = serializers.SlugRelatedField(
-        slug_field="name", queryset=Company.objects.all()
-    )
+    company = serializers.SlugRelatedField(slug_field="name", queryset=Company.objects.all())
 
     class Meta:
         model = MonitoredDomain
@@ -58,9 +52,7 @@ class MonitoredDomainAlertCommentSerializer(serializers.ModelSerializer):
 
 
 class MonitoredDomainAlertSerializer(serializers.ModelSerializer):
-    company = serializers.SlugRelatedField(
-        slug_field="name", queryset=Company.objects.all()
-    )
+    company = serializers.SlugRelatedField(slug_field="name", queryset=Company.objects.all())
     comments = MonitoredDomainAlertCommentSerializer(many=True, read_only=True)
 
     class Meta:
@@ -83,9 +75,7 @@ class LookalikeDomainCommentSerializer(serializers.ModelSerializer):
 
 
 class LookalikeDomainSerializer(serializers.ModelSerializer):
-    company = serializers.SlugRelatedField(
-        slug_field="name", queryset=Company.objects.all()
-    )
+    company = serializers.SlugRelatedField(slug_field="name", queryset=Company.objects.all())
     comments = LookalikeDomainCommentSerializer(many=True, read_only=True)
     is_monitored = serializers.ReadOnlyField()
 
@@ -95,9 +85,7 @@ class LookalikeDomainSerializer(serializers.ModelSerializer):
 
 
 class SslCertificateSerializer(serializers.ModelSerializer):
-    company = serializers.SlugRelatedField(
-        slug_field="name", queryset=Company.objects.all()
-    )
+    company = serializers.SlugRelatedField(slug_field="name", queryset=Company.objects.all())
 
     class Meta:
         model = SSLCertificate

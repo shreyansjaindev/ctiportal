@@ -12,29 +12,13 @@ urlpatterns = [
         name="frontend-intelligenceharvester",
     ),
     path("urldecoder/", views.URLDecoderView.as_view(), name="frontend-urldecoder"),
-    path(
-        "screenshot/",
-        views.FullpageScreenshotView.as_view(),
-        name="frontend-screenshot",
-    ),
-    path(
-        "textformatter/",
-        views.TextFormatterView.as_view(),
-        name="frontend-textformatter",
-    ),
+    path("screenshot/", views.FullpageScreenshotView.as_view(), name="frontend-screenshot"),
+    path("textformatter/", views.TextFormatterView.as_view(), name="frontend-textformatter"),
     path("mha/", views.MailHeaderAnalyzerView.as_view(), name="frontend-mha"),
     path("nrd/", views.NewlyRegisteredDomainView.as_view(), name="frontend-nrd"),
     path(
-        "domainmonitoring/",
-        views.DomainMonitoringView.as_view(),
-        name="frontend-domainmonitoring",
+        "domainmonitoring/", views.DomainMonitoringView.as_view(), name="frontend-domainmonitoring"
     ),
-    path(
-        "threatstream/", views.ThreatstreamView.as_view(), name="frontend-threatstream"
-    ),
-    path(
-        "activedirectory/",
-        views.ActiveDirectoryView.as_view(),
-        name="frontend-activedirectory",
-    ),
+    path("threatstream/", views.ThreatstreamView.as_view(), name="frontend-threatstream"),
+    path("activedirectory/", views.ActiveDirectoryView.as_view(), name="frontend-activedirectory"),
 ]

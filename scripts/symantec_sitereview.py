@@ -35,16 +35,14 @@ def url_category(weburl, driver):
         category = driver.find_elements(By.CLASS_NAME, "clickable-category")
 
         if not category:
-            data["category"] = driver.find_element(
-                By.CLASS_NAME, "search-result"
-            ).text.split("\n")[0]
+            data["category"] = driver.find_element(By.CLASS_NAME, "search-result").text.split("\n")[
+                0
+            ]
         else:
             data["category"] = [value.text for value in category]
 
             data["last_reviewed"] = (
-                driver.find_element(By.CLASS_NAME, "rating-date")
-                .text.replace("?", "")
-                .rstrip()
+                driver.find_element(By.CLASS_NAME, "rating-date").text.replace("?", "").rstrip()
             )
     except TimeoutException:
         print("TimeoutException: Element not found")

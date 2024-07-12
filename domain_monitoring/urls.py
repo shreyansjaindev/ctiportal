@@ -5,25 +5,15 @@ from .views import *
 router = routers.DefaultRouter()
 router.register(r"companies", CompanyViewSet, basename="companies")
 router.register(r"company-domains", CompanyDomainViewSet, basename="company-domains")
+router.register(r"watched-resources", WatchedResourceViewSet, basename="watched-resources")
+router.register(r"monitored-domains", MonitoredDomainViewSet, basename="monitored-domains")
 router.register(
-    r"watched-resources", WatchedResourceViewSet, basename="watched-resources"
+    r"monitored-domain-alerts", MonitoredDomainAlertViewSet, basename="monitored-domain-alerts"
 )
-router.register(
-    r"monitored-domains", MonitoredDomainViewSet, basename="monitored-domains"
-)
-router.register(
-    r"monitored-domain-alerts",
-    MonitoredDomainAlertViewSet,
-    basename="monitored-domain-alerts",
-)
-router.register(
-    r"lookalike-domains", LookalikeDomainViewSet, basename="lookalike-domains"
-)
+router.register(r"lookalike-domains", LookalikeDomainViewSet, basename="lookalike-domains")
 router.register(r"ssl-certificates", SslCertificateViewSet, basename="ssl-certificates")
 router.register(
-    r"newly-registered-domains",
-    NewlyRegisteredDomainViewSet,
-    basename="newly-registered-domains",
+    r"newly-registered-domains", NewlyRegisteredDomainViewSet, basename="newly-registered-domains"
 )
 
 router.register(
@@ -39,9 +29,7 @@ router.register(
 )
 
 router.register(
-    r"lookalike-domains-block",
-    LookalikeDomainsBlockViewSet,
-    basename="lookalike-domains-block",
+    r"lookalike-domains-block", LookalikeDomainsBlockViewSet, basename="lookalike-domains-block"
 )
 
 

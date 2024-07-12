@@ -39,17 +39,13 @@ def scan(query):
 
             task_url = scan_results["task"]["url"]
             verdicts_overall_score = scan_results["verdicts"]["overall"]["score"]
-            verdicts_overall_malicious = scan_results["verdicts"]["overall"][
-                "malicious"
-            ]
+            verdicts_overall_malicious = scan_results["verdicts"]["overall"]["malicious"]
             task_report_URL = scan_results["task"]["reportURL"]
 
             url_scan_data["URL"] = task_url
             url_scan_data["Overall Verdict"] = str(verdicts_overall_score)
             url_scan_data["Malicious"] = str(verdicts_overall_malicious)
-            url_scan_data["urlscan.io"] = str(
-                scan_results["verdicts"]["urlscan"]["score"]
-            )
+            url_scan_data["urlscan.io"] = str(scan_results["verdicts"]["urlscan"]["score"])
 
             if scan_results["verdicts"]["urlscan"]["malicious"]:
                 url_scan_data["Malicious Results"] = str(
@@ -82,9 +78,7 @@ def scan(query):
 
 
 def search(query, input_type):
-    domain = (
-        tldextract.extract(query).registered_domain if input_type == "url" else query
-    )
+    domain = tldextract.extract(query).registered_domain if input_type == "url" else query
 
     url = f"https://urlscan.io/api/v1/search/?q=task.domain:{domain}&size=10"
     response = requests.get(url)

@@ -30,9 +30,7 @@ def blacklists(query, value_type):
                 return {}
 
         blacklists = {
-            line.split(" ")[1]
-            for line in raw_text_list
-            if line.strip().startswith("LISTED")
+            line.split(" ")[1] for line in raw_text_list if line.strip().startswith("LISTED")
         }
 
         status = "Blacklisted" if blacklists else "Not Listed"

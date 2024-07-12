@@ -15,12 +15,8 @@ def get_image_similarity(img1, img2):
 
 
 def is_screenshots_similar(old_screenshot_filename, new_screenshot_filename):
-    old_screenshot_path = pathlib.Path.joinpath(
-        SCREENSHOT_DIRECTORY, old_screenshot_filename
-    )
-    new_screenshot_path = pathlib.Path.joinpath(
-        SCREENSHOT_DIRECTORY, new_screenshot_filename
-    )
+    old_screenshot_path = pathlib.Path.joinpath(SCREENSHOT_DIRECTORY, old_screenshot_filename)
+    new_screenshot_path = pathlib.Path.joinpath(SCREENSHOT_DIRECTORY, new_screenshot_filename)
     img1 = cv2.imread(str(old_screenshot_path))
     img2 = cv2.imread(str(new_screenshot_path))
 

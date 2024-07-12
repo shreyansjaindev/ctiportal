@@ -24,9 +24,7 @@ def dns_records(domain, value_type="domain"):
             for rdata in answers:
                 if record in dns_data.keys():
                     dns_data[record] = (
-                        dns_data[record].replace('"', "")
-                        + ","
-                        + rdata.to_text().replace('"', "")
+                        dns_data[record].replace('"', "") + "," + rdata.to_text().replace('"', "")
                     )
                 else:
                     dns_data[record] = rdata.to_text()
@@ -152,9 +150,7 @@ def ip_lookup(ip):
 def lookup(query, input_type):
     lookup_dict = {
         "domain": get_dns_records,
-        "url": lambda query: get_dns_records(
-            tldextract.extract(query).registered_domain
-        ),
+        "url": lambda query: get_dns_records(tldextract.extract(query).registered_domain),
         "ipv4": ip_lookup,
         "ipv6": ip_lookup,
     }

@@ -157,11 +157,7 @@ class LookalikeDomain(models.Model):
     # modified_by = models.ForeignKey(User, on_delete=models.RESTRICT, null=True, related_name='users')
 
     def is_monitored(self):
-        return (
-            "active"
-            if MonitoredDomain.objects.filter(value=self.value).exists()
-            else "inactive"
-        )
+        return "active" if MonitoredDomain.objects.filter(value=self.value).exists() else "inactive"
 
     class Meta:
         verbose_name_plural = "Lookalike Domains"

@@ -28,9 +28,7 @@ def ibm_ip(ip, headers):
     if data.get("error", None):
         return {"error": data["error"]}
 
-    ip_category = str(data["history"][-1]["cats"]).translate(
-        {ord(i): None for i in "{'}"}
-    )
+    ip_category = str(data["history"][-1]["cats"]).translate({ord(i): None for i in "{'}"})
     ip_category = "Unsuspicious" if len(ip_category) == 0 else ip_category
 
     ip_score = str(data["history"][-1]["score"]).strip()

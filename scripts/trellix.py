@@ -54,9 +54,7 @@ def generate_yara_rule_file(domains):
 
     try:
         strings_to_match = add_domains_to_yara_rule(domains)
-        yara_content = generate_yara_rule(
-            rule_name, meta_data, strings_to_match, condition
-        )
+        yara_content = generate_yara_rule(rule_name, meta_data, strings_to_match, condition)
         with open("fis_domain_monitoring.yara", "w") as yara_file:
             yara_file.write(yara_content)
         print("YARA file generated successfully.")
@@ -86,7 +84,9 @@ def update_yara_ruleset_by_name(name, domains, policy_uuid):
     yara_ruleset = get_yara_ruleset_by_name(name, policy_uuid)
     if yara_ruleset:
         ruleset_uuid = yara_ruleset["uuid"]
-        yara_ruleset_url = f"{BASE_URL}/{policy_uuid}/configuration/rules/yara/rulesets/{ruleset_uuid}/file"
+        yara_ruleset_url = (
+            f"{BASE_URL}/{policy_uuid}/configuration/rules/yara/rulesets/{ruleset_uuid}/file"
+        )
         generate_yara_rule_file(domains)
         files = {"file": open("fis_domain_monitoring.yara", "rb")}
         response = requests.put(yara_ruleset_url, headers=HEADERS, files=files)
@@ -99,9 +99,7 @@ def extract_domains_from_yara(yara_content):
     yara_string_pattern = re.compile(r"\$\w+ = ((?:\/|\")\S+(?:\/|\"))")
     matches = yara_string_pattern.findall(yara_content)
     extracted_strings = [
-        match.replace("/https?:\/\/\w*\.?", "")
-        .replace("[^.a-z]/", "")
-        .replace("\.", ".")
+        match.replace("/https?:\/\/\w*\.?", "").replace("[^.a-z]/", "").replace("\.", ".")
         for match in matches
     ]
     return extracted_strings
@@ -114,7 +112,9 @@ def get_yara_file_by_ruleset_name(name, policy_uuid):
     yara_ruleset = get_yara_ruleset_by_name(name, policy_uuid)
     if yara_ruleset:
         ruleset_uuid = yara_ruleset["uuid"]
-        yara_ruleset_url = f"{BASE_URL}/{policy_uuid}/configuration/rules/yara/rulesets/{ruleset_uuid}/file"
+        yara_ruleset_url = (
+            f"{BASE_URL}/{policy_uuid}/configuration/rules/yara/rulesets/{ruleset_uuid}/file"
+        )
 
         response = requests.get(yara_ruleset_url, headers=HEADERS)
         if response.status_code == 200:

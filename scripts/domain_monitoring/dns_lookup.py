@@ -15,9 +15,7 @@ def get_dns_records(domain):
         try:
             answers = resolver.resolve(domain, record)
             if record == "mx":
-                results[record] = [
-                    rdata.to_text().split(" ")[1][:-1] for rdata in answers
-                ]
+                results[record] = [rdata.to_text().split(" ")[1][:-1] for rdata in answers]
             elif record == "txt":
                 results["spf"] = [
                     rdata.to_text().replace('"', "").replace("  ", " ")

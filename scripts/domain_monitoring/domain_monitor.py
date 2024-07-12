@@ -12,6 +12,7 @@ from api_calls import (
     post_monitored_domain_alert,
 )
 from image_utils import is_screenshots_similar
+
 # from securitytrails import get_dns_records
 # from screenshotmachine import get_website_screenshot
 # from website_status import get_website_status
@@ -38,17 +39,11 @@ def compare_fields(old_data, new_data, fields, transformations=None):
     results = {}
 
     for field_name in fields:
-        old_list = extract_and_filter(
-            old_data.get(field_name, []), transformations.get(field_name)
-        )
-        new_list = extract_and_filter(
-            new_data.get(field_name, []), transformations.get(field_name)
-        )
+        old_list = extract_and_filter(old_data.get(field_name, []), transformations.get(field_name))
+        new_list = extract_and_filter(new_data.get(field_name, []), transformations.get(field_name))
 
         if set(old_list) != set(new_list):
-            diff_set = set(old_data.get(field_name, [])) - set(
-                new_data.get(field_name, [])
-            )
+            diff_set = set(old_data.get(field_name, [])) - set(new_data.get(field_name, []))
             results[field_name] = list(diff_set)
 
     return results
@@ -107,9 +102,7 @@ def change_validator(existing_data, new_data):
 
         if new_website_screenshot:
             if old_website_screenshot:
-                if is_screenshots_similar(
-                    old_website_screenshot, new_website_screenshot
-                ):
+                if is_screenshots_similar(old_website_screenshot, new_website_screenshot):
                     for field in [
                         "a_record",
                         "website_screenshot",
@@ -188,7 +181,7 @@ def detect_domain_changes(monitored_domain_data):
     new_screenshot = changes.get("website_screenshot", "")
     if old_screenshot and not new_screenshot:
         data["website_screenshot"] = old_screenshot
-    
+
     if last_checked != "1900-01-01" and changes:
         create_alert(domain, company, monitored_domain_data, changes)
     update_monitored_domain(monitored_domain_data["id"], data)
@@ -202,8 +195,7 @@ def monitor_domains():
 
             with ThreadPoolExecutor(max_workers=1) as executor:
                 futures = [
-                    executor.submit(detect_domain_changes, domain)
-                    for domain in monitored_domains
+                    executor.submit(detect_domain_changes, domain) for domain in monitored_domains
                 ]
                 for future in futures:
                     if future.result():

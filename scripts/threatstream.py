@@ -163,8 +163,7 @@ def threatstream_export_feeds(csv_file, is_exclude=False, update_id=0):
     with requests.Session() as session:
         with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
             futures = [
-                executor.submit(request, session, all_count, value)
-                for value in data["value"]
+                executor.submit(request, session, all_count, value) for value in data["value"]
             ]
             for future in concurrent.futures.as_completed(futures):
                 try:
@@ -200,9 +199,7 @@ def threatstream_import_indicators(
         "source_confidence_weight": source_confidence_weight,
     }
 
-    response = requests.post(
-        f"{API_URL}/intelligence/import/", headers=HEADERS, data=payload
-    )
+    response = requests.post(f"{API_URL}/intelligence/import/", headers=HEADERS, data=payload)
     return response.json()
 
 

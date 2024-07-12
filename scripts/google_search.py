@@ -5,13 +5,13 @@ from bs4 import BeautifulSoup
 
 
 def get_title(query):
-    title = 'Title is available for this webpage'
+    title = "Title is available for this webpage"
     try:
         response = requests.get(query)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        title_html = soup.find('title')
+        soup = BeautifulSoup(response.text, "html.parser")
+        title_html = soup.find("title")
         if title_html != None:
-            title = title_html.text.strip().replace('\n', ' ')
+            title = title_html.text.strip().replace("\n", " ")
     except:
         pass
     return title

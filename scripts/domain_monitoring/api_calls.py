@@ -21,9 +21,7 @@ HEADERS = {
 
 def make_api_request(method, endpoint, params=None, data=None):
     try:
-        response = requests.request(
-            method, endpoint, headers=HEADERS, params=params, json=data
-        )
+        response = requests.request(method, endpoint, headers=HEADERS, params=params, json=data)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:

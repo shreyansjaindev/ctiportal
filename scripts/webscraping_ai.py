@@ -22,9 +22,7 @@ def websiteHTML(url):
         "api_key": API_KEY,
     }
 
-    response = requests.get(
-        "https://api.webscraping.ai/html", headers=headers, params=params
-    )
+    response = requests.get("https://api.webscraping.ai/html", headers=headers, params=params)
     data = response.content.decode("utf-8")
     return data
 
