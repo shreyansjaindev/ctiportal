@@ -180,16 +180,12 @@ def parse_imphashes_(text: str) -> List:
 # there is a trailing underscore on this function to differentiate it from the argument with the same name
 def parse_authentihashes_(text: str) -> List:
     """."""
-    full_authentihash_instances = _listify(
-        ioc_grammars.authentihash.searchString(text.lower())
-    )
+    full_authentihash_instances = _listify(ioc_grammars.authentihash.searchString(text.lower()))
 
     authentihashes = []
 
     for authentihash in full_authentihash_instances:
-        authentihashes.append(
-            ioc_grammars.authentihash.parseString(authentihash).hash[0]
-        )
+        authentihashes.append(ioc_grammars.authentihash.parseString(authentihash).hash[0])
 
     return authentihashes
 
@@ -255,9 +251,7 @@ def parse_registry_key_paths(text):
         # it will not parse a registry key path with a space in the final section (the section after the final '\')
         if " " in registry_key_path.split("\\")[-1]:
             last_section = registry_key_path.split("\\")[-1]
-            registry_key_path = registry_key_path.replace(
-                last_section, last_section.split(" ")[0]
-            )
+            registry_key_path = registry_key_path.replace(last_section, last_section.split(" ")[0])
             registry_key_paths.append(registry_key_path)
         else:
             registry_key_paths.append(registry_key_path)
@@ -474,9 +468,7 @@ def find_iocs(  # noqa: CCR001 pylint: disable=R0912,R0915
 
     # urls
     if "urls" in included_ioc_types:
-        iocs["urls"] = parse_urls(
-            text, parse_urls_without_scheme=parse_urls_without_scheme
-        )
+        iocs["urls"] = parse_urls(text, parse_urls_without_scheme=parse_urls_without_scheme)
         if not parse_domain_from_url and not parse_from_url_path:
             text = _remove_items(iocs["urls"], text)
         elif not parse_domain_from_url:
@@ -498,8 +490,7 @@ def find_iocs(  # noqa: CCR001 pylint: disable=R0912,R0915
     # even if we want to parse domain names from the xmpp_address,
     # we don't want them also being caught as email addresses so we'll remove everything before the `@`
     elif (
-        "email_addresses_complete" in included_ioc_types
-        or "email_addresses" in included_ioc_types
+        "email_addresses_complete" in included_ioc_types or "email_addresses" in included_ioc_types
     ):
         xmpp_addresses = _get_items(iocs, "xmpp_addresses", parse_xmpp_addresses, text)
         text = _remove_xmpp_local_part(xmpp_addresses, text)
@@ -514,9 +505,7 @@ def find_iocs(  # noqa: CCR001 pylint: disable=R0912,R0915
         email_addresses_complete = _get_items(
             iocs, "email_addresses_complete", parse_complete_email_addresses, text
         )
-        email_addresses = _get_items(
-            iocs, "email_addresses", parse_email_addresses, text
-        )
+        email_addresses = _get_items(iocs, "email_addresses", parse_email_addresses, text)
 
         text = _remove_items(email_addresses_complete, text)
         text = _remove_items(email_addresses, text)
@@ -531,9 +520,7 @@ def find_iocs(  # noqa: CCR001 pylint: disable=R0912,R0915
         iocs["ipv4_cidrs"] = parse_ipv4_cidrs(text)
 
     # remove URLs that are also ipv4_cidrs (see https://github.com/fhightower/ioc-finder/issues/91)
-    url_parsing_requires_cidr_removal = (
-        "urls" in included_ioc_types and parse_urls_without_scheme
-    )
+    url_parsing_requires_cidr_removal = "urls" in included_ioc_types and parse_urls_without_scheme
     ip_address_parsing_requires_cidr_removal = (
         "ipv4s" in included_ioc_types and not parse_address_from_cidr
     )
