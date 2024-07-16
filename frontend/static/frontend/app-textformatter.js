@@ -1,17 +1,16 @@
-const extractedIOCs = $('#extracted-iocs');
-const formattedText = $('#formattedtext');
+const formattedText = $('#formatted-text');
 const form = $('form');
 const url = '/textformatter/';
 
 const options = [
-  { id: 'extractIOCs', value: 'iocs', label: 'Extract IOCs', disabled: true },
-  { id: 'uncheckedFang', value: 'fang', label: 'Fang' },
-  { id: 'uncheckedDefang', value: 'defang', label: 'Defang' },
-  { id: 'uncheckedDomain', value: 'domain', label: 'Extract Domain' },
+  { id: 'iocs', value: 'iocs', label: 'Extract IOCs' },
+  { id: 'fang', value: 'fang', label: 'Fang' },
+  { id: 'defang', value: 'defang', label: 'Defang' },
+  { id: 'domain', value: 'domain', label: 'Extract Domain' },
   { id: 'delimiter', value: 'comma', label: 'Add Delimiter ( , )' },
   { id: 'duplicates', value: 'duplicates', label: 'Remove Duplicates' },
-  { id: 'uncheckedLowerCase', value: 'lowercase', label: 'Lower Case' },
-  { id: 'uncheckedUpperCase', value: 'uppercase', label: 'Upper Case' },
+  { id: 'lowercase', value: 'lowercase', label: 'Lower Case' },
+  { id: 'uppercase', value: 'uppercase', label: 'Upper Case' },
 ];
 
 const listItems = options
@@ -32,16 +31,25 @@ const listItems = options
   )
   .join('');
 
+function formatKey(key) {
+  return key
+    .split('_')
+    .map((word) => word.toUpperCase())
+    .join(' ');
+}
+
 function generateHTML(response) {
   $.each(response.data, (key, value) => {
-    const addDelimiter = response.checklist.includes('comma') && key === 'formattedtext' ? ', ' : '<br>';
+    if (value.length === 0) return;
+
+    const addDelimiter = response.checklist.includes('comma') && key === 'formatted_text' ? ', ' : '<br>';
 
     let html = value.join(addDelimiter);
 
     const fullHtml = `
       <div class="card card-action">
         <div class="card-header">
-          <h4 class="card-action-title">${key}</h4>
+          <h5 class="card-action-title">${formatKey(key)}</h5>
           <div class="card-action-element">
             <ul class="list-inline mb-0">
               <li class="list-inline-item cursor-pointer">
@@ -54,21 +62,17 @@ function generateHTML(response) {
         </div>
         <div class="card-body">
           <p id="clipboard-${key}">
-              ${html}
+              ${html} 
           </p>
         </div>
       </div>
     `;
 
-    if (key === 'formattedtext') {
-      formattedText.html(fullHtml);
-    } else {
-      extractedIOCs.append(
-        `<div class="col-6">
+    formattedText.append(
+      `<div class="col-6">
           ${fullHtml}
         </div>`
-      );
-    }
+    );
   });
 }
 
@@ -79,21 +83,26 @@ $(document).ready(() => {
     const { id, checked } = this;
 
     switch (id) {
-      case 'uncheckedFang':
-        $('#uncheckedDefang').prop('checked', false);
+      case 'fang':
+        $('#defang').prop('checked', false);
         break;
-      case 'uncheckedDefang':
-        $('#uncheckedFang, #uncheckedDomain').prop('checked', false);
+      case 'defang':
+        $('#fang, #domain').prop('checked', false);
         break;
-      case 'uncheckedLowerCase':
-        $('#uncheckedUpperCase').prop('checked', false);
+      case 'lowercase':
+        $('#uppercase').prop('checked', false);
         break;
-      case 'uncheckedUpperCase':
-        $('#uncheckedLowerCase').prop('checked', false);
+      case 'uppercase':
+        $('#lowercase').prop('checked', false);
         break;
-      case 'uncheckedDomain':
-        $('#uncheckedFang').prop('checked', true);
-        $('#uncheckedDefang').prop('checked', false);
+      case 'domain':
+        $('#fang').prop('checked', true);
+        $('#defang').prop('checked', false);
+        break;
+      case 'iocs':
+        $('#fang, #defang, #domain, #delimiter, #duplicates, #lowercase, #uppercase')
+          .prop('checked', false)
+          .prop('disabled', checked);
         break;
     }
   });
@@ -102,7 +111,7 @@ $(document).ready(() => {
 form.submit(function (e) {
   e.preventDefault();
 
-  extractedIOCs.empty();
+  formattedText.empty();
 
   const checklist = [...form.find('input:checked')].map(({ value }) => value);
   const query = form.find('textarea').val();

@@ -101,7 +101,7 @@
                     {% for app in apps %}
                       {% if app.quick_link %}
                         <li class="nav-item me-2 me-xl-0">
-                          <a class="nav-link btn btn-text-secondary btn-icon rounded-pill waves-effect waves-light"
+                          <a class="nav-link btn btn-text-secondary btn-icon rounded-pill"
                              href="{% url app.url %}"
                              data-bs-toggle="tooltip"
                              data-bs-placement="bottom"
@@ -111,24 +111,24 @@
                     {% endfor %}
                     <!-- Style Switcher -->
                     <li class="nav-item dropdown-style-switcher dropdown">
-                      <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light"
+                      <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow"
                          href="#"
                          data-bs-toggle="dropdown">
                         <i class="ti ti-md ti-sun"></i>
                       </a>
                       <ul class="dropdown-menu dropdown-menu-end dropdown-styles">
                         <li>
-                          <a class="dropdown-item waves-effect active" href="#" data-theme="light">
+                          <a class="dropdown-item active" href="#" data-theme="light">
                             <span class="align-middle"><i class="ti ti-sun ti-md me-3"></i>Light</span>
                           </a>
                         </li>
                         <li>
-                          <a class="dropdown-item waves-effect" href="#" data-theme="dark">
+                          <a class="dropdown-item" href="#" data-theme="dark">
                             <span class="align-middle"><i class="ti ti-moon-stars ti-md me-3"></i>Dark</span>
                           </a>
                         </li>
                         <li>
-                          <a class="dropdown-item waves-effect" href="#" data-theme="system">
+                          <a class="dropdown-item" href="#" data-theme="system">
                             <span class="align-middle"><i class="ti ti-device-desktop-analytics ti-md me-3"></i>System</span>
                           </a>
                         </li>
@@ -137,7 +137,7 @@
                     <!-- / Style Switcher-->
                     <!-- Quick links -->
                     <li class="nav-item dropdown-shortcuts navbar-dropdown dropdown me-2 me-xl-0">
-                      <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light"
+                      <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow"
                          href="#"
                          data-bs-toggle="dropdown"
                          data-bs-auto-close="outside"
@@ -187,7 +187,7 @@
                       </a>
                       <ul class="dropdown-menu dropdown-menu-end">
                         <li>
-                          <a class="dropdown-item waves-effect" href="#">
+                          <a class="dropdown-item" href="#">
                             <div class="d-flex">
                               <div class="flex-shrink-0 me-3">
                                 <div class="avatar avatar-online">
@@ -209,13 +209,13 @@
                           <div class="dropdown-divider"></div>
                         </li>
                         <li>
-                          <a class="dropdown-item waves-effect" href="#">
+                          <a class="dropdown-item" href="#">
                             <i class="ti ti-user-check me-2 ti-sm"></i>
                             <span class="align-middle">Edit Profile</span>
                           </a>
                         </li>
                         <li>
-                          <a class="dropdown-item waves-effect" href="#">
+                          <a class="dropdown-item" href="#">
                             <i class="ti ti-settings me-2 ti-sm"></i>
                             <span class="align-middle">Change Password</span>
                           </a>
@@ -224,7 +224,7 @@
                           <div class="dropdown-divider"></div>
                         </li>
                         <li>
-                          <a id="logout" class="dropdown-item waves-effect" href="#">
+                          <a id="logout" class="dropdown-item" href="#">
                             <i class="ti ti-lifebuoy me-2 ti-sm"></i>
                             <span class="align-middle">Logout</span>
                           </a>

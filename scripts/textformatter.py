@@ -2,6 +2,7 @@ import re
 import sys
 import ioc_fanger
 import tldextract
+from ioc_finder import find_iocs
 
 
 def duplicates(query):
@@ -9,7 +10,12 @@ def duplicates(query):
 
 
 def defang(query):
-    return ioc_fanger.defang(query).replace("(at)", "[@]")
+    defanged_query = ioc_fanger.defang(query)
+
+    replacements = {"(at)": "[@]", "hXXp": "http", "hXXps": "https"}
+    for old, new in replacements.items():
+        defanged_query = defanged_query.replace(old, new)
+    return defanged_query
 
 
 def fang(query):
@@ -34,6 +40,36 @@ def domain(query):
     return extracted_domain if extracted_domain else query
 
 
+def extract_iocs(query):
+    ioc_types = [
+        "asns",
+        "cves",
+        "domains",
+        "email_addresses",
+        "ipv4_cidrs",
+        "ipv4s",
+        "ipv6s",
+        "md5s",
+        "sha1s",
+        "sha256s",
+        "sha512s",
+        "urls",
+    ]
+
+    return find_iocs(
+        query,
+        parse_domain_from_url=False,
+        parse_from_url_path=False,
+        parse_domain_from_email_address=False,
+        parse_address_from_cidr=False,
+        parse_domain_name_from_xmpp_address=False,
+        parse_urls_without_scheme=False,
+        parse_imphashes=False,
+        parse_authentihashes=False,
+        included_ioc_types=ioc_types,
+    )
+
+
 def collector(query, operations):
     data = {}
 
@@ -43,6 +79,9 @@ def collector(query, operations):
     query_list = list(filter(None, query_list))
 
     cleaned_data = []
+
+    if "iocs" in operations:
+        return extract_iocs(query)
 
     if "duplicates" in operations:
         cleaned_data = duplicates(cleaned_data)
@@ -65,7 +104,7 @@ def collector(query, operations):
     if "duplicates" in operations:
         cleaned_data = duplicates(cleaned_data)
 
-    data["formattedtext"] = cleaned_data
+    data["formatted_text"] = cleaned_data
 
     return data
 

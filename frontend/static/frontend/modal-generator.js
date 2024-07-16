@@ -70,7 +70,7 @@ window.createDetailModal = (tabName) => `
                           <textarea type="text" id="${tabName}-add-comment" class="form-control" style="resize: none"></textarea>
                         </div>
                         <div class="col">
-                          <button type="submit" class="btn btn-label-primary waves-effect">Add Comment</button>
+                          <button type="submit" class="btn btn-label-primary">Add Comment</button>
                         </div>
                       </div>
                     </div>
