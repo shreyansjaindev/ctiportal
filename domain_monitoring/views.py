@@ -2,12 +2,87 @@ from rest_framework import filters, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Count
 from .models import *
 from .serializers import *
 from .filters import *
-from urllib.parse import parse_qs
 from scripts.threatstream import threatstream_import_domains_without_approval
+
+
+class UtilityMixin:
+    def get_counts(self, queryset):
+        total_count = queryset.count()
+        status_counts = queryset.values("status").annotate(count=Count("status")).order_by("status")
+        return total_count, status_counts
+
+    def get_limited_queryset(self, queryset, limit=10):
+        return queryset[:limit] if queryset.count() > limit else queryset
+
+    def get_queryset_with_counts(self, request, limit=False):
+        queryset = self.filter_queryset(self.get_queryset())
+        total_count, status_counts = self.get_counts(queryset)
+        if limit:
+            queryset = self.get_limited_queryset(queryset)
+        return queryset, total_count, status_counts
+
+    def list_with_counts(self, request, *args, **kwargs):
+        queryset, total_count, status_counts = self.get_queryset_with_counts(
+            request, limit=kwargs.get("limit_queryset", False)
+        )
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(
+            {
+                "count": {
+                    "total": total_count,
+                    "status": {item["status"]: item["count"] for item in status_counts},
+                },
+                "results": serializer.data,
+            }
+        )
+
+    @action(detail=False, methods=["post"], url_path="bulk-delete")
+    def bulk_delete(self, request, *args, **kwargs):
+        ids = request.data.get("ids", [])
+        if not ids:
+            return Response(
+                {"error": "No IDs provided for deletion."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        model_class = self.queryset.model
+        deleted_count, _ = model_class.objects.filter(id__in=ids).delete()
+
+        return Response({"deleted_count": deleted_count}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["patch"], url_path="bulk-patch")
+    def bulk_patch(self, request, *args, **kwargs):
+        request_data = request.data
+        ids = request_data.get("ids", {})
+        instance_status = request_data.get("status")
+        updated_count = 0
+        error_count = 0
+        errors = []
+
+        model_class = self.queryset.model
+
+        for instance_id in ids:
+            try:
+                instance = model_class.objects.get(id=instance_id)
+                serializer = self.get_serializer(
+                    instance, data={"status": instance_status}, partial=True
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                updated_count += 1
+            except Exception as e:
+                error_count += 1
+                errors.append(str(e))
+
+        return Response(
+            {"updated_count": updated_count, "error_count": error_count, "errors": errors},
+            status=status.HTTP_200_OK,
+        )
 
 
 # Company
@@ -29,7 +104,7 @@ class CompanyDomainViewSet(viewsets.ModelViewSet):
 
 
 # Watched Resources
-class WatchedResourceViewSet(viewsets.ModelViewSet):
+class WatchedResourceViewSet(viewsets.ModelViewSet, UtilityMixin):
     queryset = WatchedResource.objects.all()
     serializer_class = WatchedResourceSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
@@ -46,22 +121,36 @@ class MonitoredDomainViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
-        many = isinstance(request.data, list)
+        if not isinstance(request.data, list):
+            return super().create(request, *args, **kwargs)
 
-        serializer = self.get_serializer(data=request.data, many=many)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        added_count = 0
+        existing_count = 0
+        for item in request.data:
+            serializer = self.get_serializer(data=item)
+            try:
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+                added_count += 1
+            except Exception:
+                existing_count += 1
+
+        return Response(
+            {"added_count": added_count, "existing_count": existing_count},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 # Monitored Domain Alerts
-class MonitoredDomainAlertViewSet(viewsets.ModelViewSet):
+class MonitoredDomainAlertViewSet(viewsets.ModelViewSet, UtilityMixin):
     queryset = MonitoredDomainAlert.objects.all()
     serializer_class = MonitoredDomainAlertSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = MonitoredDomainAlertFilter
     permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        return self.list_with_counts(request, *args, **kwargs)
 
 
 class MonitoredDomainAlertCommentViewSet(viewsets.ModelViewSet):
@@ -73,7 +162,7 @@ class MonitoredDomainAlertCommentViewSet(viewsets.ModelViewSet):
 
 
 # Lookalike Domains
-class LookalikeDomainViewSet(viewsets.ModelViewSet):
+class LookalikeDomainViewSet(viewsets.ModelViewSet, UtilityMixin):
     queryset = LookalikeDomain.objects.all()
     serializer_class = LookalikeDomainSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
@@ -81,58 +170,7 @@ class LookalikeDomainViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
-        is_datatables_request = (
-            "draw" in request.GET and "start" in request.GET and "length" in request.GET
-        )
-
-        if is_datatables_request:
-            draw = int(request.GET.get("draw", 0))
-            start = int(request.GET.get("start", 0))
-            length = int(request.GET.get("length", 10))
-            search_params = parse_qs(request.GET.urlencode())
-
-            queryset = self.filter_queryset(self.get_queryset())
-
-            for param, value in search_params.items():
-                if param.startswith("search[") and param.endswith("]"):
-                    field_name = param[7:-1]
-                    if field_name != "regex":
-                        filter_kwargs = {f"{field_name}__icontains": value[0]}
-                        queryset = queryset.filter(**filter_kwargs)
-
-            order_column_index = int(request.GET.get("order[0][column]", 0))
-            order_direction = request.GET.get("order[0][dir]", "asc")
-
-            # Determine ordering dynamically from the query parameters
-            ordering_fields = [
-                field
-                for field in request.GET.getlist("columns[" + str(order_column_index) + "][data]")
-            ]
-
-            ordering = [ordering_fields[0]]  # Default to the first field
-
-            if order_direction == "desc":
-                ordering[0] = "-" + ordering[0]
-
-            queryset = queryset.order_by(*ordering)
-
-            total_records = queryset.count()
-            filtered_records = total_records
-
-            queryset = queryset[start : start + length]
-
-            serializer = self.get_serializer(queryset, many=True)
-
-            response_data = {
-                "draw": draw,
-                "recordsTotal": total_records,
-                "recordsFiltered": filtered_records,
-                "data": serializer.data,
-            }
-
-            return Response(response_data)
-        else:
-            return super().list(request, *args, **kwargs)
+        return self.list_with_counts(request, *args, **kwargs, limit_queryset=True)
 
 
 class LookalikeDomainCommentViewSet(viewsets.ModelViewSet):

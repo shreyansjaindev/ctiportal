@@ -110,8 +110,16 @@ const initializeDataTable = (options) => {
       data: options.data || (() => {}),
       dataSrc: options.dataSrc || 'results',
       type: options.type || 'GET',
-      error: options.error || (() => toastr.error('An Error Occurred')),
+      error:
+        options.error ||
+        ((jqXHR, textStatus, errorThrown) => {
+          if (errorThrown !== 'abort') {
+            toastr.error('An Error Occurred');
+          }
+        }),
     },
+    processing: true,
+    serverSide: options.serverSide || false,
     columns: options.columns || [],
     scrollX: options.scrollX || false,
     columnDefs: options.columnDefs || [],

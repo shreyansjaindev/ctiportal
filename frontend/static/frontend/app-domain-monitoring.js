@@ -1,7 +1,3 @@
-const $datatableLookalikeDomains = $('#datatable-lookalike-domains');
-const $datatableMonitoredDomains = $('#datatable-monitored-domains');
-const $datatableResources = $('#datatable-resources');
-
 const headers = {
   'Content-Type': 'application/json',
   'X-CSRFToken': window.CSRFToken,
@@ -43,16 +39,23 @@ const statusObj = {
 };
 
 const riskObj = {
-  '': { title: 'Unknown', color: 'info' },
+  '': { title: 'Unknown', color: 'secondary' },
   low: { title: 'Low', color: 'success' },
   medium: { title: 'Medium', color: 'warning' },
   high: { title: 'High', color: 'danger' },
   critical: { title: 'Critical', color: 'danger' },
 };
 
-const renderStatusBadge = (data) =>
-  `<span class="badge bg-label-${statusObj[data].color}">${statusObj[data].title}</span>`;
-const renderRiskBadge = (data) => `<span class="badge bg-label-${riskObj[data].color}">${riskObj[data].title}</span>`;
+const renderBadge = (data, type) => {
+  if (Array.isArray(data)) {
+    return data.map((item) => `<span class="badge rounded-pill bg-label-dark mx-1">${item}</span>`).join('');
+  } else {
+    const selectedObj = type === 'status' ? statusObj : type === 'risk' ? riskObj : statusObj;
+    const { color, title } = selectedObj[data] || {};
+    return `<span class="badge bg-label-${color || 'secondary'}">${title || 'Unknown'}</span>`;
+  }
+};
+
 const renderCursorPointer = (data) => `<span class="fw-bolder cursor-pointer">${data}</span>`;
 
 const keyDisplayNameMapping = {
@@ -138,9 +141,9 @@ const AlertsFormFields = [
     label: 'Date',
     id: 'alerts-date-range',
     placeholder: 'YYYY-MM-DD to YYYY-MM-DD',
-    name: 'alert_date',
+    name: 'created',
   },
-  { type: 'text', label: 'Domain Name', placeholder: 'Search Domain Name', name: 'value' },
+  { type: 'text', label: 'Domain Name', placeholder: 'Search Domain Name', name: 'domain_name' },
 ];
 
 const lookalikeDomainsFormFields = [
@@ -237,20 +240,9 @@ const monitoredDomainsFormFields = [
   },
 ];
 
-const handleTotalCount = async (url, countElement, status) => {
-  const params = {
-    status,
-  };
-
-  const urlParams = new URLSearchParams(params);
-
-  try {
-    const response = await fetch(`${url}?${urlParams}`, { method: 'GET', headers });
-    const data = await response.json();
-    countElement.text(data.count);
-  } catch (error) {
-    countElement.text('?');
-  }
+const updateTotalCount = (api, tabKey, status) => {
+  const openStatusCount = api.ajax.json()?.count?.status?.[status];
+  tabsInfo[tabKey].count.text(openStatusCount);
 };
 
 const deleteSelectedRowsFromForm = async (tabName, url, dt) => {
@@ -262,67 +254,62 @@ const deleteSelectedRowsFromForm = async (tabName, url, dt) => {
     .toArray()
     .map((row) => $(row).find('.dt-checkboxes').val());
 
-  const deletePromises = ids.map((id) => {
-    return fetch(`${url}${id}/`, {
-      method: 'DELETE',
+  try {
+    const response = await fetch(`${url}bulk-delete/`, {
+      method: 'POST',
       headers: headers,
+      body: JSON.stringify({ ids }),
     });
-  });
 
-  // Wait for all the delete requests to complete
-  const responses = await Promise.allSettled(deletePromises);
+    if (!response.ok) {
+      throw new Error(response.statusText);
+    }
 
-  // Count the successful deletes
-  const successCount = responses.filter(({ status }) => status === 'fulfilled').length;
-
-  // Show a success message, reload the DataTable, and update the count element and delete button
-  toastr.success(`${successCount} row(s) deleted`);
-  dt.ajax.reload();
-  countElement.text(parseInt(countElement.text()) - successCount);
+    const { deleted_count } = await response.json();
+    toastr.success(`${deleted_count} row(s) deleted`);
+    dt.ajax.reload();
+    countElement.text(parseInt(countElement.text()) - deleted_count);
+  } catch {
+    toastr.error('An error occurred while deleting rows.');
+  }
   confirmationModal.modal('hide');
 };
 
 const addDomainsToMonitoring = async (selectedData) => {
   const url = urls.monitoredDomains;
   const status = 'active';
-  let successCount = 0;
 
-  await Promise.all(
-    selectedData.map(async ({ domain_name, company }) => {
-      if (domain_name) {
-        try {
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({
-              value: domain_name,
-              company,
-              status,
-            }),
-          });
+  const domainsData = selectedData.map(({ domain_name, company }) => ({
+    value: domain_name,
+    company,
+    status,
+  }));
 
-          if (!response.ok) {
-            if (response.status === 400) {
-              toastr.warning(`Domain ${domain_name} is already being monitored`);
-            } else {
-              toastr.error(response.statusText);
-            }
-          } else {
-            successCount++;
-            await response.json();
-          }
-        } catch (error) {
-          toastr.error(error.message);
-        }
-      }
-    })
-  );
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(domainsData),
+    });
 
-  if (successCount > 0) {
-    toastr.success(`${successCount} domain(s) added to monitoring`);
+    if (!response.ok) {
+      throw new Error(response.statusText);
+    }
 
-    $datatableMonitoredDomains.DataTable().ajax.reload();
-    $datatableLookalikeDomains.DataTable().ajax.reload();
+    const { added_count, existing_count } = await response.json();
+
+    if (added_count > 0) {
+      toastr.success(`${added_count} domain(s) added to monitoring`);
+    }
+
+    if (existing_count > 0) {
+      toastr.warning(`${existing_count} domain(s) already being monitored`);
+    }
+
+    $('#datatable-monitored-domains').DataTable().ajax.reload();
+    $('#datatable-lookalike-domains').DataTable().ajax.reload();
+  } catch (error) {
+    toastr.error(error.message);
   }
 };
 
@@ -339,13 +326,13 @@ const blockDomains = async (selectedData) => {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(response.statusText);
     }
 
     const data = await response.json();
     console.log(data);
   } catch (error) {
-    console.error('Error sending POST request:', error);
+    console.error(error.message);
   }
 };
 
@@ -478,24 +465,22 @@ const updateStatus = (url, status) => async (e, dt, node, config) => {
     .toArray()
     .map((row) => $(row).find('.dt-checkboxes').val());
 
-  const promises = ids.map(async (id) => {
-    try {
-      const response = await fetch(`${url}${id}/`, {
-        method: 'PATCH',
-        headers: headers,
-        body: JSON.stringify({ status }),
-      });
-      if (!response.ok) {
-        toastr.error(response.statusText);
-      }
-    } catch (error) {
-      toastr.error(error.message);
+  try {
+    const response = await fetch(`${url}bulk-patch/`, {
+      method: 'PATCH',
+      headers: headers,
+      body: JSON.stringify({ ids, status }),
+    });
+    if (!response.ok) {
+      throw new Error(response.statusText);
     }
-  });
-
-  await Promise.allSettled(promises);
-  dt.ajax.reload();
-  selectedRows.deselect();
+    const { updated_count } = await response.json();
+    toastr.success(updated_count + ' row(s) updated');
+    selectedRows.deselect();
+    dt.ajax.reload();
+  } catch (error) {
+    toastr.error(error.message);
+  }
 };
 
 const generateStatusButtons = (url, statusOptions) => {
@@ -637,7 +622,7 @@ const initializeAlertsDatatable = (url) => {
       { data: 'subdomains' },
       { data: 'website_screenshot' },
       { data: 'website_certificate' },
-      { data: 'status', render: renderStatusBadge },
+      { data: 'status', render: (data) => renderBadge(data, 'status') },
     ],
     scrollX: false,
     columnDefs: [
@@ -652,7 +637,9 @@ const initializeAlertsDatatable = (url) => {
     ],
     dom: generateDom('alert-status'),
     buttons: buttons,
-    drawCallback: () => handleTotalCount(url, tabsInfo['alerts'].count, 'open'),
+    drawCallback: function (settings) {
+      updateTotalCount(this.api(), 'alerts', 'open');
+    },
   };
 
   const dt = initializeDataTable(options);
@@ -702,14 +689,16 @@ const initializeLookalikeDomainsDatatable = (url, filters) => {
       { data: 'value', render: renderCursorPointer },
       { data: 'watched_resource' },
       { data: 'company' },
-      { data: 'status', render: renderStatusBadge },
-      { data: 'is_monitored', render: renderStatusBadge },
+      { data: 'status', render: (data) => renderBadge(data, 'status') },
+      { data: 'is_monitored', render: (data) => renderBadge(data, 'status') },
     ],
     columnDefs: [generateCheckboxColumnDef(), generateDateColumnDef(2)],
     order: [[2, 'desc']],
     dom: generateDom(),
     buttons: buttons,
-    drawCallback: () => handleTotalCount(url, tabsInfo['lookalike-domains'].count, 'open'),
+    drawCallback: function (settings) {
+      updateTotalCount(this.api(), 'lookalike-domains', 'open');
+    },
   };
 
   return initializeDataTable(options);
@@ -765,12 +754,14 @@ const initializeMonitoredDomainsDatatable = (url) => {
       { data: 'last_checked', render: (data) => (data !== '1900-01-01' ? data : 'Never') },
       { data: 'value', render: (data) => `<span class="fw-bolder">${data}</span>` },
       { data: 'company' },
-      { data: 'status', render: renderStatusBadge },
+      { data: 'status', render: (data) => renderBadge(data, 'status') },
     ],
     columnDefs: [generateCheckboxColumnDef(), generateDateColumnDef(1)],
     dom: generateDom(),
     buttons: buttons,
-    drawCallback: () => handleTotalCount(url, tabsInfo['monitored-domains'].count, 'active'),
+    drawCallback: function (settings) {
+      updateTotalCount(this.api(), 'monitored-domains', 'active');
+    },
   };
 
   return initializeDataTable(options);
@@ -805,9 +796,9 @@ const initializeResourcesDatatable = (url) => {
       { data: 'created' },
       { data: 'value', render: renderCursorPointer },
       { data: 'resource_type', render: textCapitalize },
-      { data: 'exclude_keywords' },
+      { data: 'exclude_keywords', render: (data) => renderBadge(data) },
       { data: 'company' },
-      { data: 'status', render: renderStatusBadge },
+      { data: 'status', render: (data) => renderBadge(data, 'status') },
       { data: 'properties' },
     ],
     columnDefs: [
@@ -834,33 +825,35 @@ const initializeResourcesDatatable = (url) => {
     ],
     dom: generateDom(),
     buttons: buttons,
-    drawCallback: () => handleTotalCount(url, tabsInfo['resources'].count, 'active'),
+    drawCallback: function (settings) {
+      updateTotalCount(this.api(), 'resources', 'active');
+    },
   };
 
   return initializeDataTable(options);
 };
 
 const generateSearchQuery = (formElement) => {
-  const urlParams = new $.param();
-
-  $(formElement)
-    .find(':input')
-    .each(function () {
-      const element = $(this);
-      const name = element.attr('name');
-      const value = element.val();
-      const type = element.prop('type');
+  const urlParams = $(formElement)
+    .find(':input[name]')
+    .toArray()
+    .reduce((acc, input) => {
+      const name = $(input).attr('name');
+      const value = $(input).val();
+      const type = $(input).prop('type');
 
       if (type === 'select-one') {
-        urlParams[name] = value;
-      } else if (name.includes('date')) {
+        acc[name] = value;
+      } else if (name.includes('date') || name.includes('created')) {
         const [startDate, endDate = startDate] = value.split(' to ');
-        urlParams['source_date__gte'] = startDate;
-        urlParams['source_date__lte'] = endDate;
+        acc[name + '__gte'] = startDate;
+        acc[name + '__lte'] = endDate;
       } else {
-        urlParams[name + '__icontains'] = value;
+        acc[name + '__icontains'] = value;
       }
-    });
+
+      return acc;
+    }, {});
 
   return $.param(urlParams);
 };
@@ -868,9 +861,10 @@ const generateSearchQuery = (formElement) => {
 $(() => {
   'use strict';
 
+  const ONE_DAY_MS = 86400000;
   const today = Date.now();
-  const yesterday = today - 86400000;
-  const before_yesterday = today - 172800000;
+  const yesterday = today - ONE_DAY_MS;
+  const before_yesterday = today - 2 * ONE_DAY_MS;
   const maxDate = today > new Date(today).setUTCHours(4, 0, 0, 0) ? yesterday : before_yesterday;
 
   const flatpickrConfig = (elementId, maxDate) => {
@@ -881,59 +875,55 @@ $(() => {
     });
   };
 
-  const monitoredDomainsInputModal = window.createInputModal(
-    'monitored-domain',
-    'Add New Domain',
-    monitoredDomainsFormFields
-  );
+  const populateCompanySelect = async () => {
+    try {
+      const response = await fetch(urls.companies, { method: 'GET', headers });
+      const data = await response.json();
+      const options = data.results.map(({ name }) => `<option value="${name}">${name}</option>`).join('');
+      const $companySelects = document.getElementsByName('company');
+      $companySelects.forEach((select) => (select.innerHTML += options));
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
-  fetch(urls.companies, {
-    method: 'GET',
-    headers,
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      const selectElements = document.getElementsByName('company');
-      data.results.forEach((company) => {
-        const optionElement = document.createElement('option');
-        optionElement.text = company.name;
-        optionElement.value = company.name;
-        selectElements.forEach((selectElement) => {
-          selectElement.add(optionElement.cloneNode(true));
-        });
-      });
-    })
-    .catch((error) => console.error('Error:', error));
+  const createModals = () => {
+    return {
+      monitoredDomainsInputModal: window.createInputModal(
+        'monitored-domain',
+        'Add New Domain',
+        monitoredDomainsFormFields
+      ),
+      monitoredDomainsConfirmationModal: window.createConfirmationModal('monitored-domain'),
+      resourceInputModal: window.createInputModal('resource', 'Add New Resource', resourcesFormFields),
+      resourceConfirmationModal: window.createConfirmationModal('resource'),
+    };
+  };
 
-  const monitoredDomainsConfirmationModal = window.createConfirmationModal('monitored-domain');
-  const resourceInputModal = window.createInputModal('resource', 'Add New Resource', resourcesFormFields);
-  const resourceConfirmationModal = window.createConfirmationModal('resource');
-
+  const modals = createModals();
   tabsInfo['alerts'].tab.append(window.createDetailModal('alerts'));
   tabsInfo['lookalike-domains'].tab.append(window.createDetailModal('lookalike-domains'));
-  tabsInfo['monitored-domains'].tab.append(monitoredDomainsInputModal, monitoredDomainsConfirmationModal);
-  tabsInfo['resources'].tab.append(resourceInputModal, resourceConfirmationModal);
+  tabsInfo['monitored-domains'].tab.append(modals.monitoredDomainsInputModal, modals.monitoredDomainsConfirmationModal);
+  tabsInfo['resources'].tab.append(modals.resourceInputModal, modals.resourceConfirmationModal);
 
-  addCommentManagementToModal('alerts');
-  addCommentManagementToModal('lookalike-domains');
+  ['alerts', 'lookalike-domains'].forEach(addCommentManagementToModal);
 
-  let alertsDatatable = initializeAlertsDatatable(urls.alerts);
-  let lookalikeDomainsDatatable = initializeLookalikeDomainsDatatable(urls.lookalikeDomains, 'status=open');
-  initializeNewSslDatatable(urls.sslCertificates);
-  let monitoredDomainsDatatable = initializeMonitoredDomainsDatatable(urls.monitoredDomains);
+  const initializeDatatables = () => {
+    tabsInfo['alerts'].datatable = initializeAlertsDatatable(urls.alerts);
+    tabsInfo['lookalike-domains'].datatable = initializeLookalikeDomainsDatatable(urls.lookalikeDomains, 'status=open');
+    initializeNewSslDatatable(urls.sslCertificates);
+    tabsInfo['monitored-domains'].datatable = initializeMonitoredDomainsDatatable(urls.monitoredDomains);
+    tabsInfo['resources'].datatable = initializeResourcesDatatable(urls.watchedResources);
+  };
 
-  let resourcesDatatable = initializeResourcesDatatable(urls.watchedResources);
-
-  tabsInfo['alerts'].datatable = alertsDatatable;
-  tabsInfo['lookalike-domains'].datatable = lookalikeDomainsDatatable;
-  tabsInfo['monitored-domains'].datatable = monitoredDomainsDatatable;
-  tabsInfo['resources'].datatable = resourcesDatatable;
+  initializeDatatables();
+  populateCompanySelect();
 
   // Add Record
   tabsInfo['lookalike-domains'].tab.on('click', '.lookalike-domains-btn-add', (e) => {
     e.preventDefault();
 
-    const selectedRows = lookalikeDomainsDatatable.rows({ selected: true });
+    const selectedRows = tabsInfo['lookalike-domains'].datatable.rows({ selected: true });
     const selectedData = selectedRows
       .data()
       .map((row) => ({ domain_name: row.value, company: row.company }))
@@ -985,7 +975,7 @@ $(() => {
     );
 
     const { id, value, resource_type, exclude_keywords, properties, company } = formData;
-    const url = id ? `${urls.watchedResources}${id}/` : urls.watchedResources;
+    const url = `${urls.watchedResources}${id ? `${id}/` : ''}`;
     const method = id ? 'PUT' : 'POST';
 
     fetch(url, {
@@ -1002,7 +992,9 @@ $(() => {
       .then((response) => {
         if (response.ok) {
           toastr.success(id ? 'Resource updated' : 'Resource added');
-          $datatableResources.DataTable().ajax.reload();
+          $('#datatable-resources').DataTable().ajax.reload();
+        } else if (response.status === 400) {
+          toastr.warning('Resource already exists');
         } else {
           toastr.error(response.statusText);
         }
@@ -1013,14 +1005,14 @@ $(() => {
   });
 
   // Add an event listener to the DataTable
-  resourcesDatatable.on('click', 'span.cursor-pointer', function () {
-    const data = resourcesDatatable.row($(this).parents('tr')).data();
+  tabsInfo['resources'].datatable.on('click', 'span.cursor-pointer', function () {
+    const data = tabsInfo['resources'].datatable.row($(this).parents('tr')).data(),
+      fieldNames = resourcesFormFields.map(({ name }) => name),
+      elements = fieldNames.map((name) => document.querySelector(`#resources-input-modal [name="${name}"]`));
 
-    const fieldNames = resourcesFormFields.map(({ name }) => name);
-    const selectors = fieldNames.map((name) => `#resources-input-modal [name="${name}"]`);
-    const elements = document.querySelectorAll(selectors.join(', '));
     elements.forEach((element) => {
       const fieldName = element.getAttribute('name');
+      const value = data[fieldName];
 
       if (fieldName === 'exclude_keywords') {
         let tagify = element.__tagify;
@@ -1028,11 +1020,11 @@ $(() => {
           tagify = new Tagify(element);
         }
         tagify.removeAllTags();
-        tagify.addTags(data[fieldName]);
-      } else if (Array.isArray(data[fieldName])) {
-        element.checked = data[fieldName].includes(element.value);
+        tagify.addTags(value);
+      } else if (Array.isArray(value)) {
+        element.checked = value.includes(element.value);
       } else {
-        element.value = data[fieldName];
+        element.value = value;
       }
 
       $(element).trigger('change');
@@ -1052,11 +1044,12 @@ $(() => {
   $('.delete-form').on('submit', (e) => {
     e.preventDefault();
     const tabName = e.target.id.replace('-delete-form', '');
-    deleteSelectedRowsFromForm(tabName, tabsInfo[tabName].url, tabsInfo[tabName].datatable);
+    const { url, datatable } = tabsInfo[tabName];
+    deleteSelectedRowsFromForm(tabName, url, datatable);
   });
 
-  handleDatatableSpanClick(alertsDatatable, 'alerts');
-  handleDatatableSpanClick(lookalikeDomainsDatatable, 'lookalike-domains');
+  handleDatatableSpanClick(tabsInfo['alerts'].datatable, 'alerts');
+  handleDatatableSpanClick(tabsInfo['lookalike-domains'].datatable, 'lookalike-domains');
 
   $('.needs-validation').each((_, form) => {
     form.addEventListener('submit', (e) => {
@@ -1069,7 +1062,7 @@ $(() => {
   });
 
   // Enable/disable buttons based on row selection
-  $.each($.fn.dataTable.tables(), function (index, table) {
+  $.each($.fn.dataTable.tables(), function (_, table) {
     const dt = $(table).DataTable();
     const button = $(table).parent().find('.btn-toggle');
 
@@ -1085,17 +1078,17 @@ $(() => {
   $lookalikeDomainsSearchForm.html(window.generateSearchFormHTML(lookalikeDomainsFormFields));
   $alertsSearchForm.html(window.generateSearchFormHTML(AlertsFormFields));
 
-  $lookalikeDomainsSearchForm.submit((e) => {
-    e.preventDefault();
-    const searchQuery = generateSearchQuery($lookalikeDomainsSearchForm);
-    lookalikeDomainsDatatable.ajax.url(`${urls.lookalikeDomains}?${searchQuery}`).load();
-  });
+  const handleFormSubmit = (form, tabKey) => {
+    form.submit((e) => {
+      e.preventDefault();
+      const searchQuery = generateSearchQuery(form);
+      const { datatable, url } = tabsInfo[tabKey];
+      datatable.ajax.url(`${url}?${searchQuery}`).load();
+    });
+  };
 
-  $alertsSearchForm.submit((e) => {
-    e.preventDefault();
-    const searchQuery = generateSearchQuery($alertsSearchForm);
-    alertsDatatable.ajax.url(`${urls.alerts}?${searchQuery}`).load();
-  });
+  handleFormSubmit($lookalikeDomainsSearchForm, 'lookalike-domains');
+  handleFormSubmit($alertsSearchForm, 'alerts');
 
   flatpickrConfig('lookalike-domains-date-range', maxDate);
   flatpickrConfig('alerts-date-range', today);
@@ -1111,21 +1104,15 @@ $(() => {
   $('#resource-value').on('input keyup', handleInputChange);
   $('#resources-form').on('reset', () => setTimeout(handleInputChange, 0));
 
-  let timeout = null;
-
+  let debounceTimeout;
   $('input.dt-input, select.dt-input').on('keyup change', function (e) {
     const form = $(this).closest('form');
 
-    if ($(e.target).hasClass('active')) {
-      return;
+    if (!$(e.target).hasClass('active')) {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => form.submit(), 1000);
     }
-
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      form.submit();
-    }, 500); // 500ms delay
   });
 
-  const tagifyExcludeKeywordsEl = document.querySelector('#resource-exclude-keywords');
-  const tagifyExcludeKeywords = new Tagify(tagifyExcludeKeywordsEl);
+  new Tagify(document.querySelector('#resource-exclude-keywords'));
 });
