@@ -17,7 +17,7 @@ class UtilityMixin:
         status_counts = queryset.values("status").annotate(count=Count("status")).order_by("status")
         return total_count, status_counts
 
-    def get_limited_queryset(self, queryset, limit=10):
+    def get_limited_queryset(self, queryset, limit=5000):
         return queryset[:limit] if queryset.count() > limit else queryset
 
     def get_queryset_with_counts(self, request, limit=False):
