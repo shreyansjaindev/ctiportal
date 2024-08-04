@@ -251,7 +251,7 @@ class TrellixETPDomainAddViewSet(viewsets.ViewSet):
         serializer = DomainsSerializer(data=request.data)
         if serializer.is_valid():
             response = process_yara_rules(
-                "YARA_Test_Rule",
+                "FIS Domain Monitoring",
                 "5398f15e-fced-11ea-97c3-0acb46400b08",
                 serializer.validated_data["domains"],
             )

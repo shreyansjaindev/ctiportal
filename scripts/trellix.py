@@ -55,7 +55,7 @@ def generate_yara_rule_file(domains):
     try:
         strings_to_match = add_domains_to_yara_rule(domains)
         yara_content = generate_yara_rule(rule_name, meta_data, strings_to_match, condition)
-        with open("fis_domain_monitoring.yara", "w") as yara_file:
+        with open("URL_fis_domain_monitoring.yara", "w") as yara_file:
             yara_file.write(yara_content)
         print("YARA file generated successfully.")
     except Exception as e:
@@ -89,7 +89,7 @@ def update_yara_ruleset_by_name(name, domains, policy_uuid):
         )
         generate_yara_rule_file(domains)
         try:
-            with open("fis_domain_monitoring.yara", "rb") as file:
+            with open("URL_fis_domain_monitoring.yara", "rb") as file:
                 files = {"file": file}
                 response = requests.put(yara_ruleset_url, headers=HEADERS, files=files)
                 response.raise_for_status()
