@@ -29,7 +29,13 @@ router.register(
 )
 
 router.register(
-    r"lookalike-domains-block", LookalikeDomainsBlockViewSet, basename="lookalike-domains-block"
+    r"anomali-threatstream-domain-import",
+    AnomaliThreatstreamDomainImportViewSet,
+    basename="anomali-threatstream-domain-import",
+)
+
+router.register(
+    r"trellix-etp-domain-add", TrellixETPDomainAddViewSet, basename="trellix-etp-domain-add"
 )
 
 

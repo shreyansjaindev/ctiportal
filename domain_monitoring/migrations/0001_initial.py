@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
                 ('website_status_code', models.CharField(blank=True, max_length=3)),
                 ('website_screenshot', models.TextField(blank=True, max_length=1000)),
                 ('website_certificate', models.JSONField(blank=True, default=list)),
-                ('status', models.CharField(choices=[('open', 'Open'), ('closed', 'Closed'), ('acknowledged', 'Acknowledged')], default='open', max_length=12)),
+                ('status', models.CharField(choices=[('open', 'Open'), ('closed', 'Closed')], default='open', max_length=12)),
                 ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='domain_monitoring.company')),
             ],
             options={

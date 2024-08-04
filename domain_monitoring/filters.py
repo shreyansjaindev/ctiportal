@@ -81,6 +81,7 @@ class LookalikeDomainFilter(django_filters.FilterSet):
             "source_date": ["lte", "gte", "icontains"],
             "value": ["exact", "icontains"],
             "watched_resource": ["exact", "icontains"],
+            "source": ["icontains"],
             "potential_risk": ["exact"],
             "company": ["exact"],
             "status": ["exact"],

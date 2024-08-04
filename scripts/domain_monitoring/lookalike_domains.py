@@ -158,6 +158,7 @@ def calculate_similarity_domain(query_domain, domain, properties):
 
 def identify_lookalike_domains(queries, company, date, df):
     for domain in df["domainName"]:
+        first_character_match = False
         resource_matches = []
 
         try:

@@ -88,9 +88,16 @@ def update_yara_ruleset_by_name(name, domains, policy_uuid):
             f"{BASE_URL}/{policy_uuid}/configuration/rules/yara/rulesets/{ruleset_uuid}/file"
         )
         generate_yara_rule_file(domains)
-        files = {"file": open("fis_domain_monitoring.yara", "rb")}
-        response = requests.put(yara_ruleset_url, headers=HEADERS, files=files)
-        return response.json()
+        try:
+            with open("fis_domain_monitoring.yara", "rb") as file:
+                files = {"file": file}
+                response = requests.put(yara_ruleset_url, headers=HEADERS, files=files)
+                response.raise_for_status()
+                return response
+        except requests.RequestException as e:
+            return {"error": f"HTTP request failed: {e}"}
+        except IOError as e:
+            return {"error": f"File operation failed: {e}"}
 
     return {"error": "An error occured while updating YARA ruleset."}
 
@@ -99,7 +106,7 @@ def extract_domains_from_yara(yara_content):
     yara_string_pattern = re.compile(r"\$\w+ = ((?:\/|\")\S+(?:\/|\"))")
     matches = yara_string_pattern.findall(yara_content)
     extracted_strings = [
-        match.replace("/https?:\/\/\w*\.?", "").replace("[^.a-z]/", "").replace("\.", ".")
+        match.replace("/https?:\/\/\w*\.?", "").replace("[^.a-zA-Z0-9]/", "").replace("\.", ".")
         for match in matches
     ]
     return extracted_strings
@@ -118,7 +125,6 @@ def get_yara_file_by_ruleset_name(name, policy_uuid):
 
         response = requests.get(yara_ruleset_url, headers=HEADERS)
         if response.status_code == 200:
-            print(response.text)
             return response.text
         else:
             return {
@@ -129,33 +135,21 @@ def get_yara_file_by_ruleset_name(name, policy_uuid):
     return {"error": "YARA ruleset not found"}
 
 
-if __name__ == "__main__":
-    yara_rule_name = "YARA_Test_Rule"
-
-    policy_uuid = "5398f15e-fced-11ea-97c3-0acb46400b08"
-    # yara_rule_text = get_yara_file_by_ruleset_name(yara_rule_name, policy_uuid)
-    yara_rule_text = """
-    rule fis_domain_monitoring {
-    meta:
-        author = "CTI"
-        description = "Identify if a FIS look-alike domain is present in the email body."
-    strings:
-        $domain0 = /https?:\/\/\w*\.?testabc1\.com[^.a-z]/ nocase
-        $domain1 = /https?:\/\/\w*\.?testabc2\.com[^.a-z]/ nocase
-        $domain2 = /https?:\/\/\w*\.?testabc3\.com[^.a-z]/ nocase
-        $domain0 = /https?:\/\/\w*\.?testabc4\.com[^.a-z]/ nocase
-        $domain1 = /https?:\/\/\w*\.?testabc5\.com[^.a-z]/ nocase
-        $domain2 = /https?:\/\/\w*\.?testabc6\.com[^.a-z]/ nocase
-    condition:
-        1 of ($domain*)
-    }
-    """
+def process_yara_rules(yara_rule_name, policy_uuid, more_domains):
+    yara_rule_text = get_yara_file_by_ruleset_name(yara_rule_name, policy_uuid)
     domains = extract_domains_from_yara(yara_rule_text)
-    more_domains = ["testabc4.com", "testabc5.com", "testabc6.com"]
     domains += more_domains
     unique_domains = []
     for domain in domains:
         if domain not in unique_domains:
             unique_domains.append(domain)
-    print(unique_domains)
-    # update_yara_ruleset_by_name(yara_rule_name, domains, policy_uuid)
+    response = update_yara_ruleset_by_name(yara_rule_name, domains, policy_uuid)
+    return response
+
+
+if __name__ == "__main__":
+    yara_rule_name = "YARA_Test_Rule"
+    policy_uuid = "5398f15e-fced-11ea-97c3-0acb46400b08"
+    more_domains = ["testabc4.com", "testabc5.com", "testabc6.com"]
+
+    process_yara_rules(yara_rule_name, policy_uuid, more_domains)

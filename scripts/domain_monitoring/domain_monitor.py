@@ -30,12 +30,10 @@ logger = logging.getLogger(__name__)
 
 def extract_and_filter(raw_list, transformation=None):
     filtered_list = [value.strip() for value in raw_list if value.strip()]
-    if transformation:
-        return transformation(filtered_list)
-    return filtered_list
+    return transformation(filtered_list) if transformation else filtered_list
 
 
-def compare_fields(old_data, new_data, fields, transformations=None):
+def compare_fields(old_data, new_data, fields, transformations={}):
     results = {}
 
     for field_name in fields:
@@ -75,17 +73,8 @@ def get_domains_from_fqdn_list(fqdn_list):
 
 
 def change_validator(existing_data, new_data):
-    fields = [
-        "a_record",
-        "mx_record",
-        "subdomains",
-    ]
-
-    transformations = {
-        "a_record": get_asns_from_ip_list,
-        "mx_record": get_domains_from_fqdn_list,
-    }
-
+    fields = ["a_record", "mx_record", "subdomains"]
+    transformations = {"a_record": get_asns_from_ip_list, "mx_record": get_domains_from_fqdn_list}
     results = compare_fields(existing_data, new_data, fields, transformations)
 
     new_spf_record = new_data.get("spf_record", "")

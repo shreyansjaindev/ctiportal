@@ -94,3 +94,8 @@ class SslCertificateSerializer(serializers.ModelSerializer):
 
 class DomainsSerializer(serializers.Serializer):
     domains = serializers.ListField(child=serializers.CharField(max_length=255))
+
+
+class anomaliThreatstreamDomainsSerializer(serializers.Serializer):
+    domains = serializers.ListField(child=serializers.CharField(max_length=255))
+    tags = serializers.ListField(child=serializers.CharField(max_length=255), required=False)

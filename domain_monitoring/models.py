@@ -94,7 +94,6 @@ class MonitoredDomainAlert(models.Model):
     STATUS_CHOICES = [
         ("open", "Open"),
         ("closed", "Closed"),
-        ("acknowledged", "Acknowledged"),
     ]
 
     created = models.DateTimeField(auto_now_add=True)
@@ -122,7 +121,7 @@ class MonitoredDomainAlertComment(models.Model):
     alert = models.ForeignKey(
         MonitoredDomainAlert, on_delete=models.CASCADE, related_name="comments"
     )
-    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.RESTRICT, blank=True, null=True)
 
 
 class NewlyRegisteredDomain(models.Model):
@@ -137,12 +136,14 @@ class LookalikeDomain(models.Model):
         ("medium", "Medium"),
         ("high", "High"),
         ("critical", "Critical"),
+        ("unknown", "Unknown"),
     ]
 
     STATUS_CHOICES = [
         ("open", "Open"),
         ("closed", "Closed"),
         ("takedown", "Takedown Requested"),
+        ("legal", "Sent to Legal"),
         ("not_relevant", "Not Relevant"),
     ]
 
@@ -150,11 +151,12 @@ class LookalikeDomain(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
     value = models.CharField(max_length=255)
+    source = models.CharField(max_length=255)
     watched_resource = models.CharField(max_length=255)
-    potential_risk = models.CharField(max_length=255, choices=RISK_CHOICES)
+    potential_risk = models.CharField(default="unknown", max_length=255, choices=RISK_CHOICES)
     status = models.CharField(default="open", max_length=12, choices=STATUS_CHOICES)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    # modified_by = models.ForeignKey(User, on_delete=models.RESTRICT, null=True, related_name='users')
+    # modified_by = models.ForeignKey(User, on_delete=models.RESTRICT, blank=True, null=True)
 
     def is_monitored(self):
         return "active" if MonitoredDomain.objects.filter(value=self.value).exists() else "inactive"
@@ -171,7 +173,7 @@ class LookalikeDomainComment(models.Model):
     lookalike_domain = models.ForeignKey(
         LookalikeDomain, on_delete=models.CASCADE, related_name="comments"
     )
-    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.RESTRICT, blank=True, null=True)
 
 
 class SSLCertificate(models.Model):

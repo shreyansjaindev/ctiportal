@@ -29,10 +29,10 @@ const tabsInfo = {
 const statusObj = {
   open: { title: 'Open', color: 'primary' },
   closed: { title: 'Closed', color: 'success' },
-  acknowledged: { title: 'Acknowledged', color: 'success' },
   monitoring: { title: 'Monitoring', color: 'success' },
   takedown: { title: 'Takedown Requested', color: 'warning' },
   not_relevant: { title: 'Not Relevant', color: 'secondary' },
+  legal: { title: 'Sent to Legal', color: 'warning' },
   '': { title: '', color: 'secondary' },
   active: { title: 'Active', color: 'success' },
   inactive: { title: 'Inactive', color: 'secondary' },
@@ -64,6 +64,9 @@ const keyDisplayNameMapping = {
   },
   domain_name: {
     displayName: 'Domain Name',
+  },
+  source: {
+    displayName: 'Source',
   },
   status: {
     displayName: 'Review Status',
@@ -144,9 +147,19 @@ const AlertsFormFields = [
     name: 'created',
   },
   { type: 'text', label: 'Domain Name', placeholder: 'Search Domain Name', name: 'domain_name' },
+  {
+    type: 'select',
+    label: 'Status',
+    name: 'status',
+    options: [
+      { displayName: 'Open', value: 'open' },
+      { displayName: 'Closed', value: 'closed' },
+      { displayName: 'All', value: '' },
+    ],
+  },
 ];
 
-const lookalikeDomainsFormFields = [
+const lookalikeDomainsFilterFormFields = [
   {
     type: 'date',
     label: 'Date',
@@ -156,6 +169,7 @@ const lookalikeDomainsFormFields = [
   },
   { type: 'text', label: 'Domain Name', placeholder: 'Search Domain Name', name: 'value' },
   { type: 'text', label: 'Watched Resource', placeholder: 'Search Watched Resource', name: 'watched_resource' },
+  { type: 'text', label: 'Source', placeholder: 'Search Source', name: 'source' },
   {
     type: 'select',
     label: 'Review Status',
@@ -164,9 +178,39 @@ const lookalikeDomainsFormFields = [
       { displayName: 'Open', value: 'open' },
       { displayName: 'Closed', value: 'closed' },
       { displayName: 'Takedown Requested', value: 'takedown' },
+      { displayName: 'Sent to Legal', value: 'legal' },
       { displayName: 'Not Relevant', value: 'not_relevant' },
       { displayName: 'All', value: '' },
     ],
+  },
+];
+
+const lookalikeDomainsInputFormFields = [
+  {
+    type: 'text',
+    id: 'domain-name',
+    name: 'value',
+    label: 'Domain Name',
+    pattern: '^[a-zA-Z0-9\\-]+\\.{1}[a-zA-Z]{2,}$',
+    placeholder: 'Enter a Domain',
+    required: true,
+    invalidFeedback: 'Please enter a valid domain.',
+  },
+  {
+    type: 'select',
+    id: 'lookalike-domain-watched-resource',
+    name: 'watched_resource',
+    label: 'Watched Resource',
+    options: [],
+    required: true,
+  },
+  {
+    type: 'select',
+    id: 'monitored-domain-company',
+    name: 'company',
+    label: 'Company',
+    options: [],
+    required: true,
   },
 ];
 
@@ -201,6 +245,7 @@ const resourcesFormFields = [
     label: '',
     options: resourceProperties,
     disabled: true,
+    inline: true,
   },
   {
     type: 'text',
@@ -219,26 +264,26 @@ const resourcesFormFields = [
   },
 ];
 
-const monitoredDomainsFormFields = [
-  {
-    type: 'text',
-    id: 'domain-name',
-    name: 'domain_name',
-    label: 'Domain Name',
-    pattern: '^[a-zA-Z0-9\\-]+\\.{1}[a-zA-Z]{2,}$',
-    placeholder: 'Enter a Domain',
-    required: true,
-    invalidFeedback: 'Please enter a valid domain.',
-  },
-  {
-    type: 'select',
-    id: 'monitored-domain-company',
-    name: 'company',
-    label: 'Company',
-    options: [],
-    required: true,
-  },
-];
+// const monitoredDomainsFormFields = [
+//   {
+//     type: 'text',
+//     id: 'domain-name',
+//     name: 'domain_name',
+//     label: 'Domain Name',
+//     pattern: '^[a-zA-Z0-9\\-]+\\.{1}[a-zA-Z]{2,}$',
+//     placeholder: 'Enter a Domain',
+//     required: true,
+//     invalidFeedback: 'Please enter a valid domain.',
+//   },
+//   {
+//     type: 'select',
+//     id: 'monitored-domain-company',
+//     name: 'company',
+//     label: 'Company',
+//     options: [],
+//     required: true,
+//   },
+// ];
 
 const updateTotalCount = (api, tabKey, status) => {
   const openStatusCount = api.ajax.json()?.count?.status?.[status];
@@ -247,7 +292,7 @@ const updateTotalCount = (api, tabKey, status) => {
 
 const deleteSelectedRowsFromForm = async (tabName, url, dt) => {
   const countElement = $(`#${tabName}-tab span`);
-  const confirmationModal = $(`#${tabName}-confirmation-modal`);
+  const confirmModal = $(`#${tabName}-delete-modal`);
   const ids = dt
     .rows({ selected: true })
     .nodes()
@@ -272,7 +317,7 @@ const deleteSelectedRowsFromForm = async (tabName, url, dt) => {
   } catch {
     toastr.error('An error occurred while deleting rows.');
   }
-  confirmationModal.modal('hide');
+  confirmModal.modal('hide');
 };
 
 const addDomainsToMonitoring = async (selectedData) => {
@@ -305,16 +350,75 @@ const addDomainsToMonitoring = async (selectedData) => {
     if (existing_count > 0) {
       toastr.warning(`${existing_count} domain(s) already being monitored`);
     }
-
-    $('#datatable-monitored-domains').DataTable().ajax.reload();
-    $('#datatable-lookalike-domains').DataTable().ajax.reload();
   } catch (error) {
     toastr.error(error.message);
   }
 };
 
-const blockDomains = async (selectedData) => {
-  const url = urls.lookalikeDomainsBlock;
+const addLookalikeDomains = async (selectedData) => {
+  const url = urls.lookalikeDomains;
+
+  const domainsData = selectedData.map(({ value, watched_resource, company, source_date }) => ({
+    value,
+    watched_resource,
+    company,
+    source_date,
+    source: 'user',
+  }));
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(domainsData),
+    });
+
+    if (!response.ok) {
+      throw new Error(response.statusText);
+    }
+
+    const { added_count, existing_count } = await response.json();
+
+    if (added_count > 0) {
+      toastr.success(`${added_count} domain(s) added`);
+    }
+
+    if (existing_count > 0) {
+      toastr.warning(`${existing_count} domain(s) were duplicate and were not added`);
+    }
+  } catch (error) {
+    toastr.error(error.message);
+  }
+};
+
+const importDomainsToAnomaliThreatstream = async (selectedData, tags) => {
+  const url = urls.anomaliThreatstreamDomainImport;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': window.CSRFToken,
+      },
+      body: JSON.stringify({
+        domains: selectedData.map(({ domain_name }) => domain_name),
+        tags: tags,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(response.statusText);
+    }
+
+    const data = await response.json();
+    toastr.success(data.message);
+  } catch (error) {
+    console.error(error.message);
+  }
+};
+
+const addDomainsToTrellixETP = async (selectedData) => {
+  const url = urls.trellixETPDomainAdd;
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -330,14 +434,14 @@ const blockDomains = async (selectedData) => {
     }
 
     const data = await response.json();
-    console.log(data);
+    toastr.success(data.message);
   } catch (error) {
     console.error(error.message);
   }
 };
 
 const generateDom = (button = '') => {
-  return `<"row"<"col-sm-12 col-md-3"l><"col-sm-12 col-md-9 d-flex justify-content-center align-items-center justify-content-md-end"${
+  return `<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center align-items-center justify-content-md-end"${
     button ? `<"${button}">` : ''
   }<"dt-action-buttons text-end ms-2"B>f>>t<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>`;
 };
@@ -458,8 +562,26 @@ const handleDatatableSpanClick = (dt, tabName) => {
   });
 };
 
-const updateStatus = (url, status) => async (e, dt, node, config) => {
+const updateStatus = async (tabName, url, status, dt) => {
   const selectedRows = dt.rows({ selected: true });
+  const selectedData = selectedRows
+    .data()
+    .map((row) => ({ domain_name: row.value, company: row.company }))
+    .toArray();
+
+  if (tabName === 'lookalike-domains') {
+    const tags = ['FIS Domain Monitoring', 'Global_Block', 'XSOAR_TIM'];
+
+    if (status === 'takedown') {
+      tags.push('FIS Domain Monitoring - Domain Take Down Requested');
+    } else if (status === 'legal') {
+      tags.push('FIS Domain Monitoring - Sent to Legal');
+    }
+    addDomainsToTrellixETP(selectedData);
+    importDomainsToAnomaliThreatstream(selectedData, tags);
+    addDomainsToMonitoring(selectedData);
+  }
+
   const ids = selectedRows
     .nodes()
     .toArray()
@@ -475,21 +597,60 @@ const updateStatus = (url, status) => async (e, dt, node, config) => {
       throw new Error(response.statusText);
     }
     const { updated_count } = await response.json();
-    toastr.success(updated_count + ' row(s) updated');
-    selectedRows.deselect();
-    dt.ajax.reload();
+    toastr.success(`${updated_count} row(s) marked as ${status}`);
   } catch (error) {
     toastr.error(error.message);
   }
+  selectedRows.deselect();
+  dt.ajax.reload();
+  $('#datatable-monitored-domains').DataTable().ajax.reload();
 };
 
-const generateStatusButtons = (url, statusOptions) => {
+const generateStatusButtons = (url, statusOptions, tabName) => {
+  const waitForConfirmation = () => {
+    return new Promise((resolve) => {
+      const confirmModalSelector = `#${tabName}-confirm-modal`;
+      const confirmFormSelector = `#${tabName}-confirm-form`;
+
+      $(confirmModalSelector).modal('show');
+
+      $(confirmFormSelector).on('submit', function (e) {
+        e.preventDefault();
+        $(confirmModalSelector).modal('hide');
+        resolve(true);
+      });
+
+      $(confirmModalSelector).on('hidden.bs.modal', function () {
+        resolve(false);
+      });
+    });
+  };
+
+  const handleAction = async (option, dt) => {
+    console.log(tabName);
+    try {
+      if (tabName === 'lookalike-domains' && ['takedown', 'legal', 'closed'].includes(option.value)) {
+        console.log('lookalike-domains');
+        const confirmed = await waitForConfirmation();
+        if (confirmed) {
+          console.log('confirmed');
+          updateStatus(tabName, url, option.value, dt);
+        }
+      } else {
+        console.log('not lookalike-domains');
+        updateStatus(tabName, url, option.value, dt);
+      }
+    } catch (error) {
+      console.error('Error handling action:', error);
+    }
+  };
+
   return statusOptions
     .filter((option) => option.text !== 'All')
     .map((option) => ({
       text: option.text,
       className: 'dropdown-item',
-      action: updateStatus(url, option.value),
+      action: (e, dt, node, config, cb) => handleAction(option, dt),
     }));
 };
 
@@ -580,10 +741,10 @@ const addCommentManagementToModal = (tabName) => {
   });
 };
 
-const initializeAlertsDatatable = (url) => {
+const initializeAlertsDatatable = (url, filters) => {
   const statusOptions = [
     { value: '', text: 'All' },
-    { value: 'open', text: 'Open', selected: true },
+    { value: 'open', text: 'Open' },
     { value: 'closed', text: 'Closed' },
   ];
 
@@ -593,22 +754,14 @@ const initializeAlertsDatatable = (url) => {
       text: '<span class="d-sm-inline-block">Set Status as</span>',
       className: 'btn btn-label-dark dropdown-toggle alerts-btn-status btn-toggle ms-2',
       autoClose: true,
-      buttons: generateStatusButtons(url, statusOptions),
+      buttons: generateStatusButtons(url, statusOptions, 'alerts'),
     },
-    ...generateExportButtons([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], url),
+    ...generateExportButtons([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], `${url}?${filters}`),
   ];
 
   const options = {
     selector: '#datatable-alerts',
-    url: url,
-    data: () => {
-      const status = $('#alert-status-select').val();
-      const query = {
-        status: status === undefined ? 'open' : status,
-      };
-      const queryString = $.param(query);
-      return queryString;
-    },
+    url: `${url}?${filters}`,
     columns: [
       { data: 'id' },
       { data: 'id', render: (data) => `#${data}` },
@@ -635,46 +788,39 @@ const initializeAlertsDatatable = (url) => {
           data ? `<a href="/media/website_screenshots/${data}" target="_blank"><i class="ti ti-photo"></i></a>` : data,
       },
     ],
-    dom: generateDom('alert-status'),
+    dom: generateDom(),
     buttons: buttons,
     drawCallback: function (settings) {
       updateTotalCount(this.api(), 'alerts', 'open');
     },
   };
 
-  const dt = initializeDataTable(options);
-
-  const statusOptionsHTML = statusOptions
-    .map((option) => `<option value="${option.value}" ${option.selected ? 'selected' : ''}>${option.text}</option>`)
-    .join('');
-
-  const alertStatusDropdown = $(`<select id="alert-status-select" class="form-select">${statusOptionsHTML}</select>`);
-  $('.alert-status').append(alertStatusDropdown);
-
-  $('#alert-status-select').on('change', () => dt.ajax.reload());
-
-  return dt;
+  return initializeDataTable(options);
 };
 
 const initializeLookalikeDomainsDatatable = (url, filters) => {
   const statusOptions = [
-    { value: 'open', text: 'Open' },
     { value: 'closed', text: 'Closed' },
     { value: 'takedown', text: 'Takedown Requested' },
+    { value: 'legal', text: 'Sent to Legal' },
     { value: 'not_relevant', text: 'Not Relevant' },
   ];
 
   const buttons = [
     {
-      text: 'Add to Monitoring',
-      className: 'lookalike-domains-btn-add btn btn-primary btn-toggle ms-2',
-    },
-    {
       extend: 'collection',
       text: '<span class="d-sm-inline-block">Set Status as</span>',
       className: 'btn btn-label-dark dropdown-toggle lookalike-domains-btn-status btn-toggle ms-2',
       autoClose: true,
-      buttons: generateStatusButtons(url, statusOptions),
+      buttons: generateStatusButtons(url, statusOptions, 'lookalike-domains'),
+    },
+    {
+      text: 'Add New Domain',
+      className: 'btn btn-primary ms-2',
+      attr: {
+        'data-bs-toggle': 'modal',
+        'data-bs-target': '#lookalike-domains-input-modal',
+      },
     },
     ...generateExportButtons([1, 2, 3, 4, 5, 6, 7], `${url}?${filters}`),
   ];
@@ -688,6 +834,7 @@ const initializeLookalikeDomainsDatatable = (url, filters) => {
       { data: 'created' },
       { data: 'value', render: renderCursorPointer },
       { data: 'watched_resource' },
+      { data: 'source' },
       { data: 'company' },
       { data: 'status', render: (data) => renderBadge(data, 'status') },
       { data: 'is_monitored', render: (data) => renderBadge(data, 'status') },
@@ -704,42 +851,14 @@ const initializeLookalikeDomainsDatatable = (url, filters) => {
   return initializeDataTable(options);
 };
 
-const initializeNewSslDatatable = (url) => {
-  const options = {
-    selector: '#datatable-new-ssl',
-    url: `${url}?ordering=-created`,
-    columns: [
-      { data: 'id' },
-      { data: 'created' },
-      { data: 'cert_index' },
-      { data: 'cert_domain' },
-      { data: 'watched_domain' },
-      { data: 'company' },
-    ],
-    columnDefs: [generateCheckboxColumnDef(), generateDateColumnDef(1)],
-    dom: generateDom(),
-    buttons: generateExportButtons([1, 2, 3, 4, 5], url),
-  };
-
-  return initializeDataTable(options);
-};
-
 const initializeMonitoredDomainsDatatable = (url) => {
   const buttons = [
-    {
-      text: 'Add New Domain',
-      className: 'monitored-domains-btn-add btn btn-primary ms-2',
-      attr: {
-        'data-bs-toggle': 'modal',
-        'data-bs-target': '#monitored-domains-input-modal',
-      },
-    },
     {
       text: 'Delete',
       className: 'btn btn-danger btn-toggle ms-2',
       attr: {
         'data-bs-toggle': 'modal',
-        'data-bs-target': '#monitored-domains-confirmation-modal',
+        'data-bs-target': '#monitored-domains-delete-modal',
       },
     },
     ...generateExportButtons([1, 2, 3, 4, 5], url),
@@ -782,7 +901,7 @@ const initializeResourcesDatatable = (url) => {
       className: 'btn btn-danger btn-toggle ms-2',
       attr: {
         'data-bs-toggle': 'modal',
-        'data-bs-target': '#resources-confirmation-modal',
+        'data-bs-target': '#resources-delete-modal',
       },
     },
     ...generateExportButtons([1, 2, 3, 4, 5, 6], url),
@@ -842,14 +961,22 @@ const generateSearchQuery = (formElement) => {
       const value = $(input).val();
       const type = $(input).prop('type');
 
-      if (type === 'select-one') {
-        acc[name] = value;
-      } else if (name.includes('date') || name.includes('created')) {
-        const [startDate, endDate = startDate] = value.split(' to ');
-        acc[name + '__gte'] = startDate;
-        acc[name + '__lte'] = endDate;
-      } else {
-        acc[name + '__icontains'] = value;
+      switch (true) {
+        case type === 'select-one':
+          acc[name] = value;
+          break;
+        case name.includes('date') || name.includes('created'):
+          const [startDate, endDate = startDate] = value.split(' to ');
+          if (name.includes('created')) {
+            if (startDate) acc[name + '__gte'] = startDate + 'T00:00:00Z';
+            if (endDate) acc[name + '__lte'] = endDate + 'T23:59:59Z';
+          } else {
+            acc[name + '__gte'] = startDate;
+            acc[name + '__lte'] = endDate;
+          }
+          break;
+        default:
+          acc[name + '__icontains'] = value;
       }
 
       return acc;
@@ -875,7 +1002,7 @@ $(() => {
     });
   };
 
-  const populateCompanySelect = async () => {
+  const fetchAndPopulateCompanyOptions = async () => {
     try {
       const response = await fetch(urls.companies, { method: 'GET', headers });
       const data = await response.json();
@@ -887,60 +1014,74 @@ $(() => {
     }
   };
 
-  const createModals = () => {
+  const fetchAndPopulateWatchedResourceOptions = async () => {
+    try {
+      const response = await fetch(urls.watchedResources, { method: 'GET', headers });
+      const data = await response.json();
+      const options = data.results.map(({ value }) => `<option value="${value}">${value}</option>`).join('');
+      const $watchedResourceSelects = document.getElementsByName('watched_resource');
+      $watchedResourceSelects.forEach((select) => (select.innerHTML += options));
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const initializeModals = () => {
     return {
-      monitoredDomainsInputModal: window.createInputModal(
-        'monitored-domain',
-        'Add New Domain',
-        monitoredDomainsFormFields
+      alertConfirmModal: window.createFormModal('confirm', 'alert'),
+      lookalikeDomainConfirmModal: window.createFormModal(
+        'confirm',
+        'lookalike-domain',
+        'Are you sure?',
+        [],
+        "This action will add the selected domains for monitoring. Additionally, these domains will be included in Trellix ETP's Yara Rule for monitoring and Anomali ThreatStream for blocking."
       ),
-      monitoredDomainsConfirmationModal: window.createConfirmationModal('monitored-domain'),
-      resourceInputModal: window.createInputModal('resource', 'Add New Resource', resourcesFormFields),
-      resourceConfirmationModal: window.createConfirmationModal('resource'),
+      lookalikeDomainInputModal: window.createFormModal(
+        'input',
+        'lookalike-domain',
+        'Add New Domain',
+        lookalikeDomainsInputFormFields
+      ),
+      monitoredDomainDeleteConfirmModal: window.createFormModal('delete', 'monitored-domain', 'Are you sure?'),
+      resourceConfirmModal: window.createFormModal('input', 'resource', 'Add New Resource', resourcesFormFields),
+      resourceDeleteConfirmModal: window.createFormModal('delete', 'resource'),
     };
   };
 
-  const modals = createModals();
-  tabsInfo['alerts'].tab.append(window.createDetailModal('alerts'));
-  tabsInfo['lookalike-domains'].tab.append(window.createDetailModal('lookalike-domains'));
-  tabsInfo['monitored-domains'].tab.append(modals.monitoredDomainsInputModal, modals.monitoredDomainsConfirmationModal);
-  tabsInfo['resources'].tab.append(modals.resourceInputModal, modals.resourceConfirmationModal);
+  const modals = initializeModals();
+  tabsInfo['alerts'].tab.append(window.createDetailModal('alert'), modals.alertConfirmModal);
+  tabsInfo['lookalike-domains'].tab.append(
+    window.createDetailModal('lookalike-domain'),
+    modals.lookalikeDomainInputModal,
+    modals.lookalikeDomainConfirmModal
+  );
+  tabsInfo['monitored-domains'].tab.append(modals.monitoredDomainDeleteConfirmModal);
+  tabsInfo['resources'].tab.append(modals.resourceConfirmModal, modals.resourceDeleteConfirmModal);
 
   ['alerts', 'lookalike-domains'].forEach(addCommentManagementToModal);
 
   const initializeDatatables = () => {
-    tabsInfo['alerts'].datatable = initializeAlertsDatatable(urls.alerts);
+    tabsInfo['alerts'].datatable = initializeAlertsDatatable(urls.alerts, 'status=open');
     tabsInfo['lookalike-domains'].datatable = initializeLookalikeDomainsDatatable(urls.lookalikeDomains, 'status=open');
-    initializeNewSslDatatable(urls.sslCertificates);
     tabsInfo['monitored-domains'].datatable = initializeMonitoredDomainsDatatable(urls.monitoredDomains);
     tabsInfo['resources'].datatable = initializeResourcesDatatable(urls.watchedResources);
   };
 
   initializeDatatables();
-  populateCompanySelect();
+  fetchAndPopulateCompanyOptions();
+  fetchAndPopulateWatchedResourceOptions();
 
-  // Add Record
-  tabsInfo['lookalike-domains'].tab.on('click', '.lookalike-domains-btn-add', (e) => {
+  const addLookalikeDomainModal = $('#lookalike-domains-input-modal');
+  addLookalikeDomainModal.on('submit', '#lookalike-domains-input-form', function (e) {
     e.preventDefault();
-
-    const selectedRows = tabsInfo['lookalike-domains'].datatable.rows({ selected: true });
-    const selectedData = selectedRows
-      .data()
-      .map((row) => ({ domain_name: row.value, company: row.company }))
-      .toArray();
-
-    addDomainsToMonitoring(selectedData);
-    // blockDomains(selectedData);
-    selectedRows.deselect();
-  });
-
-  const addDomainModal = $('#monitored-domains-input-modal');
-  addDomainModal.on('submit', '#monitored-domains-form', function (e) {
     if (e.target.checkValidity()) {
-      addDomainModal.modal('hide');
-      const [{ value: domain_name }, { value: company }] = $(this).serializeArray();
-      // blockDomains([{ domain_name, company }]);
-      addDomainsToMonitoring([{ domain_name, company }]);
+      addLookalikeDomainModal.modal('hide');
+      const [{ value: value }, { value: watched_resource }, { value: company }] = $(this).serializeArray();
+      const domainData = [
+        { value, watched_resource, company, source_date: new Date(Date.now()).toISOString().split('T')[0] },
+      ];
+      addLookalikeDomains(domainData);
+      $('#datatable-lookalike-domains').DataTable().ajax.reload();
     }
   });
 
@@ -1051,14 +1192,21 @@ $(() => {
   handleDatatableSpanClick(tabsInfo['alerts'].datatable, 'alerts');
   handleDatatableSpanClick(tabsInfo['lookalike-domains'].datatable, 'lookalike-domains');
 
-  $('.needs-validation').each((_, form) => {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (form.checkValidity() === false) {
-        form.classList.add('invalid');
-      }
-      form.classList.add('was-validated');
-    });
+  let bsValidationForms = document.querySelectorAll('.needs-validation');
+
+  Array.prototype.slice.call(bsValidationForms).forEach(function (form) {
+    form.addEventListener(
+      'submit',
+      function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
+        form.classList.add('was-validated');
+      },
+      false
+    );
   });
 
   // Enable/disable buttons based on row selection
@@ -1075,7 +1223,7 @@ $(() => {
   const $lookalikeDomainsSearchForm = $('#lookalike-domains-search-form');
   const $alertsSearchForm = $('#alerts-search-form');
 
-  $lookalikeDomainsSearchForm.html(window.generateSearchFormHTML(lookalikeDomainsFormFields));
+  $lookalikeDomainsSearchForm.html(window.generateSearchFormHTML(lookalikeDomainsFilterFormFields));
   $alertsSearchForm.html(window.generateSearchFormHTML(AlertsFormFields));
 
   const handleFormSubmit = (form, tabKey) => {
@@ -1115,4 +1263,8 @@ $(() => {
   });
 
   new Tagify(document.querySelector('#resource-exclude-keywords'));
+
+  $('#sidebarClose').on('click', function () {
+    $('#sidebar').removeClass('show');
+  });
 });

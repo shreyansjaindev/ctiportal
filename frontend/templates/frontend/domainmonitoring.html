@@ -24,6 +24,15 @@
           href="{% static 'frontend/assets/vendor/libs/@form-validation/form-validation.css' %}">
     <link rel="stylesheet"
           href="{% static 'frontend/assets/vendor/libs/tagify/tagify.css' %}" />
+    <!-- Extra -->
+    <!-- <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/libs/quill/katex.css' %}" />
+    <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/libs/quill/editor.css' %}" />
+    <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/libs/select2/select2.css' %}" />
+    <link rel="stylesheet"
+          href="{% static 'frontend/assets/vendor/css/pages/app-email.css' %}" /> -->
 {% endblock page_css %}
 {% block additional_css %}
     <style>
@@ -31,6 +40,7 @@
         cursor: default !important;
     }
     </style>
+
 {% endblock additional_css %}
 {% block content_title %}
     Domain Monitoring
@@ -85,6 +95,7 @@
             </div>
         {% endfor %}
     </div>
+                    
 {% endblock content_body %}
 {% block vendor_js %}
     <script src="{% static 'frontend/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js' %}"></script>
@@ -96,6 +107,12 @@
     <script src="{% static 'frontend/assets/vendor/libs/@form-validation/bootstrap5.js' %}"></script>
     <script src="{% static 'frontend/assets/vendor/libs/@form-validation/auto-focus.js' %}"></script>
     <script src="{% static 'frontend/assets/vendor/libs/tagify/tagify.js' %}"></script>
+    <!-- Extra -->
+    <!-- <script src="{% static 'frontend/assets/vendor/libs/quill/katex.js' %}"></script>
+    <script src="{% static 'frontend/assets/vendor/libs/quill/quill.js' %}"></script>
+    <script src="{% static 'frontend/assets/vendor/libs/select2/select2.js' %}"></script>
+    <script src="{% static 'frontend/assets/vendor/libs/block-ui/block-ui.js' %}"></script>
+    <script src="{% static 'frontend/assets/js/app-email.js' %}"></script> -->
 {% endblock vendor_js %}
 {% block page_js %}
 {% endblock page_js %}
@@ -109,7 +126,8 @@
             alertComments: "{% url 'monitored-domain-alert-comments-list' %}",
             lookalikeDomains: "{% url 'lookalike-domains-list' %}",
             lookalikeDomainComments: "{% url 'lookalike-domain-comments-list' %}",
-            lookalikeDomainsBlock: "{% url 'lookalike-domains-block-list' %}",
+            anomaliThreatstreamDomainImport: "{% url 'anomali-threatstream-domain-import-list' %}",
+            trellixETPDomainAdd: "{% url 'trellix-etp-domain-add-list' %}",
             companies: "{% url 'companies-list' %}",
         };
     </script>

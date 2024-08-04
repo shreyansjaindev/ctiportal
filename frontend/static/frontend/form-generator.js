@@ -10,6 +10,7 @@ const generateFieldHTML = ({
   placeholder,
   invalidFeedback,
   options,
+  inline,
 }) => {
   const labelHTML = label ? `<label class="form-label" for="${id}">${label}</label>` : '';
   const hiddenClass = hidden ? 'd-none' : '';
@@ -17,6 +18,7 @@ const generateFieldHTML = ({
   const disabledAttr = disabled ? 'disabled' : '';
   const patternAttr = pattern ? `pattern="${pattern}"` : '';
   const placeholderAttr = placeholder ? `placeholder="${placeholder}"` : '';
+  const inlineClass = inline ? 'form-check-inline' : '';
 
   const fieldHTML = [];
 
@@ -64,8 +66,8 @@ const generateFieldHTML = ({
         <div class="${hiddenClass} col-12 mb-3">
           ${options
             ?.map(
-              ({ value, displayName }, index) => `
-            <div class="form-check form-check-inline">
+              ({ value, displayName, checked }, index) => `
+            <div class="form-check ${inlineClass}">
               <input class="form-check-input" 
                 type="${type}" 
                 id="${id}-${index + 1}" 
@@ -73,6 +75,7 @@ const generateFieldHTML = ({
                 value="${value}" 
                 ${requiredAttr} 
                 ${disabledAttr}
+                ${checked ? 'checked' : ''}
               />
               <label class="form-check-label" for="${id}-${index + 1}">${displayName}</label>
             </div>
@@ -89,15 +92,19 @@ const generateFieldHTML = ({
   return fieldHTML.join('');
 };
 
-window.generateInputFormHTML = (tabName, formFields = []) => {
+window.generateModalFormHTML = (tabName, formFields = [], formType) => {
   const formFieldsHTML = formFields.map(generateFieldHTML).join('');
+  const formTypeClass = formType === 'delete' ? 'delete-form' : 'needs-validation';
+  const isConfirmOrDelete = formType === 'confirm' || formType === 'delete';
+  const submitButtonText = isConfirmOrDelete ? 'Yes' : 'Submit';
+  const discardButtonText = isConfirmOrDelete ? 'No' : 'Discard';
 
   return `
-    <form id="${tabName}s-form" class="row needs-validation" novalidate>
+    <form id="${tabName}s-${formType}-form" class="row ${formTypeClass}" novalidate>
       ${formFieldsHTML}
       <div class="col-12 text-center">
-        <button type="submit" class="btn btn-primary mt-2 me-1">Submit</button>
-        <button type="reset" class="btn btn-label-secondary mt-2" data-bs-dismiss="modal" aria-label="Close">Discard</button>
+        <button type="submit" class="btn btn-primary mt-2 me-1">${submitButtonText}</button>
+        <button type="reset" class="btn btn-label-secondary mt-2" data-bs-dismiss="modal" aria-label="Close">${discardButtonText}</button>
       </div>
     </form>
   `;
@@ -109,7 +116,7 @@ window.generateSearchFormHTML = (formFields = []) => {
   formFields.forEach((field) => {
     if (field.type === 'text' || field.type === 'date') {
       formHTML += `
-                  <div class="col-12 col-sm-4 col-lg-2 mb-3">
+                  <div class="col-12 col-sm-4 col-lg-2 mb-6">
                       <label class="form-label">${field.label}</label>
                       <input type="${field.type}" id="${field.id || ''}" class="form-control dt-input" placeholder="${
         field.placeholder
@@ -118,7 +125,7 @@ window.generateSearchFormHTML = (formFields = []) => {
               `;
     } else if (field.type === 'select') {
       formHTML += `
-                  <div class="col-12 col-sm-4 col-lg-2 mb-3">
+                  <div class="col-12 col-sm-4 col-lg-2 mb-6">
                       <label class="form-label">${field.label}</label>
                       <select class="form-select dt-input" name="${field.name}">
                           ${field.options

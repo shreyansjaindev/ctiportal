@@ -9,6 +9,7 @@ from .models import *
 from .serializers import *
 from .filters import *
 from scripts.threatstream import threatstream_import_domains_without_approval
+from scripts.trellix import process_yara_rules
 
 
 class UtilityMixin:
@@ -113,12 +114,15 @@ class WatchedResourceViewSet(viewsets.ModelViewSet, UtilityMixin):
 
 
 # Monitored Domains
-class MonitoredDomainViewSet(viewsets.ModelViewSet):
+class MonitoredDomainViewSet(viewsets.ModelViewSet, UtilityMixin):
     queryset = MonitoredDomain.objects.all()
     serializer_class = MonitoredDomainSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = MonitoredDomainFilter
     permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        return self.list_with_counts(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         if not isinstance(request.data, list):
@@ -172,6 +176,27 @@ class LookalikeDomainViewSet(viewsets.ModelViewSet, UtilityMixin):
     def list(self, request, *args, **kwargs):
         return self.list_with_counts(request, *args, **kwargs, limit_queryset=True)
 
+    def create(self, request, *args, **kwargs):
+        if not isinstance(request.data, list):
+            return super().create(request, *args, **kwargs)
+
+        added_count = 0
+        existing_count = 0
+        for item in request.data:
+            serializer = self.get_serializer(data=item)
+            try:
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+                added_count += 1
+            except Exception as e:
+                print(e)
+                existing_count += 1
+
+        return Response(
+            {"added_count": added_count, "existing_count": existing_count},
+            status=status.HTTP_201_CREATED,
+        )
+
 
 class LookalikeDomainCommentViewSet(viewsets.ModelViewSet):
     queryset = LookalikeDomainComment.objects.all()
@@ -200,12 +225,13 @@ class NewlyRegisteredDomainViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
-class LookalikeDomainsBlockViewSet(viewsets.ViewSet):
+class AnomaliThreatstreamDomainImportViewSet(viewsets.ViewSet):
     def create(self, request, *args, **kwargs):
-        serializer = DomainsSerializer(data=request.data)
+        serializer = anomaliThreatstreamDomainsSerializer(data=request.data)
         if serializer.is_valid():
             response = threatstream_import_domains_without_approval(
-                serializer.validated_data["domains"], ["DM_Test1", "DM_Test2"]
+                serializer.validated_data["domains"],
+                serializer.validated_data["tags"],
             )
             if response.status_code == 202:
                 return Response(
@@ -215,6 +241,28 @@ class LookalikeDomainsBlockViewSet(viewsets.ViewSet):
             else:
                 return Response(
                     {"error": "Failed to import domains to Anomali Threatstream"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TrellixETPDomainAddViewSet(viewsets.ViewSet):
+    def create(self, request, *args, **kwargs):
+        serializer = DomainsSerializer(data=request.data)
+        if serializer.is_valid():
+            response = process_yara_rules(
+                "YARA_Test_Rule",
+                "5398f15e-fced-11ea-97c3-0acb46400b08",
+                serializer.validated_data["domains"],
+            )
+            if response.status_code == 202:
+                return Response(
+                    {"message": "Domains successfully added to Trellix ETP's YARA rule"},
+                    status=status.HTTP_201_CREATED,
+                )
+            else:
+                return Response(
+                    {"error": "Failed to add domains to Trellix ETP's YARA rule"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

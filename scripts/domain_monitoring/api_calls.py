@@ -26,7 +26,7 @@ def make_api_request(method, endpoint, params=None, data=None):
         return response.json()
     except requests.exceptions.RequestException as e:
         logger.error(f"Request to {endpoint} failed: {e}")
-        return None
+        return {}
 
 
 def get_active_companies():
