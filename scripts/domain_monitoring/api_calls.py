@@ -70,6 +70,7 @@ def add_lookalike_domain(resource_match, date, company):
         "watched_resource": resource_match["resource_value"],
         "potential_risk": resource_match["risk"],
         "status": "open",
+        "source": "whoisxmlapi",
         "company": company,
     }
     response = requests.post(LOOKALIKE_DOMAINS_ENDPOINT, headers=HEADERS, json=data)
