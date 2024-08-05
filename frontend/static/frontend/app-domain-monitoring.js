@@ -48,7 +48,7 @@ const riskObj = {
 
 const renderBadge = (data, type) => {
   if (Array.isArray(data)) {
-    return data.map((item) => `<span class="badge rounded-pill bg-label-dark mx-1">${item}</span>`).join('');
+    return data.map((item) => `<span class="badge rounded-pill bg-label-dark m-1">${item}</span>`).join('');
   } else {
     const selectedObj = type === 'status' ? statusObj : type === 'risk' ? riskObj : statusObj;
     const { color, title } = selectedObj[data] || {};
@@ -1088,7 +1088,7 @@ $(() => {
   // Start of Resources
   // Add/Update Record
   const el = $('#resources-input-modal');
-  el.on('submit', '#resources-form', async function (e) {
+  el.on('submit', '#resources-input-form', async function (e) {
     e.preventDefault();
 
     const form = e.target;
@@ -1250,7 +1250,7 @@ $(() => {
   });
 
   $('#resource-value').on('input keyup', handleInputChange);
-  $('#resources-form').on('reset', () => setTimeout(handleInputChange, 0));
+  $('#resources-input-form').on('reset', () => setTimeout(handleInputChange, 0));
 
   let debounceTimeout;
   $('input.dt-input, select.dt-input').on('keyup change', function (e) {
