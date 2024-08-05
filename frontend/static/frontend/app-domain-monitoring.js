@@ -569,7 +569,7 @@ const updateStatus = async (tabName, url, status, dt) => {
     .map((row) => ({ domain_name: row.value, company: row.company }))
     .toArray();
 
-  if (tabName === 'lookalike-domains') {
+  if (tabName === 'lookalike-domains' && (status === 'closed' || status === 'takedown' || status === 'legal')) {
     const tags = ['FIS Domain Monitoring', 'Global_Block', 'XSOAR_TIM'];
 
     if (status === 'takedown') {
@@ -577,8 +577,8 @@ const updateStatus = async (tabName, url, status, dt) => {
     } else if (status === 'legal') {
       tags.push('FIS Domain Monitoring - Sent to Legal');
     }
-    addDomainsToTrellixETP(selectedData);
     importDomainsToAnomaliThreatstream(selectedData, tags);
+    addDomainsToTrellixETP(selectedData);
     addDomainsToMonitoring(selectedData);
   }
 
