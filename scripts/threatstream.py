@@ -199,8 +199,44 @@ def threatstream_import_indicators(
         "source_confidence_weight": source_confidence_weight,
     }
 
-    response = requests.post(f"{API_URL}/intelligence/import/", headers=HEADERS, data=payload)
+    response = requests.post(f"{API_URL}import/", headers=HEADERS, data=payload)
     return response.json()
+
+
+# def threatstream_import_domains_without_approval(
+#     domains,
+#     tags,
+#     classification="private",
+#     confidence=50,
+#     allow_unresolved=True,
+#     expiration_ts="9999-12-31T00:00:00",
+# ):
+#     if not API_KEY:
+#         return {"error": "API key not found"}
+
+#     tags = [{"name": tag} for tag in tags]
+
+#     payload = {
+#         "meta": {
+#             "classification": classification,
+#             "confidence": confidence,
+#             "allow_unresolved": allow_unresolved,
+#             "expiration_ts": expiration_ts,
+#         },
+#         "objects": [],
+#     }
+
+#     for domain in domains:
+#         payload["objects"].append(
+#             {
+#                 "domain": domain,
+#                 "itype": "phish_domain",
+#                 "tags": tags,
+#             }
+#         )
+
+#     response = requests.patch(API_URL, headers=HEADERS, data=json.dumps(payload))
+#     return response
 
 
 def threatstream_import_domains_without_approval(
@@ -208,7 +244,6 @@ def threatstream_import_domains_without_approval(
     tags,
     classification="private",
     confidence=50,
-    allow_unresolved=True,
     expiration_ts="9999-12-31T00:00:00",
 ):
     if not API_KEY:
@@ -217,25 +252,16 @@ def threatstream_import_domains_without_approval(
     tags = [{"name": tag} for tag in tags]
 
     payload = {
-        "meta": {
-            "classification": classification,
-            "confidence": confidence,
-            "allow_unresolved": allow_unresolved,
-            "expiration_ts": expiration_ts,
-        },
-        "objects": [],
+        "classification": classification,
+        "confidence": confidence,
+        "expiration_ts": expiration_ts,
+        "default_state": "active",
+        "tags": json.dumps(tags),
+        "threat_type": "phish",
+        "datatext": "\n".join(domains),
     }
 
-    for domain in domains:
-        payload["objects"].append(
-            {
-                "domain": domain,
-                "itype": "phish_domain",
-                "tags": tags,
-            }
-        )
-
-    response = requests.patch(API_URL, headers=HEADERS, data=json.dumps(payload))
+    response = requests.post(f"{API_URL}import/", headers=HEADERS, data=payload)
     return response
 
 
@@ -257,18 +283,10 @@ def threatstream_import_indicators_stix(file_path, classification, confidence, t
 
 
 if __name__ == "__main__":
-    query = {
-        "value__exact": "26953b9fc21c38f2933c0a114a0f7091f082b0321780afef6086ccc5cf1619f3",
-        "type__exact": "hash",
-    }
+    pass
     # print(
     #     threatstream_import_domains_without_approval(
-    #         ["testabc.com"], ["DM_Test1", "DM_Test2"]
-    #     )
-    # )
-    # print(
-    #     threatstream_import_domains_without_approval(
-    #         ["testabc.com"],
+    #         ["ibankingservice.com"],
     #         ["FIS Domain Monitoring", "GLOBAL_BLOCK", "XSOAR_TIM"],
     #     )
     # )

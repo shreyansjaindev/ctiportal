@@ -71,8 +71,8 @@ SOURCES = {
         "url": "frontend/assets/img/icons/brands/phishtank.png",
         "supported_types": ["domain", "url", "ipv4"],
     },
-    "httpstatus": {
-        "title": "HTTP Status",
+    "websitestatus": {
+        "title": "Website Status",
         "url": "frontend/assets/img/icons/brands/httpstatus.io.png",
         "supported_types": ["domain", "url", "ipv4"],
     },

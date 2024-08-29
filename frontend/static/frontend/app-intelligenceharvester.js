@@ -140,12 +140,12 @@ const createHostioHtml = (temp_data) => {
     .join('');
 };
 
-const createHttpStatusHtml = (temp_data) => {
-  const listItems = temp_data.httpstatus
+const createWebsiteStatusHtml = (temp_data) => {
+  const listItems = temp_data.websitestatus
     .reverse()
     .map(([url, status_code], index) => {
       const temp_status = index === 0 ? (url === 'Error' ? 'danger' : 'success') : 'primary';
-      const additionalClass = index === temp_data.httpstatus.length - 1 ? 'border-transparent' : '';
+      const additionalClass = index === temp_data.websitestatus.length - 1 ? 'border-transparent' : '';
       return `
       <li class="timeline-item timeline-item-transparent ${additionalClass}">
         <span class="timeline-point timeline-point-${temp_status}"></span>
@@ -525,8 +525,8 @@ $(document).ready(function () {
                 case 'screenshot':
                   temp_html = `<img class="img-fluid card-img-top rounded-sm" src="data:image/png;base64,${temp_data}" />`;
                   break;
-                case 'httpstatus':
-                  temp_html = createHttpStatusHtml(temp_data);
+                case 'websitestatus':
+                  temp_html = createWebsiteStatusHtml(temp_data);
                   break;
                 default:
                   temp_html =

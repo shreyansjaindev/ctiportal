@@ -100,7 +100,7 @@ window.generateModalFormHTML = (tabName, formFields = [], formType) => {
   const discardButtonText = isConfirmOrDelete ? 'No' : 'Discard';
 
   return `
-    <form id="${tabName}s-${formType}-form" class="row ${formTypeClass}" novalidate>
+    <form id="${tabName}-${formType}-form" class="row ${formTypeClass}" novalidate>
       ${formFieldsHTML}
       <div class="col-12 text-center">
         <button type="submit" class="btn btn-primary mt-2 me-1">${submitButtonText}</button>

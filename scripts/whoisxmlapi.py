@@ -33,7 +33,7 @@ def whois(domain, api_key):
     return filtered_data
 
 
-def reverse_whois(query, api_key, search_type="advanced"):
+def reverse_whois(query, api_key):
     url = "https://reverse-whois-api.whoisxmlapi.com/api/v2"
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
     payload = {
@@ -42,23 +42,11 @@ def reverse_whois(query, api_key, search_type="advanced"):
         "mode": "preview",
     }
 
-    parent_fields = [
-        "RegistrantContact",
-        "AdminContact",
-        "BillingContact",
-        "TechContact",
-    ]
-
-    if search_type == "advanced":
-        search_query = []
-        for field in parent_fields:
-            search_query.append({"field": f"{field}.Organization", "term": query})
-    else:
-        search_query = {"include": [query]}
+    search_query = {"include": [query]}
 
     payload.update(
         {
-            f"{search_type}SearchTerms": search_query,
+            f"basicSearchTerms": search_query,
         }
     )
 
@@ -152,7 +140,7 @@ def screenshot(query, api_key):
     return img
 
 
-def whoisxmlapi_main(value, query_type):
+def whoisxmlapi_main(query, query_type):
     if not API_KEYS:
         return {}
 
@@ -173,13 +161,16 @@ def whoisxmlapi_main(value, query_type):
             if product["product_id"] == product_info[query_type]["id"] and product["credits"] != 0:
                 func = product_info[query_type]["function"]
                 if func:
-                    return func(value, api_key)
+                    return func(query, api_key)
 
     return {"Error": "API Credits Exhausted"}
 
 
 if __name__ == "__main__":
-    value = sys.argv[1]
-    query_type = sys.argv[2]
+    # query = sys.argv[1]
+    # query_type = sys.argv[2]
 
-    print(whoisxmlapi_main(value, query_type))
+    query = "aituvip.com"
+    query_type = "reverse_whois"
+
+    print(whoisxmlapi_main(query, query_type))

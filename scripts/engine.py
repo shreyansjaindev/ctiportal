@@ -19,7 +19,7 @@ from .blacklists import blacklists
 from .abuseipdb import abuseipdb
 from .emailvalidator import emailvalidator
 from .urlscan import urlscan
-from .httpstatus import httpstatus
+from .website_status import get_website_status
 from .hostio import hostio
 from .phishtank import phishtank
 
@@ -99,9 +99,9 @@ SOURCE_INFO = {
         "function": urlscan,
         "supported_types": ["domain", "url", "ipv4"],
     },
-    "httpstatus": {
+    "websitestatus": {
         "title": "HTTP Status",
-        "function": httpstatus,
+        "function": get_website_status,
         "supported_types": ["domain", "url", "ipv4"],
     },
     "hostio": {

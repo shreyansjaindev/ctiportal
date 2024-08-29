@@ -46,6 +46,8 @@ const riskObj = {
   critical: { title: 'Critical', color: 'danger' },
 };
 
+const spinnerHtml = `<div class="spinner-border m-8" role="status"><span class="visually-hidden">Loading...</span></div>`;
+
 const renderBadge = (data, type) => {
   if (Array.isArray(data)) {
     return data.map((item) => `<span class="badge rounded-pill bg-label-dark m-1">${item}</span>`).join('');
@@ -490,75 +492,193 @@ const handleInputChange = () => {
   });
 };
 
-const generateBasicHtml = (inputData) => {
-  const keysToExclude = ['id', 'comments', 'website_screenshot'];
+const generateSectionHtml = (id, title) => `
+  <div class="col-6 mb-3">
+    <h6 class="mb-3">${title}</h6>
+    <div id="${id}" class="row"><div class="spinner-border mx-4" role="status"><span class="visually-hidden">Loading...</span></div></div>
+  </div>
+`;
 
+const generateBasicHtml = (inputData, tabName) => {
+  const keysToExclude = ['id', 'comments', 'website_screenshot'];
   const filteredDataItems = Object.keys(inputData)
     .filter((key) => !keysToExclude.includes(key))
     .map((key) => {
       const value = inputData[key];
       const { displayName, format, className } = keyDisplayNameMapping[key];
       const formattedValue = format ? format(value) : value;
-      const htmlValue = `<span class="fw-bolder text-${className ? className(value) : ''}">${formattedValue}</span>`;
+      const htmlValue = className ? renderBadge(value) : formattedValue;
       return { displayName, htmlValue };
     });
 
-  const htmlString = filteredDataItems
-    .map(({ displayName, htmlValue }) => `<p class="text-break">${displayName}: ${htmlValue}</p>`)
+  const alertInfoHtml = filteredDataItems
+    .map(
+      ({ displayName, htmlValue }) => `
+        <div class="col-md-6">
+          <h6 class="mb-1">${displayName}</h6>
+          <p>${htmlValue}</p>
+        </div>`
+    )
     .join('');
 
-  return htmlString;
+  return `
+    <div class="col-6 mb-3">
+      <h6 class="mb-3">Alert Information</h6>
+      <div class="row">
+        ${alertInfoHtml}
+      </div>
+    </div>
+    ${generateSectionHtml(`${tabName}-website-screenshot`, 'Website Screenshot')}
+    ${generateSectionHtml(`${tabName}-whois`, 'WHOIS Information')}
+    ${generateSectionHtml(`${tabName}-lookup`, 'DNS Lookup')}
+  `;
+};
+
+const escapeHtml = (unsafe) => {
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/`/g, '&#x60;')
+    .replace(/\//g, '&#x2F;');
+};
+
+const generateCommentHtml = (comment, tabName) => {
+  return `
+    <div id="${tabName}-comment-${comment.id}" class="row comment bg-lighter rounded p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <small class="text-muted">${escapeHtml(comment.username)}</small>
+        <small class="text-muted">${new Date(comment.created).toLocaleString()}</small>
+      </div>
+      <div class="col">
+        ${escapeHtml(comment.text)}
+      </div>
+      <div class="col text-end">
+        <i class="ti ti-trash ti-sm delete-comment cursor-pointer"></i>
+      </div>
+    </div>
+  `;
+};
+
+const generateCommentsHtml = (comments, tabName) => {
+  return comments
+    .slice()
+    .reverse()
+    .map((comment) => generateCommentHtml(comment, tabName))
+    .join('');
 };
 
 const handleDatatableSpanClick = (dt, tabName) => {
+  let abortController;
+
+  $(`#${tabName}-detail-modal`).on('hidden.bs.modal', function () {
+    if (abortController) {
+      abortController.abort();
+    }
+  });
+
   dt.on('click', 'span.cursor-pointer', async function () {
+    abortController = new AbortController();
+
     const data = dt.row($(this).parents('tr')).data();
     const id = data.id;
+    let websiteScreenshotHtml = '<div class="col-md-12">Not Available</div>';
+    let lookupHtml = '<div class="col-md-12">Not Available</div>';
 
     try {
       const response = await fetch(tabsInfo[tabName].url + id, {
         method: 'GET',
         headers,
+        signal: abortController.signal,
       });
       const data = await response.json();
 
-      const basicHtml = generateBasicHtml(data);
-
-      const commentsHtml = data.comments
-        .reverse()
-        .map(
-          (comment) => `
-          <div id="${tabName}-comment-${comment.id}" class="row comment bg-lighter rounded p-3 mb-3">
-            <div class="d-flex justify-content-between align-items-center">
-              <small class="text-muted">${comment.username}</small>
-              <small class="text-muted">${new Date(comment.created).toLocaleString()}</small>
-            </div>
-            <div class="col">
-              ${comment.text}
-            </div>
-            <div class="col text-end">
-              <i class="ti ti-trash ti-sm delete-comment cursor-pointer"></i>
-            </div>
-          </div>
-        `
-        )
-        .join('');
-
-      if (tabName == 'alerts') {
-        const website_screenshot = data.website_screenshot;
-        const websiteScreenshotHtml = website_screenshot
-          ? `<img class="d-block w-100 border" src="/media/website_screenshots/${website_screenshot}" alt="${website_screenshot}">`
-          : 'Not Available';
-        $(`#${tabName}-website-screenshot`).html(websiteScreenshotHtml).removeClass('d-none');
-      }
+      const basicHtml = generateBasicHtml(data, tabName);
+      const commentsHtml = generateCommentsHtml(data.comments, tabName);
 
       $(`#${tabName}-detail-modal-label`).text(`Alert ID: #${data.id}`).attr('value', data.id);
       $(`#${tabName}-detail-content`).html(basicHtml);
       $(`#${tabName}-comments`).html(commentsHtml);
+      $(`#${tabName}-detail-modal`).modal('show');
+
+      if (tabName == 'alerts') {
+        const website_screenshot = data.website_screenshot;
+        websiteScreenshotHtml = website_screenshot
+          ? `<div class="col-md-12"><img class="d-block w-100 border" src="/media/website_screenshots/${website_screenshot}" alt="${website_screenshot}"></div>`
+          : '<div class="col-md-12">Not Available</div>';
+      } else {
+        const requestData = [
+          {
+            id: data.id,
+            value: data.value,
+            type: 'domain',
+            checklist: ['lookup', 'whois', 'screenshot'],
+          },
+        ];
+
+        let whoisHtml = '<div class="col-md-12">Not Available</div>';
+
+        try {
+          const response = await fetch('/api/intelligence-harvester/search/', {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+              'X-CSRFToken': window.CSRFToken,
+            },
+            body: JSON.stringify({
+              data: requestData,
+            }),
+            signal: abortController.signal,
+          });
+
+          const responseData = await response.json();
+          const domainData = responseData.data[data.value].source_data;
+          for (const [parentKey, parentValue] of Object.entries(domainData)) {
+            if (parentKey === 'whois' || parentKey === 'lookup') {
+              const results = parentValue.results;
+              if (results) {
+                resultsHtml = '<div class="row">';
+
+                resultsHtml += Object.entries(results)
+                  .map(([key, value]) => {
+                    const textTransform = parentKey === 'lookup' ? key.toUpperCase() : textCapitalize(key);
+                    return `<div class="col-md-12"><small class="mb-1"><span class="text-heading">${textTransform}: </span>${value}</small></div>`;
+                  })
+                  .join('');
+
+                resultsHtml += '</div>';
+              }
+              if (parentKey === 'whois') {
+                whoisHtml = resultsHtml;
+              } else if (parentKey === 'lookup') {
+                lookupHtml = resultsHtml;
+              }
+            } else if (parentKey === 'screenshot') {
+              const website_screenshot = parentValue.results;
+              websiteScreenshotHtml = website_screenshot
+                ? `<div class="col-md-12"><img class="d-block w-100 border" src="data:image/png;base64,${website_screenshot}" alt="${website_screenshot}"></div>`
+                : '<div class="col-md-12">Not Available</div>';
+            }
+          }
+        } catch (error) {
+          console.log('Error fetching data:', error);
+        } finally {
+          $(`#${tabName}-whois`).html(whoisHtml);
+          $(`#${tabName}-lookup`).html(lookupHtml);
+        }
+      }
     } catch (error) {
-      toastr.error(error.message);
+      if (error.name === 'AbortError') {
+        console.log('Fetch aborted', error);
+      } else {
+        console.log('Error fetching data:', error);
+      }
+    } finally {
+      $(`#${tabName}-website-screenshot`).html(websiteScreenshotHtml);
     }
-    $(`#${tabName}-detail-modal`).modal('show');
   });
 };
 
@@ -654,8 +774,8 @@ const generateStatusButtons = (url, statusOptions, tabName) => {
     }));
 };
 
-const addComment = async (url, datatableId, modalId) => {
-  const $addComment = $(`#${datatableId}-add-comment`);
+const addComment = async (url, tabName, modalId) => {
+  const $addComment = $(`#${tabName}-add-comment`);
   const commentText = $addComment.val();
 
   if (!commentText) return;
@@ -668,9 +788,9 @@ const addComment = async (url, datatableId, modalId) => {
     user: '',
   };
 
-  if (datatableId == 'alerts') {
+  if (tabName == 'alerts') {
     data.alert = id;
-  } else if (datatableId == 'lookalike-domains') {
+  } else if (tabName == 'lookalike-domains') {
     data.lookalike_domain = id;
   }
 
@@ -681,31 +801,18 @@ const addComment = async (url, datatableId, modalId) => {
       body: JSON.stringify(data),
     });
 
-    const { id: commentId, username, created, text } = await response.json();
+    const comment = await response.json();
     toastr.success('Comment updated');
 
-    const comments_html = `
-      <div id="${datatableId}-comment-${commentId}" class="row comment bg-lighter rounded p-3 mb-3">
-        <div class="d-flex justify-content-between align-items-center">
-          <small class="text-muted">${username}</small>
-          <small class="text-muted">${new Date(created).toLocaleString()}</small>
-        </div>
-        <div class="col">
-          ${text}
-        </div>
-        <div class="col text-end">
-          <i class="ti ti-trash ti-sm delete-comment cursor-pointer"></i>
-        </div>
-      </div>
-    `;
+    const commentHtml = generateCommentHtml(comment, tabName);
 
-    $(`#${datatableId}-comments`).prepend(comments_html);
+    $(`#${tabName}-comments`).prepend(commentHtml);
   } catch (error) {
     toastr.error(error);
   }
 };
 
-const deleteComment = async (url, datatableId) => {
+const deleteComment = async (url, tabName) => {
   try {
     const response = await fetch(url, {
       method: 'DELETE',
@@ -714,7 +821,7 @@ const deleteComment = async (url, datatableId) => {
 
     if (response.ok) {
       toastr.success('Comment deleted');
-      $(datatableId).remove();
+      $(tabName).remove();
     } else {
       toastr.error('Failed to delete comment');
     }
@@ -1028,30 +1135,30 @@ $(() => {
 
   const initializeModals = () => {
     return {
-      alertConfirmModal: window.createFormModal('confirm', 'alert'),
+      alertConfirmModal: window.createFormModal('confirm', 'alerts'),
       lookalikeDomainConfirmModal: window.createFormModal(
         'confirm',
-        'lookalike-domain',
+        'lookalike-domains',
         'Are you sure?',
         [],
         "This action will add the selected domains for monitoring. Additionally, these domains will be included in Trellix ETP's Yara Rule for monitoring and Anomali ThreatStream for blocking."
       ),
       lookalikeDomainInputModal: window.createFormModal(
         'input',
-        'lookalike-domain',
+        'lookalike-domains',
         'Add New Domain',
         lookalikeDomainsInputFormFields
       ),
-      monitoredDomainDeleteConfirmModal: window.createFormModal('delete', 'monitored-domain', 'Are you sure?'),
-      resourceConfirmModal: window.createFormModal('input', 'resource', 'Add New Resource', resourcesFormFields),
-      resourceDeleteConfirmModal: window.createFormModal('delete', 'resource'),
+      monitoredDomainDeleteConfirmModal: window.createFormModal('delete', 'monitored-domains', 'Are you sure?'),
+      resourceConfirmModal: window.createFormModal('input', 'resources', 'Add New Resource', resourcesFormFields),
+      resourceDeleteConfirmModal: window.createFormModal('delete', 'resources'),
     };
   };
 
   const modals = initializeModals();
-  tabsInfo['alerts'].tab.append(window.createDetailModal('alert'), modals.alertConfirmModal);
+  tabsInfo['alerts'].tab.append(window.createDetailModal('alerts'), modals.alertConfirmModal);
   tabsInfo['lookalike-domains'].tab.append(
-    window.createDetailModal('lookalike-domain'),
+    window.createDetailModal('lookalike-domains'),
     modals.lookalikeDomainInputModal,
     modals.lookalikeDomainConfirmModal
   );
