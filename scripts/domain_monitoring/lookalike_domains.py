@@ -4,11 +4,10 @@ import multiprocessing as mp
 import sys
 import re
 import idna
-from difflib import SequenceMatcher
 from whoisxmlapi import get_newly_registered_domains_df
 from api_calls import get_active_companies, get_watched_resources, add_lookalike_domain
 import concurrent.futures
-from substring_match import find_best_substring_match
+from substring_match import find_best_substring_match, find_substring_typo_match
 import Levenshtein
 import logging
 
@@ -57,7 +56,7 @@ def calculate_similarity_domain(query_domain, domain, properties):
     typo_match = False
     noise_reduction = False
 
-    if "typo_match" in properties:
+    if "typo_match" in properties or "substring_typo_match" in properties:
         typo_match = True
         if "noise_reduction" in properties:
             noise_reduction = True
@@ -126,7 +125,10 @@ def calculate_similarity_domain(query_domain, domain, properties):
 
         distance = Levenshtein.distance(query_domain_name_variation, domain_name_variation)
 
-        if distance > round(query_length / DISTANCE_RATIO, 2):
+        if (
+            distance > round(query_length / DISTANCE_RATIO, 2)
+            and length_difference < QUERY_LENGTH_THRESHOLD
+        ):
             continue
 
         if is_domain_with_tld:
@@ -145,9 +147,8 @@ def calculate_similarity_domain(query_domain, domain, properties):
         if substring_match_score == 1.0:
             return substring_match_score, first_character_match
 
-        similarity_ratio = round(
-            SequenceMatcher(None, query_domain_name_variation, domain_name_variation).ratio(),
-            2,
+        similarity_ratio = find_substring_typo_match(
+            query_domain_name_variation, domain_name_variation
         )
 
         if similarity_ratio > best_similarity_ratio:
@@ -246,7 +247,7 @@ def identify_lookalike_domains(queries, company, date, df):
 
             similarity_ratio = best_resource_match["similarity"]
 
-            if best_resource_match.get("query_length", 0) >= 15:
+            if best_resource_match.get("query_length", 0) >= QUERY_LENGTH_THRESHOLD:
                 low_risk_threshold = 0.80
                 medium_risk_threshold = 0.85
                 high_risk_threshold = 0.88

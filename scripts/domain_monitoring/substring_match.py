@@ -23,6 +23,35 @@ def find_best_substring_match(keyword, domain_name):
     return highest_score
 
 
+def get_relevant_substrings(s, target_len):
+    length = len(s)
+    substrings = []
+    for i in range(length):
+        for j in range(i + target_len - 3, min(i + target_len + 3, length)):
+            substrings.append(s[i : j + 1])
+    return substrings
+
+
+def find_substring_typo_match(keyword, domain_name):
+    keyword_len = len(keyword)
+    substrings = get_relevant_substrings(domain_name, keyword_len)
+    highest_similarity_ratio = 0
+
+    for substring in substrings:
+        similarity_ratio = round(
+            SequenceMatcher(None, keyword, substring).ratio(),
+            2,
+        )
+
+        if similarity_ratio > highest_similarity_ratio:
+            highest_similarity_ratio = similarity_ratio
+
+    if highest_similarity_ratio > 0.88:
+        return highest_similarity_ratio
+
+    return 0
+
+
 def find_best_match(domain_name, keywords):
     domain_name = domain_name.lower()  # Convert domain_name to lowercase once
     keywords = [kw.lower() for kw in keywords]  # Convert keywords to lowercase once
@@ -80,12 +109,13 @@ def calculate_similarity(query_domain, domain, noise_reduction):
 
         distance = Levenshtein.distance(query_domain_name_variation, domain_name_variation)
 
-        if distance > round(query_length / 5):
-            continue
+        # if distance > round(query_length / 5):
+        #     continue
 
         substring_match_score = find_best_substring_match(
             query_domain_name_variation, domain_name_variation
         )
+        print(query_domain_name_variation, domain_name_variation, substring_match_score)
 
         if substring_match_score == 1.0:
             return substring_match_score, query_domain, domain, None
