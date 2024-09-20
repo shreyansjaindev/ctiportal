@@ -1338,7 +1338,9 @@ $(() => {
       e.preventDefault();
       const searchQuery = generateSearchQuery(form);
       const { datatable, url } = tabsInfo[tabKey];
-      datatable.ajax.url(`${url}?${searchQuery}`).load();
+      datatable.ajax.url(`${url}?${searchQuery}`).load(() => {
+        datatable.rows().deselect();
+      });
     });
   };
 

@@ -80,16 +80,17 @@ const generateExportButtons = (columns, url) => {
           extend: 'csv',
           text: '<i class="ti ti-file-text me-1"></i>Export All',
           className: 'dropdown-item',
-          action: () => {
-            $.ajax({
-              url,
-              type: 'GET',
-              data: {
-                exportAll: true,
-              },
-              success: (response) => downloadCSV(generateCSVContent(response.results)),
-              error: (error) => console.error('Error exporting data:', error),
-            });
+          action: (e, dt, button, config) => {
+            try {
+              const data = dt.rows().data().toArray();
+              if (!data || data.length === 0) {
+                throw new Error('No data available for export.');
+              }
+              downloadCSV(generateCSVContent(data));
+            } catch (error) {
+              console.error('Error exporting data:', error);
+              toastr.error('An error occurred while exporting data. Please try again.');
+            }
           },
         },
       ],

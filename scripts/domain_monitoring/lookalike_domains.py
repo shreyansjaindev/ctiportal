@@ -11,7 +11,7 @@ from substring_match import find_best_substring_match, find_substring_typo_match
 import Levenshtein
 import logging
 
-QUERY_LENGTH_THRESHOLD = 15
+QUERY_LENGTH_THRESHOLD = 20
 DISTANCE_RATIO = 4
 
 
