@@ -1,0 +1,124 @@
+### Python ###
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.whl
+
+# Keep frontend source lib
+!frontend-vite/src/lib/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Type checking
+.mypy_cache/
+.pyre/
+.pytype/
+
+# Virtual environments
+.env
+.env.local
+.env.docker
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat-schedule.*
+
+### Django ###
+*.log
+*.pot
+*.pyc
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+### Node / Vite ###
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+.eslintcache
+.vite/
+coverage/
+
+### Logs ###
+logs/
+*.log
+*.log.*
+
+### OS ###
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+### IDEs / Editors ###
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# SFTP
+sftp-config.json
+
+### Project-specific ###
+temp_profile/
+nrd_data/
+*.yara
