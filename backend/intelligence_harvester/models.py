@@ -14,7 +14,7 @@ class Source(models.Model):
         ("cve", "CVE"),
     ]
 
-    created = models.DateTimeField(auto_now=True)
+    created = models.DateTimeField(auto_now_add=True)
     value = models.TextField(max_length=1000)
     value_type = models.CharField(max_length=255, choices=VALUE_TYPE_CHOICES)
     hashed_value = models.CharField(max_length=255)

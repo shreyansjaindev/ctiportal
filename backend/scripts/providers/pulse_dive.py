@@ -2,6 +2,7 @@ from pulsedive import Pulsedive
 import sys
 import os
 import logging
+from ..utils.api_helpers import check_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -95,9 +96,9 @@ def get_results(value):
 
 
 def pulse_dive(value, value_type):
-    if not API_KEY:
-        logger.error("API key not found")
-        return {"error": "API key not found"}
+    error = check_api_key(API_KEY, "PulseDive")
+    if error:
+        return error
 
     print(f"Value: {value}")
     return get_results(value)

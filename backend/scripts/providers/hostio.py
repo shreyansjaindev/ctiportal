@@ -4,6 +4,7 @@ import math
 import os
 from urllib.parse import urlparse
 import logging
+from ..utils.api_helpers import check_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +72,9 @@ def hostio_email(params, email):
 
 
 def hostio(query, input_type):
-    if not API_KEY:
-        logger.error("API key not found")
-        return {"error": "API key not found"}
+    error = check_api_key(API_KEY, "Host.io")
+    if error:
+        return error
 
     data = {}
 

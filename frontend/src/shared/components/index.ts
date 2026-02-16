@@ -5,6 +5,7 @@
 // Layout
 export { AppShell } from './app-shell'
 export { AppSidebar } from './app-sidebar'
+export { SecondarySidebar } from './secondary-sidebar'
 
 // Auth
 export { LoginForm } from './login-form'

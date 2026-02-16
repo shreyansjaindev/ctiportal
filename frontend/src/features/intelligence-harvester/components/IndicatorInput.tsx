@@ -1,6 +1,7 @@
 import { Button } from "@/shared/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card"
 import { Textarea } from "@/shared/components/ui/textarea"
+import { cn } from "@/shared/lib/utils"
 
 interface IndicatorInputProps {
   quickInput: string
@@ -8,6 +9,7 @@ interface IndicatorInputProps {
   onAdd: (input: string) => void
   indicatorCount: number
   placeholder: string
+  className?: string
 }
 
 export function IndicatorInput({
@@ -15,9 +17,10 @@ export function IndicatorInput({
   setQuickInput,
   onAdd,
   placeholder,
+  className,
 }: IndicatorInputProps) {
   return (
-    <Card className="rounded-tl-lg rounded-tr-none rounded-b-none">
+    <Card className={cn("rounded-tl-lg rounded-tr-none rounded-b-none", className)}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>

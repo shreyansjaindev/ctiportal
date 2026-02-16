@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 # Import all provider functions
 try:
-    from .lookup import lookup
+    from .aggregators.lookup import lookup
 except ImportError:
     logger.debug("lookup not available")
     lookup = None
@@ -96,7 +96,7 @@ except ImportError:
     phishtank = None
 
 try:
-    from .blacklists import blacklists
+    from .utils.blacklists import blacklists
 except ImportError:
     logger.debug("Blacklists not available")
     blacklists = None

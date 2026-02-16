@@ -7,6 +7,7 @@ import { BrowserRouter } from "react-router-dom"
 import "./index.css"
 import App from "./App.tsx"
 import { AuthProvider } from "@/shared/lib/auth"
+import { TooltipProvider } from "@/shared/components/ui/tooltip"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,7 +23,9 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
-          <App />
+          <TooltipProvider>
+            <App />
+          </TooltipProvider>
         </BrowserRouter>
       </AuthProvider>
       <ReactQueryDevtools initialIsOpen={false} />

@@ -4,6 +4,7 @@ import sys
 import os
 from urllib.parse import urlparse
 import logging
+from ..utils.api_helpers import check_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,9 @@ def get_whois(value, value_type):
     else:
         return {"error": "Invalid value type"}
 
-    if not API_KEY:
-        logger.error("API key not found")
-        return {"error": "API key not found"}
+    error = check_api_key(API_KEY, "SecurityTrails")
+    if error:
+        return error
 
     url = f"https://api.securitytrails.com/v1/domain/{domain}/whois"
 
@@ -75,8 +76,9 @@ def get_whois(value, value_type):
 
 
 def get_dns_records(domain):
-    if not API_KEY:
-        return {"error": "API key not found"}
+    error = check_api_key(API_KEY, "SecurityTrails")
+    if error:
+        return error
 
     data = {"a": [], "mx": [], "spf": ""}
 

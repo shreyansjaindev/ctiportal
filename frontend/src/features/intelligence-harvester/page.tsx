@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useAuth } from "@/shared/lib/auth"
 import * as aggregators from "@/shared/lib/aggregators"
-import { IndicatorInput, IndicatorList, LookupConfiguration, LookupResults } from "./components"
+import { IndicatorInput, LookupConfiguration, IntelligenceHarvesterSidebar } from "./components"
 import { parseIndicators, getInputPlaceholder } from "@/shared/lib/indicator-utils"
 import { useProviderSelection } from "@/shared/hooks"
 import { executeIndicatorLookups } from "@/shared/services"
@@ -131,7 +131,8 @@ export default function IntelligenceHarvesterPage() {
   }
 
   const removeIndicator = (indicator: string) => {
-    setIndicators((prev) => prev.filter((value) => value !== indicator))
+    const updatedIndicators = indicators.filter((value) => value !== indicator)
+    setIndicators(updatedIndicators)
     setIndicatorTypes((prev) => {
       const next = new Map(prev)
       next.delete(indicator)
@@ -142,17 +143,42 @@ export default function IntelligenceHarvesterPage() {
       next.delete(indicator)
       return next
     })
+    // Clear activeIndicator if we're removing it or if no indicators remain
+    if (activeIndicator === indicator || updatedIndicators.length === 0) {
+      setActiveIndicator(null)
+    }
+    // Reset lookup results if no indicators remain
+    if (updatedIndicators.length === 0) {
+      lookupMutation.reset()
+    }
   }
 
   const removeSelectedIndicators = () => {
     if (!selectedIndicators.size) return
-    setIndicators((prev) => prev.filter((value) => !selectedIndicators.has(value)))
+    const updatedIndicators = indicators.filter((value) => !selectedIndicators.has(value))
+    setIndicators(updatedIndicators)
     setIndicatorTypes((prev) => {
       const next = new Map(prev)
       selectedIndicators.forEach((indicator) => next.delete(indicator))
       return next
     })
     setSelectedIndicators(new Set())
+    // Clear activeIndicator if it's being removed or if no indicators remain
+    if ((activeIndicator && selectedIndicators.has(activeIndicator)) || updatedIndicators.length === 0) {
+      setActiveIndicator(null)
+    }
+    // Reset lookup results if no indicators remain
+    if (updatedIndicators.length === 0) {
+      lookupMutation.reset()
+    }
+  }
+
+  const clearAllIndicators = () => {
+    setIndicators([])
+    setIndicatorTypes(new Map())
+    setSelectedIndicators(new Set())
+    setActiveIndicator(null)
+    lookupMutation.reset()
   }
 
   // Perform lookup mutation
@@ -213,20 +239,13 @@ export default function IntelligenceHarvesterPage() {
       )
   }, [lookupMutation.data])
 
-  const resultCounts = useMemo(() => {
-    const counts = new Map<string, number>()
-    lookupResults.forEach((item) => {
-      counts.set(item.indicator, item.results.length)
-    })
-    return counts
-  }, [lookupResults])
-
   const handleLookup = () => {
     if (!indicators.length && !quickInput.trim()) return
 
     if (quickInput.trim()) {
       const additions = addIndicators(quickInput)
       const nextIndicators = Array.from(new Set([...indicators, ...additions]))
+      setQuickInput("") // Clear input after adding
       lookupMutation.mutate({ indicatorsOverride: nextIndicators })
       return
     }
@@ -235,18 +254,19 @@ export default function IntelligenceHarvesterPage() {
   }
 
   return (
-    <div className="w-full h-full min-h-0 flex flex-col gap-0">
+    <div className="w-full h-full min-h-0 flex flex-col bg-card overflow-hidden">
       {/* Controls - Side by side */}
-      <div className="grid gap-0 lg:grid-cols-2 flex-shrink-0">
+      <div className="grid gap-0 lg:grid-cols-2 flex-shrink-0 border-b divide-y lg:divide-y-0 lg:divide-x">
         <IndicatorInput
           quickInput={quickInput}
           setQuickInput={setQuickInput}
           onAdd={(input) => {
             addIndicators(input)
-            setQuickInput('')
+            setQuickInput("")
           }}
           indicatorCount={indicators.length}
           placeholder={getInputPlaceholder()}
+          className="border-0 rounded-none shadow-none"
         />
 
         <LookupConfiguration
@@ -276,16 +296,19 @@ export default function IntelligenceHarvesterPage() {
           setWebsiteStatusProvider={setters.setWebsiteStatus}
           providersByType={providersByType}
           presets={allProvidersQuery.data?.presets}
+          className="border-0 rounded-none shadow-none"
         />
       </div>
 
-      <div className="grid gap-0 lg:grid-cols-[320px_1fr] flex-1 min-h-0">
-        <IndicatorList
-          indicators={filteredIndicators}
+      {/* Secondary Sidebar - Full Width Below */}
+      <div className="flex-1 min-h-0">
+        <IntelligenceHarvesterSidebar 
+          indicators={indicators}
           indicatorTypes={indicatorTypes}
           selectedIndicators={selectedIndicators}
           activeIndicator={activeIndicator}
-          resultCounts={resultCounts}
+          lookupResults={lookupResults}
+          isLoading={lookupMutation.isPending}
           onRunLookup={handleLookup}
           canRun={Boolean(indicators.length || quickInput.trim())}
           isRunning={lookupMutation.isPending}
@@ -293,12 +316,8 @@ export default function IntelligenceHarvesterPage() {
           onToggleAll={toggleAllIndicators}
           onRemoveSelected={removeSelectedIndicators}
           onRemoveIndicator={removeIndicator}
-          onSelectIndicator={setActiveIndicator}
-        />
-
-        <LookupResults
-          results={lookupResults}
-          activeIndicator={activeIndicator}
+          onClearAll={clearAllIndicators}
+          onIndicatorClick={setActiveIndicator}
         />
       </div>
     </div>

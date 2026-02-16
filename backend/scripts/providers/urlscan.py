@@ -5,6 +5,7 @@ import re
 import time
 import os
 import logging
+from ..utils.api_helpers import check_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -144,9 +145,9 @@ def filter(data):
 
 # Supports Domain and URL
 def urlscan(query, input_type):
-    if not API_KEY:
-        logger.error("API key not found")
-        return {"error": "API key not found"}
+    error = check_api_key(API_KEY, "URLScan")
+    if error:
+        return error
 
     data = {}
     print("Query: ", query)

@@ -59,7 +59,7 @@ export default function HomePage() {
   const appsData = appsQuery.data?.items ?? []
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 p-6">
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4">
           <Badge className="w-fit">Live Intelligence Feed</Badge>

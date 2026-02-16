@@ -2,15 +2,16 @@ import requests
 import os
 import sys
 import logging
+from ..utils.api_helpers import check_api_key
 
 logger = logging.getLogger(__name__)
 
 
 def abuseipdb(ip, value_type):
     api_key = os.getenv("ABUSEIPDB", "").split(",")[0]
-    if not api_key:
-        logger.error("API key not found")
-        return {"error": "API key not found"}
+    error = check_api_key(api_key, "AbuseIPDB")
+    if error:
+        return error
     url = "https://api.abuseipdb.com/api/v2/check"
     params = {"ipAddress": ip, "maxAgeInDays": "90"}
     headers = {"Accept": "application/json", "Key": api_key}

@@ -1,9 +1,13 @@
-import ipaddress
-import re
+"""
+API views for system utilities and generic operations.
+
+This module contains views for:
+- System endpoints: Health checks, authentication, user info, app metadata
+- Utility endpoints: Text formatting, email analysis, screenshots, AD lookups, exports
+"""
+import logging
 from urllib.parse import urljoin
 
-import ioc_fanger
-import tldextract
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -11,22 +15,25 @@ from rest_framework.views import APIView
 from api.pagination import ItemsLimitOffsetPagination
 from api.response import error, success
 from api.serializers import UserMeSerializer
-from scripts.ad_users import get_aduser
-from scripts.constants import (
-    ADDITIONAL_SOURCES,
-    APPS,
-    DOMAIN_MONITORING_TABS,
-    SECURITY_HEADERS,
-    SOURCES,
-    SUMMARY_HEADERS,
+from scripts.constants import APPS, SECURITY_HEADERS, SUMMARY_HEADERS
+from scripts.providers.anomali.threatstream import (
+    threatstream_export,
+    threatstream_export_feeds,
 )
-from scripts.mha import mha as mha_analyzer
 from scripts.providers.screenshotmachine import bulk_screenshot
-from scripts.textformatter import collector as text_formatter
-from scripts.threatstream import threatstream_export, threatstream_export_feeds
+from scripts.utils.ad_users import get_aduser
+from scripts.utils.mha import mha as mha_analyzer
+from scripts.utils.textformatter import collector as text_formatter
 
+logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# System Views
+# =============================================================================
 
 class GetRoutes(APIView):
+    """API root endpoint with route discovery"""
     def get(self, request):
         base_url = request.build_absolute_uri("/api/v1/")
         route_names = ["intelligence-harvester", "domain-monitoring"]
@@ -35,6 +42,7 @@ class GetRoutes(APIView):
 
 
 class HealthView(APIView):
+    """Health check endpoint"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -42,6 +50,7 @@ class HealthView(APIView):
 
 
 class UserMeView(APIView):
+    """Retrieve current authenticated user information"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -50,6 +59,7 @@ class UserMeView(APIView):
 
 
 class AppsView(APIView):
+    """List available applications"""
     permission_classes = [IsAuthenticated]
     pagination_class = ItemsLimitOffsetPagination
 
@@ -61,208 +71,115 @@ class AppsView(APIView):
         return success(APPS)
 
 
-class IntelligenceSourcesView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        data_needs = {
-            "dns": {
-                "label": "DNS",
-                "supported_types": ["domain", "url", "ipv4"],
-            },
-            "whois": {
-                "label": "WHOIS",
-                "supported_types": ["domain", "url"],
-            },
-            "passive-dns": {
-                "label": "Passive DNS",
-                "supported_types": ["domain", "ipv4", "url"],
-            },
-            "blocklists": {
-                "label": "Blocklists",
-                "supported_types": ["domain", "ipv4", "url"],
-            },
-            "reputation": {
-                "label": "Reputation",
-                "supported_types": ["domain", "ipv4", "url", "md5", "sha1", "sha256", "sha512"],
-            },
-            "vulnerability": {
-                "label": "Vulnerability",
-                "supported_types": ["cve"],
-            },
-            "malware-analysis": {
-                "label": "Malware Analysis",
-                "supported_types": ["md5", "sha1", "sha256", "sha512"],
-            },
-            "screenshot": {
-                "label": "Screenshot",
-                "supported_types": ["domain", "url", "ipv4"],
-            },
-            "availability": {
-                "label": "Availability",
-                "supported_types": ["domain", "url", "ipv4"],
-            },
-            "email": {
-                "label": "Email",
-                "supported_types": ["email"],
-            },
-        }
-
-        sources = SOURCES
-        sources_by_need = {}
-        for need_key, need in data_needs.items():
-            sources_by_need[need_key] = [
-                key
-                for key, source in sources.items()
-                if need_key in source.get("capabilities", [])
-            ]
-
-        return success(
-            {
-                "sources": sources,
-                "additional_sources": ADDITIONAL_SOURCES,
-                "data_needs": data_needs,
-                "sources_by_need": sources_by_need,
-            }
-        )
-
-
-class IndicatorDetectView(APIView):
-    permission_classes = [IsAuthenticated]
-    parser_classes = [JSONParser, FormParser]
-
-    def post(self, request):
-        indicators = request.data.get("indicators", [])
-        if isinstance(indicators, str):
-            indicators = [indicators]
-
-        def detect(value: str) -> str:
-            trimmed = value.strip()
-            if not trimmed:
-                return "unknown"
-            # De-fang common IOC encodings.
-            trimmed = ioc_fanger.fang(trimmed)
-            lower = trimmed.lower()
-            if lower.startswith("http://") or lower.startswith("https://"):
-                return "url"
-            if re.match(r"^cve-\d{4}-\d{4,}$", lower):
-                return "cve"
-            if re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", trimmed):
-                return "email"
-            try:
-                ipaddress.IPv4Address(trimmed)
-                return "ipv4"
-            except ipaddress.AddressValueError:
-                pass
-            try:
-                ipaddress.IPv6Address(trimmed)
-                return "ipv6"
-            except ipaddress.AddressValueError:
-                pass
-            if re.match(r"^[a-f0-9]{32}$", lower):
-                return "md5"
-            if re.match(r"^[a-f0-9]{40}$", lower):
-                return "sha1"
-            if re.match(r"^[a-f0-9]{64}$", lower):
-                return "sha256"
-            if re.match(r"^[a-f0-9]{128}$", lower):
-                return "sha512"
-            # URL without scheme should include a path/query/fragment.
-            if re.match(r"^([a-z0-9-]+\.)+[a-z0-9-]{2,}[/#?].*$", lower):
-                return "url"
-            extracted = tldextract.extract(trimmed)
-            if extracted.domain and extracted.suffix:
-                return "domain"
-            return "keyword"
-
-        results = [
-            {"value": value, "type": detect(value)} for value in indicators if value
-        ]
-        return success(results)
-
-
-class DomainMonitoringTabsView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    pagination_class = ItemsLimitOffsetPagination
-
-    def get(self, request):
-        paginator = self.pagination_class()
-        page = paginator.paginate_queryset(DOMAIN_MONITORING_TABS, request, view=self)
-        if page is not None:
-            return paginator.get_paginated_response(page)
-        return success(DOMAIN_MONITORING_TABS)
-
+# =============================================================================
+# Utility Views
+# =============================================================================
 
 class TextFormatterView(APIView):
+    """Format and normalize text data"""
     permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser, FormParser]
 
     def post(self, request):
-        checklist = request.data.get("checklist")
-        query = request.data.get("query")
-        if not query:
-            return error("query is required", code="validation_error", status_code=400)
-        context = {"data": text_formatter(query, checklist), "checklist": checklist}
-        return success(context)
+        try:
+            checklist = request.data.get("checklist")
+            query = request.data.get("query")
+            if not query:
+                logger.warning("Text formatter called without query")
+                return error("query is required", code="validation_error", status_code=400)
+            logger.debug(f"Text formatting for query: {query[:50]}...")
+            context = {"data": text_formatter(query, checklist), "checklist": checklist}
+            return success(context)
+        except Exception as e:
+            logger.error(f"Error in text formatter: {e}", exc_info=True)
+            return error("Failed to format text", code="processing_error", status_code=500)
 
 
 class MailHeaderAnalyzerView(APIView):
+    """Analyze email headers for metadata and security information"""
     permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser, FormParser]
 
     def post(self, request):
-        header = request.data.get("header")
-        if not header:
-            return error("header is required", code="validation_error", status_code=400)
-        context = {
-            "mha": mha_analyzer(header.strip()),
-            "summary_headers": SUMMARY_HEADERS,
-            "security_headers": SECURITY_HEADERS,
-        }
-        return success(context)
+        try:
+            header = request.data.get("header")
+            if not header:
+                logger.warning("Mail header analyzer called without header")
+                return error("header is required", code="validation_error", status_code=400)
+            logger.debug("Analyzing mail headers")
+            context = {
+                "mha": mha_analyzer(header.strip()),
+                "summary_headers": SUMMARY_HEADERS,
+                "security_headers": SECURITY_HEADERS,
+            }
+            return success(context)
+        except Exception as e:
+            logger.error(f"Error analyzing mail headers: {e}", exc_info=True)
+            return error("Failed to analyze headers", code="processing_error", status_code=500)
 
 
 class ScreenshotView(APIView):
+    """Take screenshots of URLs (batch operation)"""
     permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser, FormParser]
 
     def post(self, request):
-        query = request.data.get("query")
-        if not query:
-            return error("query is required", code="validation_error", status_code=400)
-        query_list = query.rstrip().split("\n")
-        data = bulk_screenshot(query_list)
-        return success(data)
+        try:
+            query = request.data.get("query")
+            if not query:
+                logger.warning("Screenshot view called without query")
+                return error("query is required", code="validation_error", status_code=400)
+            query_list = query.rstrip().split("\n")
+            logger.info(f"Processing screenshots for {len(query_list)} targets")
+            data = bulk_screenshot(query_list)
+            return success(data)
+        except Exception as e:
+            logger.error(f"Error taking screenshots: {e}", exc_info=True)
+            return error("Failed to take screenshots", code="processing_error", status_code=500)
 
 
 class ActiveDirectoryView(APIView):
+    """Lookup users in Active Directory"""
     permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser, FormParser]
 
     def post(self, request):
-        query = request.data.get("query")
-        if not query:
-            return error("query is required", code="validation_error", status_code=400)
-        data = get_aduser(query.strip())
-        return success(data)
+        try:
+            query = request.data.get("query")
+            if not query:
+                logger.warning("Active Directory view called without query")
+                return error("query is required", code="validation_error", status_code=400)
+            logger.info(f"AD user lookup for: {query}")
+            data = get_aduser(query.strip())
+            return success(data)
+        except Exception as e:
+            logger.error(f"Error in Active Directory lookup: {e}", exc_info=True)
+            return error("Failed to lookup AD user", code="processing_error", status_code=500)
 
 
 class ThreatstreamExportView(APIView):
+    """Export indicators to Anomali Threatstream"""
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, JSONParser, FormParser]
 
     def post(self, request):
-        if "file" in request.data:
-            input_data = request.data["file"].read().decode("utf-8").rstrip()
-            context = threatstream_export_feeds(input_data)
+        try:
+            if "file" in request.data:
+                logger.info("Threatstream export with file upload")
+                input_data = request.data["file"].read().decode("utf-8").rstrip()
+                context = threatstream_export_feeds(input_data)
+                return success(context)
+            filters = request.data.get("filters")
+            if not filters:
+                logger.warning("Threatstream export called without filters or file")
+                return error(
+                    "filters or file is required",
+                    code="validation_error",
+                    status_code=400,
+                )
+            logger.info("Threatstream export with filters")
+            context = threatstream_export(filters)
             return success(context)
-        filters = request.data.get("filters")
-        if not filters:
-            return error(
-                "filters or file is required",
-                code="validation_error",
-                status_code=400,
-            )
-        context = threatstream_export(filters)
-        return success(context)
+        except Exception as e:
+            logger.error(f"Error in Threatstream export: {e}", exc_info=True)
+            return error("Failed to export Threatstream data", code="processing_error", status_code=500)

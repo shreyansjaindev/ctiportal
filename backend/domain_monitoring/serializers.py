@@ -84,7 +84,7 @@ class LookalikeDomainSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class SslCertificateSerializer(serializers.ModelSerializer):
+class SSLCertificateSerializer(serializers.ModelSerializer):
     company = serializers.SlugRelatedField(slug_field="name", queryset=Company.objects.all())
 
     class Meta:
@@ -96,6 +96,6 @@ class DomainsSerializer(serializers.Serializer):
     domains = serializers.ListField(child=serializers.CharField(max_length=255))
 
 
-class anomaliThreatstreamDomainsSerializer(serializers.Serializer):
+class AnomaliThreatstreamDomainsSerializer(serializers.Serializer):
     domains = serializers.ListField(child=serializers.CharField(max_length=255))
     tags = serializers.ListField(child=serializers.CharField(max_length=255), required=False)

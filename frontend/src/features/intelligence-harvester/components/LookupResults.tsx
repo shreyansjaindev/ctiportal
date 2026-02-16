@@ -1,15 +1,24 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
+import { Card, CardContent } from "@/shared/components/ui/card"
 import { Badge } from "@/shared/components/ui/badge"
-import { Separator } from "@/shared/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/shared/components/ui/alert"
+import { cn } from "@/shared/lib/utils"
 import { useMemo } from "react"
-import { Info, AlertCircle } from "lucide-react"
+import { Info } from "lucide-react"
 import type { IndicatorResult, LookupResult } from "@/shared/types/intelligence-harvester"
+
+// Import display components
+import { WebsiteStatusDisplay } from "./displays/WebsiteStatusDisplay"
+import { DnsDisplay } from "./displays/DnsDisplay"
+import { WhoisDisplay } from "./displays/WhoisDisplay"
+import { ReputationDisplay } from "./displays/ReputationDisplay"
+import { DefaultDisplay } from "./displays/DefaultDisplay"
 
 interface LookupResultsProps {
   results: IndicatorResult[]
   activeIndicator: string | null
+  isLoading?: boolean
+  className?: string
 }
 
 const LOOKUP_LABELS: Record<string, string> = {
@@ -29,7 +38,23 @@ const LOOKUP_LABELS: Record<string, string> = {
   website_status: "Website Status",
 }
 
-export function LookupResults({ results, activeIndicator }: LookupResultsProps) {
+// Router function to select the appropriate display component
+function getDisplayComponent(lookupType: string, result: LookupResult, isOverview: boolean) {
+  switch (lookupType) {
+    case "website_status":
+      return <WebsiteStatusDisplay result={result} isOverview={isOverview} />
+    case "dns":
+      return <DnsDisplay result={result} isOverview={isOverview} />
+    case "whois":
+      return <WhoisDisplay result={result} isOverview={isOverview} />
+    case "reputation":
+      return <ReputationDisplay result={result} isOverview={isOverview} />
+    default:
+      return <DefaultDisplay result={result} isOverview={isOverview} />
+  }
+}
+
+export function LookupResults({ results, activeIndicator, isLoading = false, className }: LookupResultsProps) {
   const filteredResults = activeIndicator
     ? results.filter((item) => item.indicator === activeIndicator)
     : results
@@ -57,35 +82,47 @@ export function LookupResults({ results, activeIndicator }: LookupResultsProps) 
   const typesWithData = lookupTypes.filter(type => 
     resultsByType[type].some(result => {
       if (result.error) return false
-      const dataFields = Object.keys(result).filter(k => !k.startsWith('_'))
-      return dataFields.length > 0
+      // Only show types with essential data in overview
+      const hasEssential = result.essential && Object.keys(result.essential).length > 0
+      return hasEssential
     })
   )
 
   return (
-    <Card className="h-full flex flex-col rounded-br-lg rounded-bl-none rounded-t-none">
-      <CardHeader className="flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xl">{activeResult ? activeResult.indicator : "Lookup Results"}</CardTitle>
-          {activeResult && (
-            <Badge variant="secondary" className="text-sm">
-              {activeResult.results.length} results
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
+    <Card className={cn("h-full flex flex-col rounded-br-lg rounded-bl-none rounded-t-none", className)}>
       <CardContent className="flex-1 overflow-y-auto">
-        {!activeResult ? (
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertTitle>No results yet</AlertTitle>
-            <AlertDescription>
-              Add indicators and run a lookup to see results here
-            </AlertDescription>
-          </Alert>
+        {isLoading ? (
+          <div className="space-y-4 p-6">
+            <div className="space-y-2">
+              <div className="h-4 w-1/4 bg-muted animate-pulse rounded" />
+              <div className="h-10 w-full bg-muted animate-pulse rounded" />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="space-y-2 rounded-lg border p-4">
+                  <div className="h-3 w-1/3 bg-muted animate-pulse rounded" />
+                  <div className="h-6 w-2/3 bg-muted animate-pulse rounded" />
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 w-1/4 bg-muted animate-pulse rounded" />
+              <div className="h-32 w-full bg-muted animate-pulse rounded" />
+            </div>
+          </div>
+        ) : !activeResult ? (
+          <div className="p-6">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>No results yet</AlertTitle>
+              <AlertDescription>
+                Add indicators and run a lookup to see results here
+              </AlertDescription>
+            </Alert>
+          </div>
         ) : (
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="w-full justify-start flex-wrap h-auto">
+          <TabsList className="w-full justify-start flex-wrap h-auto px-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             {lookupTypes.map((type) => (
               <TabsTrigger key={type} value={type}>
@@ -97,8 +134,8 @@ export function LookupResults({ results, activeIndicator }: LookupResultsProps) 
             ))}
           </TabsList>
 
-          {/* Overview Tab - Grid Layout */}
-          <TabsContent value="overview" className="space-y-6">
+          {/* Overview Tab - Essential Fields Only */}
+          <TabsContent value="overview" className="space-y-6 px-6 py-4">
             {typesWithData.length === 0 ? (
               <Alert>
                 <Info className="h-4 w-4" />
@@ -117,37 +154,22 @@ export function LookupResults({ results, activeIndicator }: LookupResultsProps) 
                       <Badge variant="default" className="text-xs">
                         {LOOKUP_LABELS[type] || type}
                       </Badge>
-                      {typeResults[0]?._provider && (
-                        <span className="text-xs text-muted-foreground">
-                          • {typeResults[0]._provider}
-                        </span>
-                      )}
                     </h3>
                     
                     {typeResults.map((result, idx) => {
-                      const dataFields = Object.entries(result).filter(([key]) => !key.startsWith("_"))
-                      
-                      // Skip this result if it has an error or no data
-                      if (result.error || dataFields.length === 0) return null
+                      // Skip results with errors or no essential data
+                      if (result.error || !result.essential || Object.keys(result.essential).length === 0) return null
                       
                       return (
                         <div key={idx}>
-                          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {dataFields.map(([key, value]) => (
-                              <div key={key} className="rounded-lg border p-3">
-                                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
-                                  {key.replace(/_/g, " ")}
-                                </div>
-                                <div className="font-mono text-xs break-all">
-                                  {Array.isArray(value)
-                                    ? value.join(", ")
-                                    : value === null || value === undefined || value === ""
-                                    ? "—"
-                                    : String(value)}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                          {result._provider && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs text-muted-foreground">
+                                {result._provider}
+                              </span>
+                            </div>
+                          )}
+                          {getDisplayComponent(type, result, true)}
                         </div>
                       )
                     })}
@@ -159,45 +181,17 @@ export function LookupResults({ results, activeIndicator }: LookupResultsProps) 
 
           {/* Type-specific tabs */}
           {lookupTypes.map((type) => (
-            <TabsContent key={type} value={type} className="space-y-4">
+            <TabsContent key={type} value={type} className="space-y-4 px-6 py-4">
               {resultsByType[type].map((result, idx) => (
                 <div key={idx}>
-                  {idx > 0 && <Separator className="my-4" />}
+                  {idx > 0 && <div className="my-6 border-t" />}
                   <div className="space-y-4">
                     {result._provider && (
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-muted-foreground">Provider:</span>
                         <Badge variant="outline">{result._provider}</Badge>
                       </div>
                     )}
-
-                    {result.error ? (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          {result.error}
-                        </AlertDescription>
-                      </Alert>
-                    ) : (
-                      <div className="space-y-3">
-                        {Object.entries(result)
-                          .filter(([key]) => !key.startsWith("_"))
-                          .map(([key, value]) => (
-                            <div key={key} className="grid grid-cols-[200px_1fr] gap-4 text-sm">
-                              <div className="font-medium text-muted-foreground">
-                                {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                              </div>
-                              <div className="font-mono text-sm break-all">
-                                {Array.isArray(value)
-                                  ? value.join(", ")
-                                  : value === null || value === undefined
-                                  ? "—"
-                                  : String(value)}
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    )}
+                    {getDisplayComponent(type, result, false)}
                   </div>
                 </div>
               ))}
@@ -209,4 +203,6 @@ export function LookupResults({ results, activeIndicator }: LookupResultsProps) 
     </Card>
   )
 }
+
+export default LookupResults
 

@@ -3,6 +3,7 @@ import sys
 import base64
 import os
 import logging
+from ..utils.api_helpers import check_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +27,9 @@ def fullpage_screenshot(query, fullpage=0):
 
 
 def screenshot(query):
-    if not API_KEY:
-        logger.error("API key not found")
-        return '{"error": "API key not found"}'
+    error = check_api_key(API_KEY, "ScreenshotLayer")
+    if error:
+        return error
 
     try:
         return fullpage_screenshot(query)

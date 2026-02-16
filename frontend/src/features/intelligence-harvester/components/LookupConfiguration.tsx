@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { Badge } from "@/shared/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover"
 import { getLogoPath } from "@/shared/utils/logo.utils"
+import { cn } from "@/shared/lib/utils"
 import type { Provider, ProviderPreset } from "@/shared/types/intelligence-harvester"
 import type { ProviderValue } from "@/shared/hooks"
 
@@ -47,6 +48,7 @@ interface LookupConfigurationProps {
     website_status?: Provider[]
   }
   presets?: Record<string, ProviderPreset>
+  className?: string
 }
 
 type LookupType = {
@@ -201,6 +203,7 @@ export function LookupConfiguration({
   setWebsiteStatusProvider,
   providersByType,
   presets,
+  className,
 }: LookupConfigurationProps) {
   const lookupTypes: LookupType[] = [
     { id: 'whois', label: 'WHOIS', value: whoisProvider, setValue: setWhoisProvider, providers: providersByType.whois },
@@ -267,7 +270,7 @@ export function LookupConfiguration({
   }
 
   return (
-    <Card className="rounded-tr-lg rounded-tl-none rounded-b-none">
+    <Card className={cn("rounded-tr-lg rounded-tl-none rounded-b-none", className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
