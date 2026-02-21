@@ -114,7 +114,7 @@ export function WatchedResourcesTab({ watched }: WatchedResourcesTabProps) {
                         watched.setSelectedIds(new Set())
                       }}
                     >
-                      <Trash2 className="mr-2 size-4" />
+                      <Trash2 className="mr-2 h-4 w-4" />
                       Delete Selected
                     </Button>
                   </div>
@@ -129,7 +129,7 @@ export function WatchedResourcesTab({ watched }: WatchedResourcesTabProps) {
                   watched.setSheetOpen(true)
                 }}
               >
-                <Plus className="size-4" />
+                <Plus className="h-4 w-4" />
                 Add resource
               </Button>
             }

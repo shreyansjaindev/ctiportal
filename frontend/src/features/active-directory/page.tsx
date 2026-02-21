@@ -28,13 +28,13 @@ export default function ActiveDirectoryPage() {
   const responseData = lookupMutation.data as unknown
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <Card>
         <CardHeader>
           <CardTitle>Lookup</CardTitle>
           <CardDescription>Enter a username or email.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
+        <CardContent className="space-y-4">
           <Input
             placeholder="jdoe"
             value={query}

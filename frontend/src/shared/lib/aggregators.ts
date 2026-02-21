@@ -1,0 +1,109 @@
+/**
+ * API client for aggregator endpoints with provider selection
+ * @module lib/aggregators
+ */
+
+import { apiGet, apiPost } from "./api"
+import type { IndicatorType, ProvidersMetadata } from "@/shared/types/intelligence-harvester"
+
+/**
+ * Request for performing indicator lookups
+ */
+export interface IndicatorLookupRequest {
+  indicators: string[]
+  providers_by_type: Record<string, string[]>
+}
+
+/**
+ * Single lookup result from a provider
+ */
+export interface LookupResult {
+  _lookup_type: string
+  _provider: string
+  [key: string]: unknown
+}
+
+/**
+ * Results for a single indicator
+ */
+export interface IndicatorResult {
+  indicator: string
+  indicator_type: string
+  results: LookupResult[]
+}
+
+/**
+ * Complete lookup response
+ */
+export interface IndicatorLookupResponse {
+  results: IndicatorResult[]
+  indicator_types: Record<string, string>
+}
+
+/**
+ * Identify indicator types using backend classification
+ * 
+ * @param {string[]} indicators - Array of indicator values to classify
+ * @param {string} token - Authentication token
+ * @returns {Promise<Array<{value: string, type: IndicatorType}>>} Array of indicators with detected types
+ * 
+ * @example
+ * const results = await identifyIndicators(['8.8.8.8', 'google.com'], token)
+ * // returns [{ value: '8.8.8.8', type: 'ipv4' }, { value: 'google.com', type: 'domain' }]
+ */
+export async function identifyIndicators(
+  indicators: string[],
+  token: string
+): Promise<Array<{ value: string; type: IndicatorType }>> {
+  return apiPost<Array<{ value: string; type: IndicatorType }>>(
+    "/intelligence-harvester/identifier/", 
+    JSON.stringify({ indicators }), 
+    token
+  )
+}
+
+/**
+ * Execute indicator lookups with providers
+ * 
+ * Performs batch lookups across multiple indicators using specified providers.
+ * Lookup types are derived from the providers_by_type keys.
+ * 
+ * @param indicators - Array of indicator values to lookup
+ * @param providers_by_type - Mapping of lookup type to selected provider IDs
+ * @param token - Authentication token
+ * @returns Structured results organized by indicator
+ * 
+ * @throws {ApiError} If request fails or is invalid
+ * 
+ * @example
+ * const response = await performIndicatorLookups(
+ *   ['example.com'],
+ *   { whois: ['whoisxml'], reputation: ['abuseipdb'] },
+ *   token
+ * )
+ */
+export async function performIndicatorLookups(
+  indicators: string[],
+  providers_by_type: Record<string, string[]>,
+  token: string
+): Promise<IndicatorLookupResponse> {
+  const request: IndicatorLookupRequest = {
+    indicators,
+    providers_by_type,
+  }
+  
+  return apiPost<IndicatorLookupResponse>(
+    "/intelligence-harvester/search/",
+    JSON.stringify(request),
+    token
+  )
+}
+
+/**
+ * Provider Management
+ */
+export async function getAllProviders(
+  token: string
+): Promise<ProvidersMetadata> {
+  return apiGet<ProvidersMetadata>("/intelligence-harvester/providers/", token)
+}

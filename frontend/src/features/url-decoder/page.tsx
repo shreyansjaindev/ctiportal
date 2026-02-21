@@ -29,7 +29,7 @@ export default function UrlDecoderPage() {
   }, [input])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>

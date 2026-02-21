@@ -1,6 +1,7 @@
 import { Upload } from "lucide-react"
 
 import { Button } from "@/shared/components/ui/button"
+import { Field, FieldLabel, FieldContent } from "@/shared/components/ui/field"
 import { Input } from "@/shared/components/ui/input"
 import {
   Sheet,
@@ -34,7 +35,7 @@ export function CSVImportDialog({
 }: CSVImportDialogProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
+      <SheetContent className="gap-0">
         <SheetHeader>
           <SheetTitle>Import Lookalike Domains (CSV)</SheetTitle>
           <SheetDescription>
@@ -43,23 +44,23 @@ export function CSVImportDialog({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label htmlFor="csv-file" className="text-sm font-medium">
-              CSV File
-            </label>
-            <Input
-              id="csv-file"
-              type="file"
-              accept=".csv"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) {
-                  onFileChange(file)
-                }
-              }}
-            />
-          </div>
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
+          <Field>
+            <FieldLabel htmlFor="csv-file">CSV File</FieldLabel>
+            <FieldContent>
+              <Input
+                id="csv-file"
+                type="file"
+                accept=".csv"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    onFileChange(file)
+                  }
+                }}
+              />
+            </FieldContent>
+          </Field>
 
           {result && (
             <div className="space-y-2 rounded-md border p-4">
@@ -82,13 +83,13 @@ export function CSVImportDialog({
           )}
         </div>
 
-        <SheetFooter>
+        <SheetFooter className="px-4">
           <Button onClick={onImport} disabled={!file || isImporting}>
             {isImporting ? (
               "Importing..."
             ) : (
               <>
-                <Upload className="mr-2 size-4" />
+                <Upload className="mr-2 h-4 w-4" />
                 Import
               </>
             )}

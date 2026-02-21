@@ -137,7 +137,7 @@ export function LookalikesTab({ lookalikes, onOpenImport }: LookalikesTabProps) 
                     lookalikes.setSheetOpen(true)
                   }}
                 >
-                  <Plus className="size-4" />
+                  <Plus className="h-4 w-4" />
                   Add lookalike
                 </Button>
               </>

@@ -83,7 +83,7 @@ export function BulkActionsBar({
       )}
 
       <Button variant="destructive" size="sm" onClick={onDelete}>
-        <Trash2 className="mr-2 size-4" />
+        <Trash2 className="mr-2 h-4 w-4" />
         Delete
       </Button>
       <Button variant="ghost" size="sm" onClick={onClear}>

@@ -1,10 +1,12 @@
+import type { DataTableFilterField } from "@/shared/components/data-table/types"
+import type { LookalikeDomain } from "../types"
 import { LOOKALIKE_STATUS_OPTIONS } from "../constants"
 
 export const LIMIT_OPTIONS = [25, 50, 100]
 
 export const LOOKALIKE_RISK_OPTIONS = ["critical", "high", "medium", "low", "unknown"]
 
-export const lookalikesFilterFields = [
+export const lookalikesFilterFields: DataTableFilterField<LookalikeDomain>[] = [
   {
     label: "Risk Level",
     value: "potential_risk",
