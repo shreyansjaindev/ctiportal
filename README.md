@@ -2,13 +2,13 @@
 
 A preview version is hosted on https://ctiportal.onrender.com/ (It might take a few minutes to start the server)
 
+## Quick Start
+
+- **Local Development**: See [ENV_SETUP.md](ENV_SETUP.md) for `.env.development` setup
+- **Docker**: See [ENV_SETUP.md](ENV_SETUP.md) for `.env.docker` setup  
+- **Production**: See [DEPLOYMENT.md](DEPLOYMENT.md) for Render + Vercel deployment
+
 ## Overview
-
-## Deployment
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for complete Render + Vercel deployment steps and environment configuration.
-
-The `ctiportal` web application serves as a comprehensive toolset for Cybersecurity Analysts, offering a range of features to streamline threat intelligence analysis. By consolidating multiple essential tools into a single platform, it aims to enhance efficiency and provide a more comprehensive view of indicators.
 
 ### Key Features
 

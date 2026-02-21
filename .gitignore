@@ -50,13 +50,18 @@ coverage.xml
 # Virtual environments
 .env
 .env.local
-.env.docker
 .venv/
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Environment files: KEPT (templates)
+# .env.development
+# .env.docker
+# .env.production (template only, marked in file)
+# Actual runtime .env file excluded above (secrets safety)
 
 # Jupyter Notebook
 .ipynb_checkpoints/
