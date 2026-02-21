@@ -1,0 +1,14 @@
+import { keepPreviousData, queryOptions } from "@tanstack/react-query"
+
+import { listWatchedResources } from "../services"
+import type { QueryParams } from "../types"
+
+export const watchedResourcesQueryOptions = (params: QueryParams, token: string) =>
+  queryOptions({
+    queryKey: ["watched-resources", params],
+    queryFn: () => listWatchedResources(params, token),
+    enabled: !!token,
+    placeholderData: keepPreviousData,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })

@@ -1,61 +1,89 @@
-import { useQuery } from "@tanstack/react-query"
+import { useState } from "react"
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/card"
-import { apiGet } from "@/shared/lib/api"
-import { useAuth } from "@/shared/lib/auth"
-
-type TabItem = {
-  id: string
-  label: string
-  active: boolean
-  badge_count: number
-  headers: string[]
-}
-
-type PaginatedResponse<T> = {
-  count: number
-  next: string | null
-  previous: string | null
-  items: T[]
-}
+  CSVImportDialog,
+  LookalikesTab,
+  LookalikeFormSheet,
+  NRDsTab,
+  WatchedResourcesTab,
+  WatchedResourceFormSheet,
+} from "./components"
+import { useLookalikeDomains, useNRDs, useWatchedResources } from "./hooks"
 
 export default function DomainMonitoringPage() {
-  const { token } = useAuth()
-  const tabsQuery = useQuery({
-    queryKey: ["domain-tabs"],
-    queryFn: () =>
-      apiGet<PaginatedResponse<TabItem>>("/domain-monitoring/tabs/", token),
-  })
-  const tabsData = tabsQuery.data?.items ?? []
+  const [activeTab, setActiveTab] = useState("lookalikes")
+
+  // Custom hooks for data management
+  const lookalikes = useLookalikeDomains()
+  const nrds = useNRDs()
+  const watched = useWatchedResources()
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 lg:grid-cols-2">
-        {tabsQuery.isLoading && <p>Loading monitoring tabs...</p>}
-        {tabsData.map((tab) => (
-          <Card key={tab.id}>
-            <CardHeader>
-              <CardTitle>{tab.label}</CardTitle>
-              <CardDescription>
-                Columns: {tab.headers.length} - Alerts: {tab.badge_count}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-sm text-muted-foreground">
-                {tab.headers.slice(0, 5).map((header) => (
-                  <li key={header}>- {header || "-"}</li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="lookalikes">Lookalike Domains</TabsTrigger>
+          <TabsTrigger value="newly-registered">Newly Registered Domains</TabsTrigger>
+          <TabsTrigger value="watched">Watched Resources</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="lookalikes">
+          <LookalikesTab
+            lookalikes={lookalikes}
+            onOpenImport={() => {
+              lookalikes.setImportFile(null)
+              lookalikes.setImportResult(null)
+              lookalikes.setImportOpen(true)
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="newly-registered">
+          <NRDsTab nrds={nrds} />
+        </TabsContent>
+
+        <TabsContent value="watched">
+          <WatchedResourcesTab watched={watched} />
+        </TabsContent>
+      </Tabs>
+
+      {/* Lookalike Form Sheet */}
+      <LookalikeFormSheet
+        open={lookalikes.sheetOpen}
+        onOpenChange={lookalikes.setSheetOpen}
+        initial={lookalikes.editing}
+        onSubmit={(data) => lookalikes.saveMutation.mutate(data)}
+        isSubmitting={lookalikes.saveMutation.isPending}
+      />
+
+      {/* Watched Resource Form Sheet */}
+      <WatchedResourceFormSheet
+        open={watched.sheetOpen}
+        onOpenChange={watched.setSheetOpen}
+        initial={watched.editing}
+        onSubmit={(data) => watched.saveMutation.mutate(data)}
+        isSubmitting={watched.saveMutation.isPending}
+      />
+
+      {/* CSV Import Dialog */}
+      <CSVImportDialog
+        open={lookalikes.importOpen}
+        onOpenChange={lookalikes.setImportOpen}
+        file={lookalikes.importFile}
+        onFileChange={(file) => {
+          lookalikes.setImportFile(file)
+          lookalikes.setImportResult(null)
+        }}
+        result={lookalikes.importResult}
+        onImport={() => {
+          if (lookalikes.importFile) {
+            lookalikes.importCSVMutation.mutate(lookalikes.importFile)
+          }
+        }}
+        isImporting={lookalikes.importCSVMutation.isPending}
+      />
     </div>
   )
 }
