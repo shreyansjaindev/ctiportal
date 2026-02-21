@@ -1,6 +1,6 @@
 export type ApiError = Error & { status?: number }
 
-const API_BASE = "/api/v1"
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(/\/$/, "")
 const REQUEST_TIMEOUT_MS = 30000 // 30 seconds - prevents hanging requests
 
 // Store for auth context to handle token refresh

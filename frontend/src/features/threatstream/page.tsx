@@ -12,6 +12,7 @@ import {
 import { Input } from "@/shared/components/ui/input"
 import { Textarea } from "@/shared/components/ui/textarea"
 import { useAuth } from "@/shared/lib/auth"
+import { API_BASE } from "@/shared/lib"
 
 export default function ThreatstreamPage() {
   const { token } = useAuth()
@@ -36,7 +37,7 @@ export default function ThreatstreamPage() {
       } else {
         formData.append("filters", filters)
       }
-      const response = await fetch("/api/v1/tools/threatstream-exports/", {
+      const response = await fetch(`${API_BASE}/tools/threatstream-exports/`, {
         method: "POST",
         headers: token
           ? {

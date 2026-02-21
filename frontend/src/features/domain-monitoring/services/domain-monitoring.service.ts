@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/shared/lib"
+import { API_BASE, apiDelete, apiGet, apiPatch, apiPost } from "@/shared/lib"
 
 import type {
   BulkCreateResult,
@@ -158,7 +158,7 @@ export async function importLookalikeDomainsCSV(
   const formData = new FormData()
   formData.append('file', file)
   
-  const response = await fetch(`/api/v1${BASE_PATH}/lookalike-domains/import-csv/`, {
+  const response = await fetch(`${API_BASE}${BASE_PATH}/lookalike-domains/import-csv/`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,

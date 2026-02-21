@@ -5,6 +5,7 @@
 
 // API client
 export { apiGet, apiPost, apiPatch, apiDelete } from './api'
+export { API_BASE } from './api'
 export { getStoredTokens, storeTokens, clearTokens } from './api'
 export type { ApiError } from './api'
 
