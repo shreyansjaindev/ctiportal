@@ -8,8 +8,7 @@ This project uses multiple environment files for different deployment scenarios.
 |----------|---------|----------|-----------|
 | **Local development** | `.env.development` | `.env.development` | `python manage.py runserver` + `npm run dev` |
 | **Docker compose** | `.env.docker` | `.env.docker` | `docker-compose up` |
-| **Render production** | Render UI only | Vercel UI only | Use `render.yaml` blueprint + set env vars in dashboards |
-| **Vercel only** | (separate Render) | `.env.production` via Vercel UI | Import repo to Vercel + set `VITE_API_BASE_URL` |
+| **Production** | Render UI (env vars) | Vercel UI (env vars) | Use `render.yaml` blueprint + Vercel import, set vars in dashboards |
 
 ## Backend Environment Files
 
@@ -41,16 +40,20 @@ cp backend/.env.docker backend/.env
 docker-compose up
 ```
 
-### `.env.production` (template only)
-Template showing vars needed for production on Render.
+## Production Environment Setup
 
-**CRITICAL:** Do NOT commit `.env.production` with real secrets. Instead:
-1. Use Render's native environment variable UI to set each variable.
-2. Render auto-generates `SECRET_KEY` via `render.yaml`.
-3. Render auto-fills `DB_*` from the linked Postgres service.
-4. You only manually enter `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, and any third-party API keys.
+For production, **do NOT use committed `.env` files**. Instead, set environment variables directly in the cloud provider UIs:
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for exact Render setup steps.
+**Render backend:**
+1. Deploy using `render.yaml` blueprint
+2. Set `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, and API keys in Render dashboard
+3. Render auto-generates `SECRET_KEY` and auto-fills `DB_*` from Postgres service
+
+**Vercel frontend:**
+1. Import repo to Vercel
+2. Set `VITE_API_BASE_URL=https://<your-render-backend>/api/v1` in Vercel dashboard
+
+See [DEPLOY_NOW.md](DEPLOY_NOW.md) for one-click deployment steps.
 
 ## Frontend Environment Files
 
@@ -74,11 +77,7 @@ For Docker compose:
 - `VITE_API_PROXY_TARGET=http://backend:8000`
 - Committed to repo for reproducible container builds.
 
-### `.env.production`
-For production on Vercel:
-- `VITE_API_BASE_URL=https://<your-render-backend-domain>/api/v1`
-- Set this in Vercel environment variable UI, NOT a local file.
-- Frontend at build time bakes this URL into `/api/v1` requests.
+
 
 ## How API URLs Work
 
@@ -183,8 +182,8 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for full instructions. Key points:
 
 ## Git & Secrets
 
-- **Committed:** `.env.development`, `.env.docker`, `.env.production` (as templates).
-- **NOT committed** (in `.gitignore`): `.env` (local runtime override), instance-specific secrets.
-- **Render/Vercel secrets:** Set directly in dashboard UI, never in committed files.
-- **Third-party API keys:** Set in appropriate env vars (backend only, frontend cannot securely hold API keys).
+- **Committed:** `.env.development`, `.env.docker`, `.env.example` (templates only).
+- **NOT committed** (in `.gitignore`): `.env` (local runtime), `.env.production` (production secrets always go in dashboard UIs).
+- **Render/Vercel secrets:** Set directly in each platform's dashboard, never in committed files.
+- **Third-party API keys:** Set in backend only (frontend cannot securely hold API keys).
 

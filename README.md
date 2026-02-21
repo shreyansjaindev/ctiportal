@@ -4,9 +4,9 @@ A preview version is hosted on https://ctiportal.onrender.com/ (It might take a 
 
 ## Quick Start
 
-- **Local Development**: See [ENV_SETUP.md](ENV_SETUP.md) for `.env.development` setup
-- **Docker**: See [ENV_SETUP.md](ENV_SETUP.md) for `.env.docker` setup  
-- **Production**: See [DEPLOYMENT.md](DEPLOYMENT.md) for Render + Vercel deployment
+📚 **See [DEPLOY_NOW.md](DEPLOY_NOW.md)** for one-click deployment to Render + Vercel
+
+🔧 **See [ENV_SETUP.md](ENV_SETUP.md)** for local development and Docker setup
 
 ## Overview
 
