@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card"
+import { Input } from "@/shared/components/ui/input"
 import { Textarea } from "@/shared/components/ui/textarea"
 import { useAuth } from "@/shared/lib/auth"
 
@@ -53,7 +54,7 @@ export default function ThreatstreamPage() {
   const responseData = exportMutation.data
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <Card>
         <CardHeader>
           <CardTitle>Export Filters</CardTitle>
@@ -68,7 +69,7 @@ export default function ThreatstreamPage() {
             value={filters}
             onChange={(event) => setFilters(event.target.value)}
           />
-          <input
+          <Input
             type="file"
             onChange={(event) => {
               const nextFile = event.target.files?.[0] ?? null
@@ -84,7 +85,7 @@ export default function ThreatstreamPage() {
         </CardContent>
       </Card>
 
-      {responseData && (
+      {responseData ? (
         <Card>
           <CardHeader>
             <CardTitle>Export Results</CardTitle>
@@ -96,7 +97,7 @@ export default function ThreatstreamPage() {
             </pre>
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </div>
   )
 }
