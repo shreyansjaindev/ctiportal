@@ -1,14 +1,11 @@
 import { useMemo, useState } from "react"
 import type { ColumnFiltersState, OnChangeFn, SortingState } from "@tanstack/react-table"
 
-import { useAuth } from "@/shared/lib/auth"
-
 import type { QueryParams } from "../types"
 
 const DEFAULT_LIMIT = 25
 
 export function useNRDs() {
-  const { token } = useAuth()
 
   // State
   const [search, setSearch] = useState("")
