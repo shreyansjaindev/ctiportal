@@ -1,4 +1,6 @@
 import django_filters
+from django_filters import MultipleChoiceFilter
+from .choices import LookalikeStatus, RiskLevel, ResourceType, ActiveStatus
 from .models import (
     Company,
     CompanyDomain,
@@ -40,15 +42,19 @@ class WatchedResourceFilter(django_filters.FilterSet):
     company = django_filters.ModelChoiceFilter(
         queryset=Company.objects.all(), to_field_name="name", field_name="company__name"
     )
+    resource_type = MultipleChoiceFilter(
+        choices=[(v, v) for v in ResourceType.values]
+    )
+    status = MultipleChoiceFilter(
+        choices=[(v, v) for v in ActiveStatus.values]
+    )
 
     class Meta:
         model = WatchedResource
         fields = {
             "created": ["lte", "gte", "icontains"],
             "value": ["icontains"],
-            "resource_type": ["exact"],
             "company": ["exact"],
-            "status": ["exact"],
         }
 
 
@@ -74,17 +80,22 @@ class LookalikeDomainFilter(django_filters.FilterSet):
     company = django_filters.ModelChoiceFilter(
         queryset=Company.objects.all(), to_field_name="name", field_name="company__name"
     )
+    potential_risk = MultipleChoiceFilter(
+        choices=[(v, v) for v in RiskLevel.values]
+    )
+    status = MultipleChoiceFilter(
+        choices=[(v, v) for v in LookalikeStatus.values]
+    )
 
     class Meta:
         model = LookalikeDomain
         fields = {
+            "created": ["lte", "gte", "icontains"],
             "source_date": ["lte", "gte", "icontains"],
             "value": ["exact", "icontains"],
             "watched_resource": ["exact", "icontains"],
             "source": ["icontains"],
-            "potential_risk": ["exact"],
             "company": ["exact"],
-            "status": ["exact"],
         }
 
 
@@ -120,5 +131,6 @@ class NewlyRegisteredDomainFilter(django_filters.FilterSet):
         model = NewlyRegisteredDomain
         fields = {
             "created": ["lte", "gte", "icontains"],
+            "source_date": ["lte", "gte", "icontains"],
             "value": ["icontains"],
         }

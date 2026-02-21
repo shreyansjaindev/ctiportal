@@ -8,6 +8,8 @@ Includes:
 - Integrations with Threatstream, Trellix ETP, and Proofpoint
 - Comment tracking for domain alerts and lookalike domains
 """
+import csv
+import io
 import logging
 
 from django.db.models import Count
@@ -111,7 +113,12 @@ class BulkOperationsMixin:
     def bulk_create(self, request, *args, **kwargs):
         """Handle both single and bulk creation of items"""
         if not isinstance(request.data, list):
-            return super().create(request, *args, **kwargs)
+            # For single item, use the standard ModelViewSet create method
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
         created = []
         errors = []
@@ -512,6 +519,109 @@ class LookalikeDomainViewSet(viewsets.ModelViewSet, CountMixin, BulkOperationsMi
                 return Response(status=status.HTTP_204_NO_CONTENT)
             except LookalikeDomainComment.DoesNotExist:
                 return Response({"error": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=["post"], url_path="import-csv")
+    def import_csv(self, request):
+        """
+        Import lookalike domains from CSV file.
+        
+        Expected CSV columns:
+        - value (required): Domain value
+        - source (required): Source of the lookalike
+        - watched_resource (required): Watched resource value
+        - source_date (required): Date in YYYY-MM-DD format
+        - company (required): Company name
+        - potential_risk (optional): unknown/low/medium/high/critical (default: unknown)
+        - status (optional): open/closed/takedown/legal/not_relevant (default: open)
+        
+        Returns:
+        - created: Number of successfully created domains
+        - failed: Number of failed rows
+        - errors: List of errors with row numbers
+        """
+        csv_file = request.FILES.get('file')
+        if not csv_file:
+            return Response(
+                {"error": "No CSV file provided. Use 'file' key for upload."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not csv_file.name.endswith('.csv'):
+            return Response(
+                {"error": "File must be a CSV file."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Decode the file
+            decoded_file = csv_file.read().decode('utf-8')
+            io_string = io.StringIO(decoded_file)
+            reader = csv.DictReader(io_string)
+            
+            created = []
+            errors = []
+            
+            for row_num, row in enumerate(reader, start=2):  # start=2 because row 1 is header
+                try:
+                    # Validate required fields
+                    required_fields = ['value', 'source', 'watched_resource', 'source_date', 'company']
+                    missing_fields = [field for field in required_fields if not row.get(field, '').strip()]
+                    
+                    if missing_fields:
+                        errors.append({
+                            "row": row_num,
+                            "error": f"Missing required fields: {', '.join(missing_fields)}"
+                        })
+                        continue
+                    
+                    # Build payload
+                    payload = {
+                        'value': row['value'].strip(),
+                        'source': row['source'].strip(),
+                        'watched_resource': row['watched_resource'].strip(),
+                        'source_date': row['source_date'].strip(),
+                        'company': row['company'].strip(),
+                        'potential_risk': row.get('potential_risk', 'unknown').strip() or 'unknown',
+                        'status': row.get('status', 'open').strip() or 'open',
+                    }
+                    
+                    # Create lookalike domain
+                    serializer = self.get_serializer(data=payload)
+                    serializer.is_valid(raise_exception=True)
+                    self.perform_create(serializer)
+                    created.append(serializer.data)
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to import row {row_num}: {e}")
+                    errors.append({
+                        "row": row_num,
+                        "error": str(e),
+                        "data": row
+                    })
+            
+            logger.info(f"CSV import: {len(created)} created, {len(errors)} failed")
+            
+            response_status = (
+                status.HTTP_201_CREATED if created and not errors 
+                else status.HTTP_207_MULTI_STATUS if created 
+                else status.HTTP_400_BAD_REQUEST
+            )
+            
+            return Response(
+                {
+                    "created": len(created),
+                    "failed": len(errors),
+                    "errors": errors if errors else []
+                },
+                status=response_status
+            )
+            
+        except Exception as e:
+            logger.error(f"CSV import error: {e}", exc_info=True)
+            return Response(
+                {"error": f"Failed to process CSV file: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 
