@@ -18,6 +18,5 @@ pulsedive==0.1.0
 python-dotenv==1.1.1
 python-whois==0.9.6
 requests==2.32.5
-selenium==4.27.1
 tldextract==5.3.1
 Unidecode==1.4.0

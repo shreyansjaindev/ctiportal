@@ -41,12 +41,15 @@ def get_website_screenshot(value, value_type="domain"):
         try:
             if response.headers["X-Screenshotmachine-Response"] == "no_credits":
                 error = "no_credits"
+        except Exception:
+            # Header check failed, but response may still be valid
+            pass
 
-        finally:
-            if error != "no_credits":
-                img = base64.b64encode(response.content)
-                img = img.decode("utf-8")
-                return img
+        if error != "no_credits":
+            # No credits error, process response
+            img = base64.b64encode(response.content)
+            img = img.decode("utf-8")
+            return img
 
 
 if __name__ == "__main__":

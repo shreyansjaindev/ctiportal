@@ -52,12 +52,6 @@ SOURCES = {
         "supported_types": ["domain", "url"],
         "capabilities": ["whois"],
     },
-    "blacklists": {
-        "title": "Blacklists",
-        "url": "",
-        "supported_types": ["domain", "ipv4"],
-        "capabilities": ["blocklists"],
-    },
     "urlscan": {
         "title": "urlscan.io",
         "url": "",

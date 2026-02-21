@@ -95,11 +95,8 @@ except ImportError:
     logger.debug("PhishTank not available")
     phishtank = None
 
-try:
-    from .utils.blacklists import blacklists
-except ImportError:
-    logger.debug("Blacklists not available")
-    blacklists = None
+# Blacklists feature removed: requires Selenium/Chrome for mxtoolbox scraping
+# Use OSINT APIs instead for domain/IP reputation checks
 
 # Function registry for engine.py (bulk collection)
 # Maps source IDs to their functions and supported types
@@ -173,11 +170,6 @@ SOURCE_REGISTRY = {
         "title": "PhishTank",
         "function": phishtank,
         "supported_types": ["domain", "url", "ipv4"],
-    },
-    "blacklists": {
-        "title": "Blacklists",
-        "function": blacklists,
-        "supported_types": ["domain", "ipv4"],
     },
 }
 
