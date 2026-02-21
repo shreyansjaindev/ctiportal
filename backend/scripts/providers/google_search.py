@@ -1,26 +1,19 @@
 from googlesearch import search
 import sys
-import requests
-from bs4 import BeautifulSoup
-
-
-def get_title(query):
-    title = "Title is available for this webpage"
-    try:
-        response = requests.get(query)
-        soup = BeautifulSoup(response.text, "html.parser")
-        title_html = soup.find("title")
-        if title_html != None:
-            title = title_html.text.strip().replace("\n", " ")
-    except:
-        pass
-    return title
 
 
 def google_search_results(query):
+    """
+    Perform Google search and return results.
+    Returns URLs directly without scraping titles (more reliable).
+    """
     results_list = []
-    for results in search(query):
-        results_list.append([get_title(results), results])
+    try:
+        for result_url in search(query, num_results=10):
+            results_list.append(result_url)
+    except Exception as e:
+        print(f"Error during Google search: {e}")
+    
     return results_list
 
 

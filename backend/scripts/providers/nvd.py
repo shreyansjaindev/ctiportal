@@ -1,47 +1,65 @@
 import requests
 import sys
-from bs4 import BeautifulSoup
+import os
 
 
 def get_results(cve):
+    """
+    Fetch CVE details from NVD API 2.0 (free official API)
+    No authentication required for basic queries
+    """
     data = {}
 
     try:
-        url = f"https://nvd.nist.gov/vuln/detail/{cve}"
-        response = requests.get(url, timeout=10)
-
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        elements = {
-            "CVSS 3.x": ["Cvss3CnaCalculatorAnchor", "Cvss3NistCalculatorAnchor"],
-            "CVSS 3.x Vector": ["tooltipCvss3CnaMetrics", "tooltipCvss3NistMetrics"],
-            "CVSS 2.0": ["Cvss2CalculatorAnchor"],
-            "CVSS 2.0 Vector": ["tooltipCvss2NistMetrics"],
+        # NVD API 2.0 endpoint - free and no authentication required
+        url = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+        params = {
+            "cveId": cve.upper(),
         }
 
-        for key, values in elements.items():
-            for value in values:
-                element = soup.find(id=value) or soup.find("span", class_=value)
-                if element:
-                    data[key] = element.text
-                    break
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
 
-        # References:
-        cwe_elements = soup.select("td[data-testid^=vuln-CWEs-link-]")
-        data["CWE IDs"] = [
-            cwe_element.a.text.replace("CWE-", "").strip()
-            for cwe_element in cwe_elements
-            if cwe_element.a
-        ]
+        cve_data = response.json()
+
+        if "vulnerabilities" in cve_data and len(cve_data["vulnerabilities"]) > 0:
+            vuln = cve_data["vulnerabilities"][0]["cve"]
+
+            # Extract CVSS scores
+            metrics = vuln.get("metrics", {})
+
+            # CVSS 3.x
+            if "cvssMetricV31" in metrics:
+                cvss3 = metrics["cvssMetricV31"][0]["cvssData"]
+                data["CVSS 3.x"] = cvss3.get("baseScore", "N/A")
+                data["CVSS 3.x Vector"] = cvss3.get("vectorString", "N/A")
+            elif "cvssMetricV30" in metrics:
+                cvss3 = metrics["cvssMetricV30"][0]["cvssData"]
+                data["CVSS 3.x"] = cvss3.get("baseScore", "N/A")
+                data["CVSS 3.x Vector"] = cvss3.get("vectorString", "N/A")
+
+            # CVSS 2.0
+            if "cvssMetricV2" in metrics:
+                cvss2 = metrics["cvssMetricV2"][0]["cvssData"]
+                data["CVSS 2.0"] = cvss2.get("baseScore", "N/A")
+                data["CVSS 2.0 Vector"] = cvss2.get("vectorString", "N/A")
+
+            # CWE IDs
+            data["CWE IDs"] = []
+            for weakness in vuln.get("weaknesses", []):
+                for description in weakness.get("description", []):
+                    cwe_id = description.get("value", "").replace("CWE-", "")
+                    if cwe_id and cwe_id not in data["CWE IDs"]:
+                        data["CWE IDs"].append(cwe_id)
 
     except requests.exceptions.RequestException as e:
-        print("Error occurred during the request:", e)
+        print(f"Error occurred during NVD API request: {e}")
 
-    except AttributeError as e:
-        print("Error occurred during parsing:", e)
+    except (KeyError, ValueError) as e:
+        print(f"Error occurred during JSON parsing: {e}")
 
     except Exception as e:
-        print("Unexpected error occurred:", e)
+        print(f"Unexpected error occurred: {e}")
 
     return data
 
