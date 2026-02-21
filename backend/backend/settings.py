@@ -155,9 +155,14 @@ LOGGING = {
 # Create logs directory if it doesn't exist
 (BASE_DIR / "logs").mkdir(exist_ok=True)
 
-CORS_ALLOWED_ORIGINS = [h.strip() for h in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",") if h.strip()]
+CORS_ALLOWED_ORIGINS = [h.strip() for h in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",") if h.strip()]
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = [h.strip() for h in os.getenv("CSRF_TRUSTED_ORIGINS", "http://localhost:5173").split(",") if h.strip()]
+
+# Support regex patterns for dynamic domains (e.g., Vercel preview deployments)
+if cors_regex := os.getenv("CORS_ALLOWED_ORIGIN_REGEXES"):
+    CORS_ALLOWED_ORIGIN_REGEXES = [r.strip() for r in cors_regex.split(",") if r.strip()]
+
+CSRF_TRUSTED_ORIGINS = [h.strip() for h in os.getenv("CSRF_TRUSTED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",") if h.strip()]
 
 # Security Settings
 SECURE_BROWSER_XSS_FILTER = True
