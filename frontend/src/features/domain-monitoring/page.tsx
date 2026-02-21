@@ -3,31 +3,43 @@ import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
 
 import {
+  AlertsTab,
   CSVImportDialog,
   LookalikesTab,
   LookalikeFormSheet,
-  NRDsTab,
+  MonitoredDomainsTab,
   WatchedResourcesTab,
   WatchedResourceFormSheet,
 } from "./components"
-import { useLookalikeDomains, useNRDs, useWatchedResources } from "./hooks"
+import {
+  useAlerts,
+  useLookalikeDomains,
+  useMonitoredDomains,
+  useWatchedResources,
+} from "./hooks"
 
 export default function DomainMonitoringPage() {
   const [activeTab, setActiveTab] = useState("lookalikes")
 
   // Custom hooks for data management
   const lookalikes = useLookalikeDomains()
-  const nrds = useNRDs()
+  const alerts = useAlerts()
+  const monitoredDomains = useMonitoredDomains()
   const watched = useWatchedResources()
 
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
+          <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="lookalikes">Lookalike Domains</TabsTrigger>
-          <TabsTrigger value="newly-registered">Newly Registered Domains</TabsTrigger>
+          <TabsTrigger value="monitored-domains">Monitored Domains</TabsTrigger>
           <TabsTrigger value="watched">Watched Resources</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="alerts">
+          <AlertsTab alerts={alerts} />
+        </TabsContent>
 
         <TabsContent value="lookalikes">
           <LookalikesTab
@@ -40,8 +52,8 @@ export default function DomainMonitoringPage() {
           />
         </TabsContent>
 
-        <TabsContent value="newly-registered">
-          <NRDsTab nrds={nrds} />
+        <TabsContent value="monitored-domains">
+          <MonitoredDomainsTab monitoredDomains={monitoredDomains} />
         </TabsContent>
 
         <TabsContent value="watched">

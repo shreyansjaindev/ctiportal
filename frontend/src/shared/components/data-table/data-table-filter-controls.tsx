@@ -7,6 +7,7 @@ import {
   AccordionTrigger,
 } from "@/shared/components/ui/accordion";
 import { useDataTable } from "@/shared/components/data-table/data-table-provider";
+import { DataTableFilterTimerange } from "@/shared/components/data-table/data-table-filter-timerange";
 
 import { DataTableFilterCheckbox } from "./data-table-filter-checkbox";
 import { DataTableFilterResetButton } from "./data-table-filter-reset-button";
@@ -36,6 +37,9 @@ export function DataTableFilterControls() {
               <div className="p-1">
                 {field.type === "checkbox" && (
                   <DataTableFilterCheckbox {...field} />
+                )}
+                {field.type === "timerange" && (
+                  <DataTableFilterTimerange {...field} />
                 )}
               </div>
             </AccordionContent>

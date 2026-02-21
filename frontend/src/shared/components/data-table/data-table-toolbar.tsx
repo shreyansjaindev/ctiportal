@@ -55,14 +55,25 @@ export function DataTableToolbar({ renderActions }: DataTableToolbarProps) {
         </div>
         <div>
           <p className="hidden text-sm text-muted-foreground sm:block">
-            <span className="font-mono font-medium">
-              {rows.filtered.toLocaleString()}
-            </span>{" "}
-            of{" "}
-            <span className="font-mono font-medium">
-              {rows.total.toLocaleString()}
-            </span>{" "}
-            row(s) <span className="sr-only sm:not-sr-only">filtered</span>
+            {filters.length ? (
+              <>
+                <span className="font-mono font-medium">
+                  {rows.filtered.toLocaleString()}
+                </span>{" "}
+                of{" "}
+                <span className="font-mono font-medium">
+                  {rows.total.toLocaleString()}
+                </span>{" "}
+                row(s) <span className="sr-only sm:not-sr-only">filtered</span>
+              </>
+            ) : (
+              <>
+                <span className="font-mono font-medium">
+                  {rows.total.toLocaleString()}
+                </span>{" "}
+                row(s)
+              </>
+            )}
           </p>
           <p className="block text-sm text-muted-foreground sm:hidden">
             <span className="font-mono font-medium">

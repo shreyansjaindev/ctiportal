@@ -8,6 +8,30 @@ export const LOOKALIKE_RISK_OPTIONS = ["critical", "high", "medium", "low", "unk
 
 export const lookalikesFilterFields: DataTableFilterField<LookalikeDomain>[] = [
   {
+    label: "Created",
+    value: "created",
+    type: "timerange",
+    defaultOpen: true,
+  },
+  {
+    label: "Source Date",
+    value: "source_date",
+    type: "timerange",
+    defaultOpen: true,
+  },
+  {
+    label: "Source",
+    value: "source",
+    type: "checkbox",
+    defaultOpen: true,
+  },
+  {
+    label: "Watched Resource",
+    value: "watched_resource",
+    type: "checkbox",
+    defaultOpen: false,
+  },
+  {
     label: "Risk Level",
     value: "potential_risk",
     type: "checkbox",
@@ -20,6 +44,12 @@ export const lookalikesFilterFields: DataTableFilterField<LookalikeDomain>[] = [
     type: "checkbox",
     defaultOpen: true,
     options: LOOKALIKE_STATUS_OPTIONS.map((s) => ({ label: s.label, value: s.value })),
+  },
+  {
+    label: "Company",
+    value: "company",
+    type: "checkbox",
+    defaultOpen: false,
   },
 ]
 

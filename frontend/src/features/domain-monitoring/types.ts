@@ -74,6 +74,25 @@ export type NewlyRegisteredDomain = {
   value: string
 }
 
+export type MonitoredDomain = {
+  id: number
+  created: string
+  last_modified: string
+  value: string
+  company: string
+  status: string
+  last_checked: string | null
+}
+
+export type MonitoredDomainAlert = {
+  id: number
+  created: string
+  last_modified: string
+  domain_name: string
+  company: string
+  status: string
+}
+
 export type LookalikeDomainComment = {
   id: number
   created: string

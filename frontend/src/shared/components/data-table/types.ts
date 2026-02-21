@@ -12,6 +12,10 @@ export type Checkbox = {
   options?: Option[];
 };
 
+export type Timerange = {
+  type: "timerange";
+};
+
 export type Base<TData> = {
   label: string
   value: keyof TData
@@ -27,7 +31,11 @@ export type Base<TData> = {
 
 export type DataTableCheckboxFilterField<TData> = Base<TData> & Checkbox;
 
-export type DataTableFilterField<TData> = DataTableCheckboxFilterField<TData>;
+export type DataTableTimerangeFilterField<TData> = Base<TData> & Timerange;
+
+export type DataTableFilterField<TData> =
+  | DataTableCheckboxFilterField<TData>
+  | DataTableTimerangeFilterField<TData>;
 
 /** Legacy type for backwards compatibility */
 export type FilterOption = {

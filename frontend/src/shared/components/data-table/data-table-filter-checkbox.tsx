@@ -26,7 +26,15 @@ export function DataTableFilterCheckbox<TData>({
 
   const Component = component;
 
-  const filterOptions = options?.filter(
+  const resolvedOptions = options ??
+    Array.from(facetedValue?.entries?.() ?? [])
+      .map(([optionValue]) => ({
+        label: String(optionValue),
+        value: optionValue,
+      }))
+      .filter((option) => option.label.trim() !== "");
+
+  const filterOptions = resolvedOptions?.filter(
     (option) =>
       inputValue === "" ||
       option.label.toLowerCase().includes(inputValue.toLowerCase()),
@@ -55,7 +63,7 @@ export function DataTableFilterCheckbox<TData>({
 
   return (
     <div className="grid gap-2">
-      {options && options.length > 4 ? (
+      {resolvedOptions && resolvedOptions.length > 4 ? (
         <div className="relative">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input

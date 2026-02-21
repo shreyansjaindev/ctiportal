@@ -14,6 +14,8 @@ import type {
   QueryParams,
   WatchedResource,
   WatchedResourcePayload,
+  MonitoredDomain,
+  MonitoredDomainAlert,
 } from "../types"
 
 const BASE_PATH = "/domain-monitoring"
@@ -254,6 +256,26 @@ export async function addDomainsToProofpoint(
   return apiPost<IntegrationResult>(
     `${BASE_PATH}/integrations/proofpoint/add-domains/`,
     JSON.stringify({ domains }),
+    token
+  )
+}
+
+export async function listMonitoredDomains(
+  params: QueryParams | undefined,
+  token: string
+): Promise<PaginatedResponse<MonitoredDomain>> {
+  return apiGet<PaginatedResponse<MonitoredDomain>>(
+    `${BASE_PATH}/monitored-domains/${buildQuery(params)}`,
+    token
+  )
+}
+
+export async function listMonitoredDomainAlerts(
+  params: QueryParams | undefined,
+  token: string
+): Promise<PaginatedResponse<MonitoredDomainAlert>> {
+  return apiGet<PaginatedResponse<MonitoredDomainAlert>>(
+    `${BASE_PATH}/monitored-domain-alerts/${buildQuery(params)}`,
     token
   )
 }

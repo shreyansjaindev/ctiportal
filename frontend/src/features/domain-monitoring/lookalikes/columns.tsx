@@ -23,6 +23,40 @@ interface GetColumnsOptions {
 export function getColumns({ onEdit, onDelete }: GetColumnsOptions): ColumnDef<LookalikeDomain>[] {
   return [
     {
+      accessorKey: "created",
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Created"
+          filterType="text"
+          filterPlaceholder="YYYY-MM-DD"
+        />
+      ),
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">
+          {new Date(row.getValue("created")).toLocaleDateString()}
+        </span>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: "source_date",
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Source Date"
+          filterType="text"
+          filterPlaceholder="YYYY-MM-DD"
+        />
+      ),
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">
+          {new Date(row.getValue("source_date")).toLocaleDateString()}
+        </span>
+      ),
+      enableSorting: true,
+    },
+    {
       accessorKey: "value",
       header: ({ column }) => (
         <DataTableColumnHeader
@@ -113,23 +147,6 @@ export function getColumns({ onEdit, onDelete }: GetColumnsOptions): ColumnDef<L
       ),
       cell: ({ row }) => (
         <span className="text-muted-foreground">{row.getValue("company")}</span>
-      ),
-      enableSorting: true,
-    },
-    {
-      accessorKey: "created",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Created"
-          filterType="text"
-          filterPlaceholder="YYYY-MM-DD"
-        />
-      ),
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {new Date(row.getValue("created")).toLocaleDateString()}
-        </span>
       ),
       enableSorting: true,
     },
