@@ -22,7 +22,7 @@ Your project is **production-ready**. Follow this checklist to deploy to Render 
 4. **Render auto-detects `render.yaml`** and shows:
    - `ctiportal-backend` (Web Service)
    - `ctiportal-postgres` (PostgreSQL database)
-   - Environment variables (auto-filled for DB)
+   - Note: Frontend is deployed separately to Vercel (see Step 2)
 
 5. **Set required environment variables** (in Render UI):
    - `CORS_ALLOWED_ORIGINS` = `https://ctiportal-frontend.vercel.app` (or your Vercel domain)

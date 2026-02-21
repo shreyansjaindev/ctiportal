@@ -44,12 +44,12 @@ docker-compose up
 
 For production, **do NOT use committed `.env` files**. Instead, set environment variables directly in the cloud provider UIs:
 
-**Render backend:**
-1. Deploy using `render.yaml` blueprint
+**Render backend** (via `render.yaml` blueprint):
+1. Deploy using `render.yaml` blueprint (backend web service + Postgres database only)
 2. Set `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, and API keys in Render dashboard
 3. Render auto-generates `SECRET_KEY` and auto-fills `DB_*` from Postgres service
 
-**Vercel frontend:**
+**Vercel frontend** (separate deployment):
 1. Import repo to Vercel
 2. Set `VITE_API_BASE_URL=https://<your-render-backend>/api/v1` in Vercel dashboard
 

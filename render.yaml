@@ -44,16 +44,6 @@ services:
           name: ctiportal-postgres
           property: port
 
-  - type: static
-    name: ctiportal-frontend
-    rootDir: frontend
-    buildCommand: npm ci ; npm run build
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-
 databases:
   - name: ctiportal-postgres
     plan: free
