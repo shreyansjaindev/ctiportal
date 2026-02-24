@@ -12,9 +12,10 @@ import { DataTableViewOptions } from "./data-table-view-options"
 
 interface DataTableToolbarProps {
   renderActions?: () => React.ReactNode
+  hasFilters?: boolean
 }
 
-export function DataTableToolbar({ renderActions }: DataTableToolbarProps) {
+export function DataTableToolbar({ renderActions, hasFilters = true }: DataTableToolbarProps) {
   const { table, isLoading, columnFilters, totalCount } = useDataTable()
   const { open, setOpen } = useControls()
   const filters = table.getState().columnFilters
@@ -32,6 +33,7 @@ export function DataTableToolbar({ renderActions }: DataTableToolbarProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex flex-wrap items-center gap-2">
+        {hasFilters && (
         <Button
           size="sm"
           variant="ghost"
@@ -50,6 +52,7 @@ export function DataTableToolbar({ renderActions }: DataTableToolbarProps) {
             </>
           )}
         </Button>
+        )}
         <div className="block sm:hidden">
           <DataTableFilterControlsDrawer />
         </div>

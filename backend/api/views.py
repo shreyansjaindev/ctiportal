@@ -6,7 +6,6 @@ This module contains views for:
 - Utility endpoints: Text formatting, email analysis, screenshots, AD lookups, exports
 """
 import logging
-from urllib.parse import urljoin
 
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -15,7 +14,6 @@ from rest_framework.views import APIView
 from api.pagination import ItemsLimitOffsetPagination
 from api.response import error, success
 from api.serializers import UserMeSerializer
-from scripts.constants import APPS, SECURITY_HEADERS, SUMMARY_HEADERS
 from scripts.providers.anomali.threatstream import (
     threatstream_export,
     threatstream_export_feeds,
@@ -28,17 +26,16 @@ from scripts.utils.textformatter import collector as text_formatter
 logger = logging.getLogger(__name__)
 
 
-# =============================================================================
-# System Views
-# =============================================================================
-
-class GetRoutes(APIView):
-    """API root endpoint with route discovery"""
-    def get(self, request):
-        base_url = request.build_absolute_uri("/api/v1/")
-        route_names = ["intelligence-harvester", "domain-monitoring"]
-        routes = {route: urljoin(base_url, f"{route}/") for route in route_names}
-        return success({"routes": routes})
+APPS = [
+    {"name": "Intelligence Harvester", "path": "/intelligence-harvester"},
+    {"name": "Domain Monitoring", "path": "/domain-monitoring"},
+    {"name": "Text Formatter", "path": "/text-formatter"},
+    {"name": "URL Decoder", "path": "/url-decoder"},
+    {"name": "Website Screenshot", "path": "/screenshot"},
+    {"name": "Mail Header Analyzer", "path": "/mail-header-analyzer"},
+    {"name": "Anomali ThreatStream Search", "path": "/threatstream"},
+    {"name": "Microsoft Active Directory Validator", "path": "/active-directory"},
+]
 
 
 class HealthView(APIView):
@@ -107,12 +104,7 @@ class MailHeaderAnalyzerView(APIView):
                 logger.warning("Mail header analyzer called without header")
                 return error("header is required", code="validation_error", status_code=400)
             logger.debug("Analyzing mail headers")
-            context = {
-                "mha": mha_analyzer(header.strip()),
-                "summary_headers": SUMMARY_HEADERS,
-                "security_headers": SECURITY_HEADERS,
-            }
-            return success(context)
+            return success({"mha": mha_analyzer(header.strip())})
         except Exception as e:
             logger.error(f"Error analyzing mail headers: {e}", exc_info=True)
             return error("Failed to analyze headers", code="processing_error", status_code=500)

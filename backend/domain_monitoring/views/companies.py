@@ -44,5 +44,5 @@ class CompanyDomainViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
     filterset_class = CompanyDomainFilter
     permission_classes = [IsAuthenticated]
-    ordering_fields = ["domain", "created", "updated"]
-    search_fields = ["domain"]
+    ordering_fields = ["value", "created", "last_modified"]
+    search_fields = ["value"]

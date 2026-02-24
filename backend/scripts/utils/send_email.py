@@ -12,7 +12,8 @@ from sendgrid.helpers.mail import (
     ContentId,
 )
 
-API_KEY = os.getenv("SENDGRID").split(",")[0]
+_sendgrid_env = os.getenv("SENDGRID", "")
+API_KEY = _sendgrid_env.split(",")[0] if _sendgrid_env else None
 
 
 def send(recipient, content):

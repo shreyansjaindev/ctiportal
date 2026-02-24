@@ -11,7 +11,6 @@ Includes:
 from .companies import CompanyDomainViewSet, CompanyViewSet
 from .integrations import ProofpointIntegrationViewSet, TrellixETPIntegrationViewSet
 from .lookalike_domains import LookalikeDomainViewSet
-from .metadata import DomainMonitoringTabsView
 from .mixins import BulkOperationsMixin, CountMixin
 from .monitored_domains import MonitoredDomainAlertViewSet, MonitoredDomainViewSet
 from .nrds import NewlyRegisteredDomainViewSet
@@ -22,8 +21,6 @@ __all__ = [
     # Mixins
     "CountMixin",
     "BulkOperationsMixin",
-    # Metadata
-    "DomainMonitoringTabsView",
     # Company Management
     "CompanyViewSet",
     "CompanyDomainViewSet",

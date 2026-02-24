@@ -57,8 +57,9 @@ export function hasLogo(providerId: string): boolean {
     'httpstatus', 'requests',
     'system_dns', 'cloudflare', 'google_dns', 'api_ninjas',
     'screenshotmachine',
+    'screenshotlayer',
     'apilayer', 'hunter',
-    'google', 'bing',
+    'duckduckgo',
     'reverse_dns',
   ]
   return knownProviders.includes(providerId.toLowerCase())

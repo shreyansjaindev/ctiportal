@@ -111,6 +111,109 @@ def get_dns_records(domain):
     return data
 
 
+def get_passive_dns(domain):
+    """Get passive DNS records from SecurityTrails"""
+    error = check_api_key(API_KEY, "SecurityTrails")
+    if error:
+        return error
+    
+    url = f"https://api.securitytrails.com/v1/history/{domain}/dns/a"
+    
+    for _ in range(5):  # Maximum of 5 retries
+        try:
+            response = requests.get(url, headers=HEADERS)
+            if response.status_code == 429:
+                time.sleep(2)
+                continue
+            elif response.status_code == 403:
+                return {"error": response.json().get("message", "API access forbidden")}
+            elif response.status_code == 200:
+                results = response.json()
+                records = results.get("records", [])
+                
+                formatted_records = []
+                for record in records:
+                    for value in record.get("values", []):
+                        formatted_records.append({
+                            "ip_address": value.get("ip"),
+                            "first_seen": record.get("first_seen"),
+                            "last_seen": record.get("last_seen"),
+                            "organizations": value.get("organizations", [])
+                        })
+                
+                return {
+                    "records": formatted_records,
+                    "total_count": len(formatted_records)
+                }
+        except Exception as e:
+            logger.error(f"Error in API request to {url}: {e}")
+            return {"error": str(e)}
+    
+    return {"error": "Request Failed"}
+
+
+def get_whois_history(domain):
+    """Get WHOIS history records from SecurityTrails"""
+    error = check_api_key(API_KEY, "SecurityTrails")
+    if error:
+        return error
+    
+    url = f"https://api.securitytrails.com/v1/history/{domain}/whois"
+    
+    for _ in range(5):  # Maximum of 5 retries
+        try:
+            response = requests.get(url, headers=HEADERS)
+            if response.status_code == 429:
+                time.sleep(2)
+                continue
+            elif response.status_code == 403:
+                return {"error": response.json().get("message", "API access forbidden")}
+            elif response.status_code == 200:
+                results = response.json()
+                records = results.get("result", {}).get("items", [])
+                
+                return {
+                    "records": records,
+                    "total_count": len(records)
+                }
+        except Exception as e:
+            logger.error(f"Error in API request to {url}: {e}")
+            return {"error": str(e)}
+    
+    return {"error": "Request Failed"}
+
+
+def get_reverse_dns(ip):
+    """Get reverse DNS records from SecurityTrails"""
+    error = check_api_key(API_KEY, "SecurityTrails")
+    if error:
+        return error
+    
+    url = f"https://api.securitytrails.com/v1/domains/list?ipv4={ip}"
+    
+    for _ in range(5):  # Maximum of 5 retries
+        try:
+            response = requests.get(url, headers=HEADERS)
+            if response.status_code == 429:
+                time.sleep(2)
+                continue
+            elif response.status_code == 403:
+                return {"error": response.json().get("message", "API access forbidden")}
+            elif response.status_code == 200:
+                results = response.json()
+                records = results.get("records", [])
+                
+                return {
+                    "hostnames": [record.get("hostname") for record in records],
+                    "total_count": results.get("record_count", len(records))
+                }
+        except Exception as e:
+            logger.error(f"Error in API request to {url}: {e}")
+            return {"error": str(e)}
+    
+    return {"error": "Request Failed"}
+
+
 if __name__ == "__main__":
     domain = sys.argv[1]
     value_type = sys.argv[2]

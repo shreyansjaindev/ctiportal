@@ -6,12 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-try:
-    import whois as python_whois
-    WHOIS_AVAILABLE = True
-except ImportError:
-    WHOIS_AVAILABLE = False
-    logger.warning("python-whois not installed. Run: pip install python-whois")
+import whois as python_whois
 
 
 def get_whois(domain: str) -> dict:
@@ -24,9 +19,6 @@ def get_whois(domain: str) -> dict:
     Returns:
         Dictionary with WHOIS data
     """
-    if not WHOIS_AVAILABLE:
-        return {'error': 'python-whois library not installed'}
-    
     try:
         w = python_whois.whois(domain)
         

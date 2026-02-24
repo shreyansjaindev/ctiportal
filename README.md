@@ -1,6 +1,8 @@
 # ctiportal
 
-A preview version is hosted on https://ctiportal.onrender.com/ (It might take a few minutes to start the server)
+**Live Demo:** https://ctiportal.vercel.app (frontend) + https://ctiportal.onrender.com (API)
+
+_Note: The backend may take a few minutes to start on the first request._
 
 ## Quick Start
 

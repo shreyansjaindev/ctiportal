@@ -17,7 +17,7 @@ def get_result(email):
     if error:
         return error
     url = f"http://apilayer.net/api/check?access_key={API_KEY}&email={email}&smtp=1"
-    response = requests.get(url).json()
+    response = requests.get(url, timeout=10).json()
     return response
 
 

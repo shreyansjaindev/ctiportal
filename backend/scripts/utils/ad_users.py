@@ -35,15 +35,34 @@ def get_aduser(query):
             escaped_value_with_wildcards = escape_powershell_string("*" + value + "*")
             command_filter = f"{field['name']} -like {escaped_value_with_wildcards}"
 
-        output = subprocess.run(
-            ["powershell", "-Command", f"Get-ADUser -Filter {command_filter}"], 
-            capture_output=True,
-            timeout=10
-        )
-        output = output.stdout.decode("utf-8").splitlines()
-        output = list(filter(None, output))
-        output = [dict(map(str.strip, item.split(":")) for item in output)]
-        data.append(output)
+        try:
+            output = subprocess.run(
+                ["powershell", "-Command", f"Get-ADUser -Filter {command_filter}"], 
+                capture_output=True,
+                timeout=10,
+                check=False
+            )
+            
+            # Check if command succeeded
+            if output.returncode != 0:
+                continue
+                
+            output_lines = output.stdout.decode("utf-8").splitlines()
+            output_lines = list(filter(None, output_lines))
+            
+            # Parse key-value pairs, only including lines with colons
+            parsed_data = []
+            for item in output_lines:
+                if ":" in item:
+                    parts = item.split(":", 1)
+                    parsed_data.append({parts[0].strip(): parts[1].strip()})
+            
+            if parsed_data:
+                data.append(parsed_data)
+        except subprocess.TimeoutExpired:
+            continue
+        except Exception as e:
+            continue
 
     return data
 

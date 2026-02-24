@@ -13,7 +13,11 @@ if not SECRET_KEY:
 
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
+def _split_csv_env(name, default=""):
+    return [v.strip() for v in os.getenv(name, default).split(",") if v.strip()]
+
+
+ALLOWED_HOSTS = _split_csv_env("ALLOWED_HOSTS")
 render_external_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
 if render_external_hostname and render_external_hostname not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(render_external_hostname)
@@ -155,14 +159,9 @@ LOGGING = {
 # Create logs directory if it doesn't exist
 (BASE_DIR / "logs").mkdir(exist_ok=True)
 
-CORS_ALLOWED_ORIGINS = [h.strip() for h in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",") if h.strip()]
+CORS_ALLOWED_ORIGINS = _split_csv_env("CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = True
-
-# Support regex patterns for dynamic domains (e.g., Vercel preview deployments)
-if cors_regex := os.getenv("CORS_ALLOWED_ORIGIN_REGEXES"):
-    CORS_ALLOWED_ORIGIN_REGEXES = [r.strip() for r in cors_regex.split(",") if r.strip()]
-
-CSRF_TRUSTED_ORIGINS = [h.strip() for h in os.getenv("CSRF_TRUSTED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",") if h.strip()]
+CSRF_TRUSTED_ORIGINS = _split_csv_env("CSRF_TRUSTED_ORIGINS")
 
 # Security Settings
 SECURE_BROWSER_XSS_FILTER = True

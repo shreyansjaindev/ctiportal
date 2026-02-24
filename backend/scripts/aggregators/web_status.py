@@ -2,34 +2,23 @@
 Website status aggregator with multiple provider support
 """
 import logging
+import re
 from typing import Optional, Dict, Any, List
 
 logger = logging.getLogger(__name__)
 
 # Import providers
-try:
-    from ..providers.website_status import get_website_status
-    REDIRECT_CHECKER_AVAILABLE = True
-except ImportError:
-    REDIRECT_CHECKER_AVAILABLE = False
-    logger.debug("Redirect Checker not available")
-
-try:
-    import requests
-    REQUESTS_AVAILABLE = True
-except ImportError:
-    REQUESTS_AVAILABLE = False
-    logger.debug("Requests not available")
+from ..providers.website_status import get_website_status
+from ..providers.urlscan import urlscan as urlscan_lookup
+import requests
 
 
-def get_available_providers() -> List[str]:
-    """Get list of available website status providers"""
-    providers = []
-    if REDIRECT_CHECKER_AVAILABLE:
-        providers.append('httpstatus')
-    if REQUESTS_AVAILABLE:
-        providers.append('requests')
-    return providers
+def _detect_input_type(value: str) -> str:
+    if re.match(r"^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$", value):
+        return 'ipv4'
+    if value.startswith(('http://', 'https://')):
+        return 'url'
+    return 'domain'
 
 
 def get(url: str, provider: Optional[str] = None) -> Dict[str, Any]:
@@ -39,76 +28,79 @@ def get(url: str, provider: Optional[str] = None) -> Dict[str, Any]:
     Args:
         url: URL or domain to check
         provider: Specific provider to use (None for auto-fallback)
-                 Options: 'httpstatus', 'requests'
+             Options: 'httpstatus', 'requests', 'urlscan'
         
     Returns:
         Status data dictionary with '_provider' key
     """
     # If specific provider requested
-    if provider == 'httpstatus' and REDIRECT_CHECKER_AVAILABLE:
+    if provider == 'httpstatus':
         result = _try_httpstatus(url)
         if not result.get('error'):
             result['_provider'] = 'httpstatus'
         return result
-    elif provider == 'requests' and REQUESTS_AVAILABLE:
+    elif provider == 'requests':
         result = _try_requests(url)
         if not result.get('error'):
             result['_provider'] = 'requests'
+        return result
+    elif provider == 'urlscan':
+        result = _try_urlscan(url)
+        if not result.get('error'):
+            result['_provider'] = 'urlscan'
         return result
     elif provider is not None:
         return {
-            'error': f'Provider {provider} not available',
-            'available_providers': get_available_providers()
+            'error': f'Provider {provider} not available'
         }
     
     # Auto-fallback chain
-    if REDIRECT_CHECKER_AVAILABLE:
-        result = _try_httpstatus(url)
-        if result and not result.get('error'):
-            result['_provider'] = 'httpstatus'
-            return result
-    
-    if REQUESTS_AVAILABLE:
-        result = _try_requests(url)
-        if result and not result.get('error'):
-            result['_provider'] = 'requests'
-            return result
-    
-    return {'error': 'No website status providers available'}
+    result = _try_httpstatus(url)
+    if result and not result.get('error'):
+        result['_provider'] = 'httpstatus'
+        return result
+
+    result = _try_requests(url)
+    if result and not result.get('error'):
+        result['_provider'] = 'requests'
+        return result
+
+    result = _try_urlscan(url)
+    if result and not result.get('error'):
+        result['_provider'] = 'urlscan'
+        return result
+
+    return {'error': 'No website details providers available'}
 
 
 def _try_httpstatus(url: str) -> Dict[str, Any]:
     """Try HTTPStatus.io API"""
-    try:
-        result = get_website_status(url, 'domain')
-        if not result or not isinstance(result, list):
-            return {'error': 'No data returned'}
-        return {'redirects': result, 'url': url}
-    except Exception as e:
-        logger.error(f"HTTPStatus.io error: {e}")
-        return {'error': str(e)}
+    result = get_website_status(url, 'domain')
+    if not result or not isinstance(result, list):
+        return {'error': 'No data returned'}
+    return {'redirects': result, 'url': url}
 
 
 def _try_requests(url: str) -> Dict[str, Any]:
     """Try simple requests check"""
-    try:
-        import requests
-        
-        # Ensure URL has protocol
-        if not url.startswith(('http://', 'https://')):
-            test_url = f'https://{url}'
-        else:
-            test_url = url
-        
-        response = requests.get(test_url, timeout=10, allow_redirects=True)
-        
-        return {
-            'url': test_url,
-            'status_code': response.status_code,
-            'final_url': response.url,
-            'redirects': len(response.history),
-            'ok': response.ok
-        }
-    except Exception as e:
-        logger.error(f"Requests check error: {e}")
-        return {'error': str(e)}
+    # Ensure URL has protocol
+    if not url.startswith(('http://', 'https://')):
+        test_url = f'https://{url}'
+    else:
+        test_url = url
+
+    response = requests.get(test_url, timeout=10, allow_redirects=True)
+
+    return {
+        'url': test_url,
+        'status_code': response.status_code,
+        'final_url': response.url,
+        'redirects': len(response.history),
+        'ok': response.ok
+    }
+
+
+def _try_urlscan(url: str) -> Dict[str, Any]:
+    """Try URLScan existing/new scan workflow."""
+    input_type = _detect_input_type(url)
+    return urlscan_lookup(url, input_type)

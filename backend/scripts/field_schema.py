@@ -1,24 +1,30 @@
 """
 Field categorization for Intelligence Harvester lookups.
 
-CENTRALIZED schema defining essential fields by lookup type.
-Optional provider-specific field mappings for normalizing different field names.
-
-Single source of truth for what fields are essential vs additional.
+Defines which fields are essential (shown in Overview) vs additional (shown in All Fields)
+for each lookup type.
 """
 
-from typing import Dict, Any, List, Optional
+import re
+from typing import Dict, Any, List
 
 # ESSENTIAL FIELDS - Single source of truth
 # Define which fields are shown in Overview tab for each lookup type
 ESSENTIAL_FIELDS: Dict[str, List[str]] = {
     "whois": [
-        "registrar",
-        "created_date",
-        "expires_date",
-        "status",
         "domain",
+        "domain_name",
+        "registrar",
+        "registrar_name",
+        "created_date",
+        "updated_date",
+        "expires_date",
         "registrant_name",
+        "registrant_organization",
+        "registrant_email",
+        "registrant_city",
+        "registrant_state",
+        "registrant_country",
     ],
     "ip_info": [
         "ip",
@@ -60,20 +66,24 @@ ESSENTIAL_FIELDS: Dict[str, List[str]] = {
         "email",
         "is_disposable",
     ],
-    "vulnerability": [
+    "cve_details": [
         "cve_id",
         "cvss_score",
         "severity",
         "published_date",
     ],
-    "web_search": [
-        "total_results",
-    ],
-    "website_status": [
+    "website_details": [
+        "url",
+        "domain",
+        "ip",
         "status_code",
-        "is_online",
-        "response_time",
         "redirects",
+        "scan_mode",
+        "total_results",
+        "results",
+        "link",
+        "asn_name",
+        "asn",
     ],
     "screenshot": [
         "screenshot_url",
@@ -81,89 +91,16 @@ ESSENTIAL_FIELDS: Dict[str, List[str]] = {
     ],
 }
 
-# FIELD MAPPINGS - Optional provider-specific field normalizations
-# Maps provider field names to standard field names
-# Only include if a provider returns different field names
-FIELD_MAPPINGS: Dict[str, Dict[str, Dict[str, str]]] = {
-    "whois": {
-        "securitytrails": {
-            "createdDate": "created_date",
-            "updatedDate": "updated_date",
-            "expiresDate": "expires_date",
-            "registrarName": "registrar",
-            "domain": "domain",
-            "status": "status",
-            "registrant_name": "registrant_name",
-            "registrant_organization": "registrant_organization",
-            "registrant_email": "registrant_email",
-            "registrant_country": "registrant_country",
-            "registrant_city": "registrant_city",
-            "registrant_state": "registrant_state",
-        },
-        "free_whois": {
-            "creation_date": "created_date",
-            "expiration_date": "expires_date",
-            "domain_name": "domain",
-            "updated_date": "updated_date",
-        }
-    },
-    "ip_info": {
-        "ipapi": {
-            "query": "ip",
-            "countryCode": "country_code",
-            "country": "country",
-            "regionName": "region",
-            "city": "city",
-            "zip": "postal",
-            "as": "asn",
-            "org": "organization",
-            "isp": "isp",
-        }
-    }
-}
 
+def _normalize_field_name(field_name: str) -> str:
+        """
+        Normalize field name for matching across provider naming styles.
 
-def apply_mapping(data: Dict[str, Any], lookup_type: str, provider: Optional[str]) -> Dict[str, Any]:
-    """
-    Apply provider-specific field mappings to normalize field names.
-    Case-insensitive field mapping.
-    
-    Args:
-        data: Raw result from provider
-        lookup_type: Type of lookup (whois, ip_info, etc.)
-        provider: Provider name (optional, used for lookups in FIELD_MAPPINGS)
-                 If None, will try to extract from data._provider
-        
-    Returns:
-        Dictionary with normalized field names
-    """
-    # If no provider specified, try to get it from the result's _provider field
-    if not provider:
-        provider = data.get("_provider")
-    
-    # If still no provider or lookup type not in mappings, return data as-is
-    if not provider or lookup_type not in FIELD_MAPPINGS:
-        return data
-    
-    provider_mappings = FIELD_MAPPINGS[lookup_type].get(provider, {})
-    if not provider_mappings:
-        return data
-    
-    # Create case-insensitive mapping lookup
-    mapping_lower = {k.lower(): v for k, v in provider_mappings.items()}
-    
-    # Apply the mapping with case-insensitive lookup
-    normalized = {}
-    for key, value in data.items():
-        # Keep metadata fields (starting with _) unchanged
-        if key.startswith("_"):
-            normalized[key] = value
-        else:
-            # Case-insensitive field mapping
-            normalized_key = mapping_lower.get(key.lower(), key)
-            normalized[normalized_key] = value
-    
-    return normalized
+        Examples:
+            - created_date, createdDate, Created-Date -> createddate
+            - registrant_email, registrantEmail -> registrantemail
+        """
+        return re.sub(r"[^a-z0-9]", "", field_name.lower())
 
 
 def categorize_fields(lookup_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -173,15 +110,15 @@ def categorize_fields(lookup_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
     
     Args:
         lookup_type: Type of lookup (whois, ip_info, etc.)
-        data: Result data (should already be normalized via apply_mapping if needed)
+        data: Provider result data
         
     Returns:
         Dictionary with 'essential' and 'additional' keys
     """
     essential_field_names = ESSENTIAL_FIELDS.get(lookup_type, [])
     
-    # Create lowercase mapping for case-insensitive comparison
-    essential_lowercase = {field.lower(): field for field in essential_field_names}
+    # Build normalized set for case/format-insensitive comparison
+    essential_normalized = {_normalize_field_name(field) for field in essential_field_names}
     
     essential = {}
     additional = {}
@@ -191,8 +128,8 @@ def categorize_fields(lookup_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
         if key.startswith("_"):
             continue
         
-        # Case-insensitive comparison
-        if key.lower() in essential_lowercase:
+        # Case/format-insensitive comparison (snake_case / camelCase / kebab-case)
+        if _normalize_field_name(key) in essential_normalized:
             essential[key] = value
         else:
             additional[key] = value

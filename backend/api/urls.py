@@ -35,7 +35,7 @@ urlpatterns = [
     path("users/", include([
         path("me/", UserMeView.as_view(), name="users-me"),
     ])),
-    
+
     # Applications
     path("applications/", AppsView.as_view(), name="applications-list"),
     

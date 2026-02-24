@@ -16,9 +16,8 @@ export type LookupType =
   | "reverse_dns"
   | "screenshot"
   | "email_validator"
-  | "vulnerability"
-  | "web_search"
-  | "website_status"
+  | "cve_details"
+  | "website_details"
 
 /**
  * Backend indicator type classification from API
@@ -30,8 +29,6 @@ export type IndicatorType =
   | "domain"
   | "email"
   | "url"
-  | "url_with_http"
-  | "url_without_http"
   | "sha256"
   | "sha1"
   | "md5"
@@ -39,18 +36,12 @@ export type IndicatorType =
   | "keyword"
 
 /**
- * Frontend indicator kind for UI categorization
- * Simplified grouping of backend indicator types
- */
-export type IndicatorKind = "ip" | "domain" | "email" | "cve" | "hash" | "unknown"
-
-/**
  * Result from a single lookup operation
  * Contains categorized fields for structured display
  */
 export type LookupResult = {
-  essential?: Record<string, string | string[] | number | boolean | null | undefined>
-  additional?: Record<string, string | string[] | number | boolean | null | undefined>
+  essential?: Record<string, unknown>
+  additional?: Record<string, unknown>
   _provider?: string
   _lookup_type?: LookupType
   error?: string

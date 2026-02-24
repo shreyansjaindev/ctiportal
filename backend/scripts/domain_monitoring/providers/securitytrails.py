@@ -18,10 +18,13 @@ def get_whois(domain, value_type):
 
     results = {}
     whois_data = {}
+    max_retries = 5
+    retry_count = 0
 
-    while True:
-        response = requests.get(url, headers=headers)
+    while retry_count < max_retries:
+        response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 429:
+            retry_count += 1
             time.sleep(2)
             continue
         else:
@@ -78,9 +81,11 @@ def get_dns_records(domain):
     }
 
     results = {}
+    max_retries = 5
+    retry_count = 0
 
-    while True:
-        response = requests.get(url, headers=headers)
+    while retry_count < max_retries:
+        response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 200:
             results = response.json()["current_dns"]
             if results["a"]:
@@ -96,6 +101,7 @@ def get_dns_records(domain):
 
             break
         elif response.status_code == 429:
+            retry_count += 1
             time.sleep(2)
             continue
         else:

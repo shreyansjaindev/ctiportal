@@ -23,7 +23,25 @@ def make_api_request(endpoint, headers):
     return response.json()
 
 
-def ibm_ip(ip, headers):
+def _resolve_headers(headers):
+    if headers is not None:
+        return headers
+
+    error = check_api_key(API_KEY, "IBM X-Force")
+    if error:
+        return None
+
+    return {
+        "Accept": "application/json",
+        "Authorization": f"Basic {API_KEY}",
+    }
+
+
+def ibm_ip(ip, headers=None):
+    headers = _resolve_headers(headers)
+    if not headers:
+        return {"error": "No IBM X-Force API key available"}
+
     data = make_api_request(f"ipr/history/{ip}", headers)
 
     if data.get("error", None):
@@ -39,7 +57,11 @@ def ibm_ip(ip, headers):
     return ip_data
 
 
-def ibm_cve(cve, headers):
+def ibm_cve(cve, headers=None):
+    headers = _resolve_headers(headers)
+    if not headers:
+        return {"error": "No IBM X-Force API key available"}
+
     cve_data = {}
     temp_list = []
 
@@ -86,7 +108,11 @@ def ibm_cve(cve, headers):
     return cve_data
 
 
-def ibm_url(query, headers):
+def ibm_url(query, headers=None):
+    headers = _resolve_headers(headers)
+    if not headers:
+        return {"error": "No IBM X-Force API key available"}
+
     url_data = {}
     encoded_query = urllib.parse.quote(query, safe="")
 
@@ -107,7 +133,11 @@ def ibm_url(query, headers):
     return url_data
 
 
-def ibm_hash(hash, headers):
+def ibm_hash(hash, headers=None):
+    headers = _resolve_headers(headers)
+    if not headers:
+        return {"error": "No IBM X-Force API key available"}
+
     hash_data = {}
 
     data = make_api_request(f"malware/{hash}", headers)

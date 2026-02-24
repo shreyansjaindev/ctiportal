@@ -7,20 +7,7 @@ from typing import Optional, Dict, Any, List
 logger = logging.getLogger(__name__)
 
 # Import providers
-try:
-    from ..providers.nvd import nvd as nvd_lookup
-    NVD_AVAILABLE = True
-except ImportError:
-    NVD_AVAILABLE = False
-    logger.debug("NVD not available")
-
-
-def get_available_providers() -> List[str]:
-    """Get list of available vulnerability providers"""
-    providers = []
-    if NVD_AVAILABLE:
-        providers.append('nvd')
-    return providers
+from ..providers.nvd import nvd as nvd_lookup
 
 
 def get(cve: str, provider: Optional[str] = None) -> Dict[str, Any]:
@@ -36,23 +23,21 @@ def get(cve: str, provider: Optional[str] = None) -> Dict[str, Any]:
         Vulnerability data dictionary with '_provider' key
     """
     # If specific provider requested
-    if provider == 'nvd' and NVD_AVAILABLE:
+    if provider == 'nvd':
         result = _try_nvd(cve)
         if not result.get('error'):
             result['_provider'] = 'nvd'
         return result
     elif provider is not None:
         return {
-            'error': f'Provider {provider} not available',
-            'available_providers': get_available_providers()
+            'error': f'Provider {provider} not available'
         }
     
     # Auto-fallback chain
-    if NVD_AVAILABLE:
-        result = _try_nvd(cve)
-        if result and not result.get('error'):
-            result['_provider'] = 'nvd'
-            return result
+    result = _try_nvd(cve)
+    if result and not result.get('error'):
+        result['_provider'] = 'nvd'
+        return result
     
     return {'error': 'No vulnerability providers available'}
 

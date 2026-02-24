@@ -4,6 +4,7 @@ import os
 import tldextract
 import dns.resolver
 import dns.reversename
+import dns.exception
 from ipwhois.net import Net
 from ipwhois.asn import IPASN
 from ..providers.securitytrails import get_dns_records
@@ -36,7 +37,7 @@ def dns_records(domain, value_type="domain"):
 
             if "," in dns_data[record]:
                 dns_data[record] = dns_data[record].split(",")
-        except:
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout, dns.resolver.NoNameservers):
             dns_data[record] = "Not Found"
 
     # DMARC Record
@@ -44,7 +45,7 @@ def dns_records(domain, value_type="domain"):
         answers = dns.resolver.resolve("_dmarc." + domain, "TXT")
         for rdata in answers:
             dns_data["DMARC"] = rdata.to_text().replace('"', "")
-    except:
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout, dns.resolver.NoNameservers):
         dns_data["DMARC"] = "Not Found"
 
     # Remove dot(.) at the end of string from NS Record
@@ -60,7 +61,7 @@ def dns_records(domain, value_type="domain"):
                 dns_data["NS"] = [dns_data["NS"][:-1]]
             else:
                 dns_data["NS"] = ["Not Found"]
-    except:
+    except (IndexError, KeyError, AttributeError):
         pass
 
     # MX Record
@@ -76,7 +77,7 @@ def dns_records(domain, value_type="domain"):
                 dns_data["MX"] = [dns_data["MX"][:-1]]
             else:
                 dns_data["MX"] = ["Not Found"]
-    except:
+    except (IndexError, KeyError, AttributeError):
         pass
 
     # Filter out SPF record from TXT Record
@@ -93,13 +94,13 @@ def dns_records(domain, value_type="domain"):
         elif "v=spf" in dns_data["TXT"]:
             dns_data["SPF"] = dns_data["TXT"].replace('"', "")
             dns_data.pop("TXT")
-    except:
+    except (KeyError, AttributeError, TypeError):
         pass
 
     # Remove SOA Record
     try:
         dns_data.pop("SOA")
-    except:
+    except KeyError:
         pass
 
     return dns_data
@@ -111,7 +112,7 @@ def ip_to_hostname(ip):
     try:
         answers = dns.resolver.resolve(query, "PTR")
         data["hostname"] = answers.rrset[0].to_text()[:-1]
-    except:
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout, dns.resolver.NoNameservers, AttributeError, IndexError):
         data["hostname"] = ""
     return data
 

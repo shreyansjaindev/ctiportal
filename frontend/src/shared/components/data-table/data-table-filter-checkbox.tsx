@@ -101,14 +101,14 @@ export function DataTableFilterCheckbox<TData>({
                 />
                 <Label
                   htmlFor={`${value}-${option.value}`}
-                  className="flex w-full items-center justify-center gap-1 truncate text-foreground/70 group-hover:text-accent-foreground"
+                  className="flex w-full items-center justify-between gap-1 truncate text-foreground/70 group-hover:text-accent-foreground leading-normal"
                 >
                   {Component ? (
                     <Component {...option} />
                   ) : (
                     <span className="truncate font-normal">{option.label}</span>
                   )}
-                  <span className="ml-auto flex items-center justify-center font-mono text-xs">
+                  <span className="ml-auto flex shrink-0 items-center justify-center font-mono text-xs">
                     {isLoading ? (
                       <Skeleton className="h-4 w-4" />
                     ) : facetedValue?.has(option.value) ? (

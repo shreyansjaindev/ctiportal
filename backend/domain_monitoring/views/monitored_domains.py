@@ -52,8 +52,8 @@ class MonitoredDomainViewSet(viewsets.ModelViewSet, CountMixin, BulkOperationsMi
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
     filterset_class = MonitoredDomainFilter
     permission_classes = [IsAuthenticated]
-    ordering_fields = ["domain", "created", "updated"]
-    search_fields = ["domain", "status"]
+    ordering_fields = ["value", "created", "last_modified", "last_checked"]
+    search_fields = ["value", "status"]
 
     def list(self, request, *args, **kwargs):
         """List domains with count metadata"""
@@ -106,17 +106,17 @@ class MonitoredDomainViewSet(viewsets.ModelViewSet, CountMixin, BulkOperationsMi
             domain = self.get_object()
             tags = request.data.get("tags", [])
             
-            logger.info(f"Exporting domain {domain.domain} to Anomali Threatstream")
-            response = threatstream_import_domains_without_approval([domain.domain], tags)
+            logger.info(f"Exporting domain {domain.value} to Anomali Threatstream")
+            response = threatstream_import_domains_without_approval([domain.value], tags)
 
             if response.status_code == 202:
-                logger.info(f"Domain {domain.domain} exported successfully")
+                logger.info(f"Domain {domain.value} exported successfully")
                 return Response(
-                    {"domain": domain.domain, "status": "queued"},
+                    {"domain": domain.value, "status": "queued"},
                     status=status.HTTP_202_ACCEPTED,
                 )
             else:
-                logger.error(f"Failed to export domain {domain.domain}: {response.status_code}")
+                logger.error(f"Failed to export domain {domain.value}: {response.status_code}")
                 return Response(
                     {"error": "Failed to export domain"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -144,8 +144,8 @@ class MonitoredDomainAlertViewSet(viewsets.ModelViewSet, CountMixin):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
     filterset_class = MonitoredDomainAlertFilter
     permission_classes = [IsAuthenticated]
-    ordering_fields = ["created", "updated", "severity"]
-    search_fields = ["monitored_domain__domain", "alert_type"]
+    ordering_fields = ["created", "last_modified", "domain_name", "status"]
+    search_fields = ["domain_name", "status", "company__name"]
 
     def list(self, request, *args, **kwargs):
         """List alerts with count metadata"""

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import type { LookupType } from "@/shared/types/intelligence-harvester"
 
 /**
@@ -20,8 +20,7 @@ export interface ProviderSelection {
   reverseDns: ProviderValue
   screenshot: ProviderValue
   emailValidator: ProviderValue
-  vulnerability: ProviderValue
-  webSearch: ProviderValue
+  cveDetails: ProviderValue
   websiteStatus: ProviderValue
 }
 
@@ -35,13 +34,81 @@ export interface ProviderSelectionSetters {
   setReverseDns: (value: ProviderValue) => void
   setScreenshot: (value: ProviderValue) => void
   setEmailValidator: (value: ProviderValue) => void
-  setVulnerability: (value: ProviderValue) => void
-  setWebSearch: (value: ProviderValue) => void
+  setCveDetails: (value: ProviderValue) => void
   setWebsiteStatus: (value: ProviderValue) => void
+}
+
+// Mapping between display keys and API lookup types
+const KEY_TO_LOOKUP_TYPE: Record<keyof ProviderSelection, LookupType> = {
+  whois: "whois",
+  geoLocation: "ip_info",
+  reputation: "reputation",
+  dns: "dns",
+  passiveDns: "passive_dns",
+  whoisHistory: "whois_history",
+  reverseDns: "reverse_dns",
+  screenshot: "screenshot",
+  emailValidator: "email_validator",
+  cveDetails: "cve_details",
+  websiteStatus: "website_details",
+}
+
+// LocalStorage key for provider configuration
+const STORAGE_KEY = "intelligenceHarvester_providerConfig"
+
+// Default provider configuration
+const DEFAULT_PROVIDERS: ProviderSelection = {
+  whois: ['free_whois'],
+  geoLocation: [],
+  reputation: [],
+  dns: [],
+  passiveDns: [],
+  whoisHistory: [],
+  reverseDns: [],
+  screenshot: [],
+  emailValidator: [],
+  cveDetails: [],
+  websiteStatus: [],
+}
+
+/**
+ * Load provider configuration from localStorage
+ */
+function loadProvidersFromStorage(): ProviderSelection {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (!stored) return DEFAULT_PROVIDERS
+    
+    const parsed = JSON.parse(stored) as ProviderSelection
+    // Validate structure and ensure arrays
+    const validated: ProviderSelection = { ...DEFAULT_PROVIDERS }
+    for (const key in DEFAULT_PROVIDERS) {
+      const k = key as keyof ProviderSelection
+      if (parsed[k] && Array.isArray(parsed[k])) {
+        validated[k] = parsed[k]
+      }
+    }
+    return validated
+  } catch (error) {
+    console.error("Error loading provider config from localStorage:", error)
+    return DEFAULT_PROVIDERS
+  }
+}
+
+/**
+ * Save provider configuration to localStorage
+ */
+function saveProvidersToStorage(providers: ProviderSelection): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(providers))
+  } catch (error) {
+    console.error("Error saving provider config to localStorage:", error)
+  }
 }
 
 /**
  * Custom hook for managing provider selection state across all lookup types
+ * Persists configuration to localStorage
  * 
  * @returns {Object} Provider selection state and utilities
  * @returns {ProviderSelection} selections - Current provider selections for all lookup types
@@ -56,93 +123,53 @@ export interface ProviderSelectionSetters {
  * console.log(enabledTypes) // Set { 'whois' }
  */
 export function useProviderSelection() {
-  const [whois, setWhois] = useState<ProviderValue>(['free_whois'])
-  const [geoLocation, setGeoLocation] = useState<ProviderValue>([])
-  const [reputation, setReputation] = useState<ProviderValue>([])
-  const [dns, setDns] = useState<ProviderValue>([])
-  const [passiveDns, setPassiveDns] = useState<ProviderValue>([])
-  const [whoisHistory, setWhoisHistory] = useState<ProviderValue>([])
-  const [reverseDns, setReverseDns] = useState<ProviderValue>([])
-  const [screenshot, setScreenshot] = useState<ProviderValue>([])
-  const [emailValidator, setEmailValidator] = useState<ProviderValue>([])
-  const [vulnerability, setVulnerability] = useState<ProviderValue>([])
-  const [webSearch, setWebSearch] = useState<ProviderValue>([])
-  const [websiteStatus, setWebsiteStatus] = useState<ProviderValue>([])
+  // Load initial state from localStorage
+  const [providers, setProviders] = useState<ProviderSelection>(() => loadProvidersFromStorage())
 
-  const selections: ProviderSelection = {
-    whois,
-    geoLocation,
-    reputation,
-    dns,
-    passiveDns,
-    whoisHistory,
-    reverseDns,
-    screenshot,
-    emailValidator,
-    vulnerability,
-    webSearch,
-    websiteStatus,
-  }
+  // Save to localStorage whenever providers change
+  useEffect(() => {
+    saveProvidersToStorage(providers)
+  }, [providers])
 
-  const setters: ProviderSelectionSetters = {
-    setWhois,
-    setGeoLocation,
-    setReputation,
-    setDns,
-    setPassiveDns,
-    setWhoisHistory,
-    setReverseDns,
-    setScreenshot,
-    setEmailValidator,
-    setVulnerability,
-    setWebSearch,
-    setWebsiteStatus,
-  }
+  // Generate setter functions dynamically
+  const setters: ProviderSelectionSetters = useMemo(() => ({
+    setWhois: (value: ProviderValue) => setProviders(prev => ({ ...prev, whois: value })),
+    setGeoLocation: (value: ProviderValue) => setProviders(prev => ({ ...prev, geoLocation: value })),
+    setReputation: (value: ProviderValue) => setProviders(prev => ({ ...prev, reputation: value })),
+    setDns: (value: ProviderValue) => setProviders(prev => ({ ...prev, dns: value })),
+    setPassiveDns: (value: ProviderValue) => setProviders(prev => ({ ...prev, passiveDns: value })),
+    setWhoisHistory: (value: ProviderValue) => setProviders(prev => ({ ...prev, whoisHistory: value })),
+    setReverseDns: (value: ProviderValue) => setProviders(prev => ({ ...prev, reverseDns: value })),
+    setScreenshot: (value: ProviderValue) => setProviders(prev => ({ ...prev, screenshot: value })),
+    setEmailValidator: (value: ProviderValue) => setProviders(prev => ({ ...prev, emailValidator: value })),
+    setCveDetails: (value: ProviderValue) => setProviders(prev => ({ ...prev, cveDetails: value })),
+    setWebsiteStatus: (value: ProviderValue) => setProviders(prev => ({ ...prev, websiteStatus: value })),
+  }), [])
 
   // Helper to check if a provider value is enabled (non-empty array)
-  const isProviderEnabled = (value: ProviderValue): boolean => {
+  const isProviderEnabled = useCallback((value: ProviderValue): boolean => {
     return Array.isArray(value) && value.length > 0
-  }
+  }, [])
 
   // Get enabled lookup types based on provider selections
   const enabledTypes = useMemo(() => {
     const types = new Set<LookupType>()
-    if (isProviderEnabled(whois)) types.add("whois")
-    if (isProviderEnabled(geoLocation)) types.add("ip_info")
-    if (isProviderEnabled(reputation)) types.add("reputation")
-    if (isProviderEnabled(dns)) types.add("dns")
-    if (isProviderEnabled(passiveDns)) types.add("passive_dns")
-    if (isProviderEnabled(whoisHistory)) types.add("whois_history")
-    if (isProviderEnabled(reverseDns)) types.add("reverse_dns")
-    if (isProviderEnabled(screenshot)) types.add("screenshot")
-    if (isProviderEnabled(emailValidator)) types.add("email_validator")
-    if (isProviderEnabled(vulnerability)) types.add("vulnerability")
-    if (isProviderEnabled(webSearch)) types.add("web_search")
-    if (isProviderEnabled(websiteStatus)) types.add("website_status")
+    Object.entries(providers).forEach(([key, value]) => {
+      if (isProviderEnabled(value)) {
+        types.add(KEY_TO_LOOKUP_TYPE[key as keyof ProviderSelection])
+      }
+    })
     return types
-  }, [whois, geoLocation, reputation, dns, passiveDns, whoisHistory, reverseDns, screenshot, emailValidator, vulnerability, webSearch, websiteStatus])
+  }, [providers, isProviderEnabled])
 
   // Get provider(s) for a specific lookup type
-  const getProviderForType = (type: LookupType): ProviderValue => {
-    const typeMap: Record<LookupType, ProviderValue> = {
-      whois,
-      ip_info: geoLocation,
-      reputation,
-      dns,
-      passive_dns: passiveDns,
-      whois_history: whoisHistory,
-      reverse_dns: reverseDns,
-      screenshot,
-      email_validator: emailValidator,
-      vulnerability,
-      web_search: webSearch,
-      website_status: websiteStatus,
-    }
-    return typeMap[type]
-  }
+  const getProviderForType = useCallback((type: LookupType): ProviderValue => {
+    const key = Object.entries(KEY_TO_LOOKUP_TYPE).find(([_, t]) => t === type)?.[0] as keyof ProviderSelection
+    return key ? providers[key] : []
+  }, [providers])
 
   return {
-    selections,
+    selections: providers,
     setters,
     enabledTypes,
     getProviderForType,

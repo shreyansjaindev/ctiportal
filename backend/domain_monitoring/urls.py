@@ -46,7 +46,6 @@ from .views import (
     SSLCertificateViewSet,
     TrellixETPIntegrationViewSet,
     ProofpointIntegrationViewSet,
-    DomainMonitoringTabsView,
 )
 
 # Main router with resource endpoints
@@ -63,7 +62,6 @@ router.register(r"ssl-certificates", SSLCertificateViewSet, basename="ssl-certif
 router.register(
     r"newly-registered-domains", NewlyRegisteredDomainViewSet, basename="newly-registered-domains"
 )
-router.register(r"tabs", DomainMonitoringTabsView, basename="tabs")
 
 # Provider integrations
 router.register(

@@ -1,27 +1,28 @@
 import { Badge } from "@/shared/components/ui/badge"
 import { Button } from "@/shared/components/ui/button"
 import { Checkbox } from "@/shared/components/ui/checkbox"
-import { Trash2, Search, Globe, Mail, Link2, MapPin, Info } from "lucide-react"
+import { Trash2, Globe, Mail, Link2, MapPin, Info } from "lucide-react"
 import { useMemo } from "react"
 import { LookupResults } from "./LookupResults"
-import type { IndicatorResult } from "@/shared/types/intelligence-harvester"
+import type { IndicatorResult, IndicatorType, LookupType, LookupResult, Provider } from "@/shared/types/intelligence-harvester"
 
 interface IntelligenceHarvesterSidebarProps {
   indicators?: string[]
-  indicatorTypes?: Map<string, string>
+  indicatorTypes?: Map<string, IndicatorType>
   selectedIndicators?: Set<string>
   activeIndicator?: string | null
   lookupResults?: IndicatorResult[]
   isLoading?: boolean
-  onRunLookup?: () => void
-  canRun?: boolean
-  isRunning?: boolean
   onToggleIndicator?: (indicator: string) => void
   onToggleAll?: (checked: boolean) => void
   onRemoveSelected?: () => void
   onRemoveIndicator?: (indicator: string) => void
   onClearAll?: () => void
   onIndicatorClick?: (indicator: string) => void
+  token?: string
+  getProviderForType?: (type: LookupType) => string[]
+  providersByType?: Record<string, Provider[]>
+  onResultsUpdate?: (indicator: string, newResults: LookupResult[]) => void
 }
 
 const TYPE_LABELS: Record<string, { label: string; icon: typeof Globe }> = {
@@ -38,15 +39,16 @@ export function IntelligenceHarvesterSidebar({
   activeIndicator = null,
   lookupResults = [],
   isLoading = false,
-  onRunLookup,
-  canRun = false,
-  isRunning = false,
   onToggleIndicator,
   onToggleAll,
   onRemoveSelected,
   onRemoveIndicator,
   onClearAll,
   onIndicatorClick,
+  token,
+  getProviderForType,
+  providersByType,
+  onResultsUpdate,
 }: IntelligenceHarvesterSidebarProps) {
   // Group indicators by type
   const groupedIndicators = useMemo(() => {
@@ -63,7 +65,7 @@ export function IntelligenceHarvesterSidebar({
     <div className="flex h-full w-full">
       {/* Left: Indicator List */}
       <div className="w-80 border-r flex flex-col flex-shrink-0">
-        <div className="flex items-center justify-between gap-3 border-b p-4 flex-shrink-0">
+        <div className="flex items-center gap-3 border-b p-4 flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="text-base font-medium text-foreground">
               Indicators
@@ -74,15 +76,6 @@ export function IntelligenceHarvesterSidebar({
               </Badge>
             )}
           </div>
-          <Button
-            onClick={onRunLookup}
-            disabled={!canRun || isRunning}
-            size="sm"
-            className="flex-shrink-0"
-          >
-            <Search className="mr-2 h-4 w-4" />
-            {isRunning ? "Searching..." : "Run Lookup"}
-          </Button>
         </div>
 
         {/* Indicator List */}
@@ -202,12 +195,17 @@ export function IntelligenceHarvesterSidebar({
       </div>
 
       {/* Right: Lookup Results */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 min-w-0">
         <LookupResults
           results={lookupResults}
           activeIndicator={activeIndicator}
+          indicatorTypes={indicatorTypes}
           isLoading={isLoading}
           className="border-0 rounded-none shadow-none h-full"
+          token={token}
+          getProviderForType={getProviderForType}
+          providersByType={providersByType}
+          onResultsUpdate={onResultsUpdate}
         />
       </div>
     </div>

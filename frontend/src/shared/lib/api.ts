@@ -84,7 +84,7 @@ async function refreshAccessToken(): Promise<string | null> {
       storeTokens(newAccessToken, refresh)
       authContextRef?.saveTokens(newAccessToken, refresh)
       return newAccessToken
-    } catch (error) {
+    } catch {
       clearTokens()
       authContextRef?.logout()
       return null
@@ -117,7 +117,21 @@ async function handleResponse<T>(response: Response, token?: string | null): Pro
   }
 
   if (!response.ok) {
-    const error: ApiError = new Error("Request failed")
+    // Try to extract error message from response body
+    let errorMessage = "Request failed"
+    try {
+      if (contentType.includes("application/json")) {
+        const errorData = await response.json()
+        errorMessage = errorData.message || errorData.error || errorData.detail || errorMessage
+      } else {
+        const text = await response.text()
+        if (text) errorMessage = text
+      }
+    } catch {
+      // Use default message if parsing fails
+    }
+    
+    const error: ApiError = new Error(`${errorMessage} (${response.status})`)
     error.status = response.status
     throw error
   }

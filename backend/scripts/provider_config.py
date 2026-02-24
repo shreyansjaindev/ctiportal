@@ -6,97 +6,68 @@ Frontend derives logo paths from provider IDs (convention: /assets/logos/{provid
 """
 
 # Import provider functions for registry
-import logging
+from .aggregators.lookup import lookup
+from .providers.ibm import ibm
+from .providers.securitytrails import get_whois as whois
+from .providers.nvd import nvd
+from .providers.hybrid_analysis import hybridanalysis
+from .providers.screenshotmachine import get_website_screenshot
+from .providers.pulse_dive import pulse_dive
+from .providers.virustotal import virustotal
+from .providers.abuseipdb import abuseipdb
+from .providers.apilayer import emailvalidator
+from .providers.urlscan import urlscan
+from .providers.website_status import get_website_status
+from .providers.hostio import hostio
+from .providers.phishtank import phishtank
 
-logger = logging.getLogger(__name__)
-
-# Import all provider functions
-try:
-    from .aggregators.lookup import lookup
-except ImportError:
-    logger.debug("lookup not available")
-    lookup = None
-
-try:
-    from .providers.ibm import ibm
-except ImportError:
-    logger.debug("IBM X-Force not available")
-    ibm = None
-
-try:
-    from .providers.securitytrails import get_whois as whois
-except ImportError:
-    logger.debug("SecurityTrails WHOIS not available")
-    whois = None
-
-try:
-    from .providers.nvd import nvd
-except ImportError:
-    logger.debug("NVD not available")
-    nvd = None
-
-try:
-    from .providers.hybrid_analysis import hybridanalysis
-except ImportError:
-    logger.debug("Hybrid Analysis not available")
-    hybridanalysis = None
-
-try:
-    from .providers.screenshotmachine import get_website_screenshot
-except ImportError:
-    logger.debug("ScreenshotMachine not available")
-    get_website_screenshot = None
-
-try:
-    from .providers.pulse_dive import pulse_dive
-except ImportError:
-    logger.debug("Pulsedive not available")
-    pulse_dive = None
-
-try:
-    from .providers.virustotal import virustotal
-except ImportError:
-    logger.debug("VirusTotal not available")
-    virustotal = None
-
-try:
-    from .providers.abuseipdb import abuseipdb
-except ImportError:
-    logger.debug("AbuseIPDB not available")
-    abuseipdb = None
-
-try:
-    from .providers.apilayer import emailvalidator
-except ImportError:
-    logger.debug("APILayer Email Validator not available")
-    emailvalidator = None
-
-try:
-    from .providers.urlscan import urlscan
-except ImportError:
-    logger.debug("URLScan not available")
-    urlscan = None
-
-try:
-    from .providers.website_status import get_website_status
-except ImportError:
-    logger.debug("Website Status not available")
-    get_website_status = None
-
-try:
-    from .providers.hostio import hostio
-except ImportError:
-    logger.debug("Host.io not available")
-    hostio = None
-
-try:
-    from .providers.phishtank import phishtank
-except ImportError:
-    logger.debug("PhishTank not available")
-    phishtank = None
+# Import aggregator modules for lookup orchestration
+from .aggregators import (
+    whois as whois_aggregator,
+    geolocation,
+    reputation,
+    cve_details,
+    email_validator,
+    web_status,
+    passive_dns,
+    whois_history,
+    dns,
+    reverse_dns,
+    screenshot as screenshot_aggregator,
+)
 
 # Blacklists feature removed: requires Selenium/Chrome for mxtoolbox scraping
 # Use OSINT APIs instead for domain/IP reputation checks
+
+# Map lookup types to their aggregator modules
+LOOKUP_MODULES = {
+    'whois': whois_aggregator,
+    'ip_info': geolocation,
+    'reputation': reputation,
+    'dns': dns,
+    'passive_dns': passive_dns,
+    'whois_history': whois_history,
+    'reverse_dns': reverse_dns,
+    'screenshot': screenshot_aggregator,
+    'email_validator': email_validator,
+    'cve_details': cve_details,
+    'website_details': web_status,
+}
+
+# Map indicator types to applicable lookup types
+INDICATOR_LOOKUPS = {
+    'domain': ['whois', 'dns', 'passive_dns', 'whois_history', 'screenshot', 'reputation', 'website_details'],
+    'url': ['website_details', 'screenshot', 'reputation'],
+    'ipv4': ['ip_info', 'reverse_dns', 'reputation', 'website_details'],
+    'ipv6': ['ip_info', 'reverse_dns', 'reputation'],
+    'email': ['email_validator'],
+    'cve': ['cve_details'],
+    'md5': ['reputation'],
+    'sha1': ['reputation'],
+    'sha256': ['reputation'],
+    'sha512': ['reputation'],
+    'keyword': [],
+}
 
 # Function registry for engine.py (bulk collection)
 # Maps source IDs to their functions and supported types
@@ -202,11 +173,10 @@ PROVIDER_PRESETS = {
             'passive_dns': ['virustotal'],
             'whois_history': ['whoisxml'],
             'reverse_dns': ['system_dns'],
-            'screenshot': ['screenshotmachine'],
+            'screenshot': ['screenshotlayer', 'screenshotmachine'],
             'email_validator': ['apilayer'],
-            'vulnerability': ['nvd'],
-            'web_search': ['google'],
-            'website_status': ['httpstatus'],
+            'cve_details': ['nvd'],
+            'website_details': ['httpstatus', 'urlscan'],
         }
     }
 }
@@ -236,12 +206,12 @@ PROVIDER_METADATA = {
         'virustotal': {
             'id': 'virustotal',
             'name': 'VirusTotal',
-            'supported_indicators': ['domain', 'ip'],
+            'supported_indicators': ['domain', 'ipv4', 'ipv6'],
         },
         'securitytrails': {
             'id': 'securitytrails',
             'name': 'SecurityTrails',
-            'supported_indicators': ['domain', 'ip'],
+            'supported_indicators': ['domain', 'ipv4', 'ipv6'],
         }
     },
     
@@ -250,22 +220,17 @@ PROVIDER_METADATA = {
         'virustotal': {
             'id': 'virustotal',
             'name': 'VirusTotal',
-            'supported_indicators': ['ip', 'domain', 'hash'],
+            'supported_indicators': ['ipv4', 'ipv6', 'domain', 'hash'],
         },
         'abuseipdb': {
             'id': 'abuseipdb',
             'name': 'AbuseIPDB',
-            'supported_indicators': ['ip'],
+            'supported_indicators': ['ipv4', 'ipv6'],
         },
         'ibm_xforce': {
             'id': 'ibm_xforce',
             'name': 'IBM X-Force',
-            'supported_indicators': ['ip', 'domain'],
-        },
-        'urlscan': {
-            'id': 'urlscan',
-            'name': 'URLScan.io',
-            'supported_indicators': ['domain', 'url'],
+            'supported_indicators': ['ipv4', 'ipv6', 'domain'],
         },
         'hybrid_analysis': {
             'id': 'hybrid_analysis',
@@ -317,12 +282,12 @@ PROVIDER_METADATA = {
         'system_dns': {
             'id': 'system_dns',
             'name': 'System DNS',
-            'supported_indicators': ['ip'],
+            'supported_indicators': ['ipv4', 'ipv6'],
         },
         'google_dns': {
             'id': 'google_dns',
             'name': 'Google DNS',
-            'supported_indicators': ['ip'],
+            'supported_indicators': ['ipv4', 'ipv6'],
         }
     },
     
@@ -331,17 +296,22 @@ PROVIDER_METADATA = {
         'ipapi': {
             'id': 'ipapi',
             'name': 'IP-API',
-            'supported_indicators': ['ip'],
+            'supported_indicators': ['ipv4', 'ipv6'],
         },
         'ipinfo': {
             'id': 'ipinfo',
             'name': 'IPInfo.io',
-            'supported_indicators': ['ip'],
+            'supported_indicators': ['ipv4', 'ipv6'],
         }
     },
     
     # Screenshot Providers
     'screenshot': {
+        'screenshotlayer': {
+            'id': 'screenshotlayer',
+            'name': 'ScreenshotLayer',
+            'supported_indicators': ['domain', 'url'],
+        },
         'screenshotmachine': {
             'id': 'screenshotmachine',
             'name': 'ScreenshotMachine',
@@ -364,7 +334,7 @@ PROVIDER_METADATA = {
     },
     
     # Vulnerability Database Providers
-    'vulnerability': {
+    'cve_details': {
         'nvd': {
             'id': 'nvd',
             'name': 'NVD (NIST)',
@@ -377,22 +347,13 @@ PROVIDER_METADATA = {
         }
     },
     
-    # Web Search Providers
-    'web_search': {
-        'google': {
-            'id': 'google',
-            'name': 'Google',
-            'supported_indicators': ['domain', 'keyword'],
+    # Website Details Providers
+    'website_details': {
+        'urlscan': {
+            'id': 'urlscan',
+            'name': 'URLScan.io',
+            'supported_indicators': ['domain', 'url', 'ipv4'],
         },
-        'bing': {
-            'id': 'bing',
-            'name': 'Bing',
-            'supported_indicators': ['domain', 'keyword'],
-        }
-    },
-    
-    # Website Status Providers
-    'website_status': {
         'httpstatus': {
             'id': 'httpstatus',
             'name': 'HTTPStatus.io',

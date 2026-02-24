@@ -19,7 +19,8 @@ class Source(models.Model):
     value_type = models.CharField(max_length=255, choices=VALUE_TYPE_CHOICES)
     hashed_value = models.CharField(max_length=255)
     source = models.CharField(max_length=255)
-    data = models.TextField(max_length=10000)
+    # Use JSONField for better handling of structured data and no size limit
+    data = models.JSONField()
 
     class Meta:
         unique_together = ("hashed_value", "source")

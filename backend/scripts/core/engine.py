@@ -9,8 +9,8 @@ from intelligence_harvester.models import Source
 # Use logger from Django settings instead of configuring here
 logger = logging.getLogger(__name__)
 
-# Import unified source registry from PROVIDER_METADATA
-from ..PROVIDER_METADATA import SOURCE_REGISTRY
+# Import unified source registry from provider_config
+from ..provider_config import SOURCE_REGISTRY
 
 
 def generate_sha256_hash(value):

@@ -47,7 +47,7 @@ export function IndicatorInput({
             }
           }}
           rows={4}
-          className="font-mono text-sm"
+          className="h-30 resize-none field-sizing-fixed overflow-y-auto font-mono text-sm"
         />
         <div className="flex items-center gap-2">
           <Button

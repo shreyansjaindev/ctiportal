@@ -16,11 +16,25 @@ def make_api_request(endpoint, headers):
     return response.json()
 
 
-def file(query, headers):
+def _resolve_headers(headers):
+    if headers is not None:
+        return headers
+    if not API_KEYS:
+        return None
+    return {"x-apikey": API_KEYS[0]}
+
+
+def file(query, headers=None):
     file_data = {}
+
+    headers = _resolve_headers(headers)
+    if not headers:
+        return {"error": "No VirusTotal API key available"}
 
     response_data = make_api_request(f"files/{query}", headers)
     data = response_data.get("data")
+    if not data:
+        return file_data
     attributes = data.get("attributes", {})
 
     file_data["Detection"] = attributes.get("last_analysis_stats", {})
@@ -32,11 +46,17 @@ def file(query, headers):
     return file_data
 
 
-def domain(query, headers):
+def domain(query, headers=None):
     domain_data = {}
+
+    headers = _resolve_headers(headers)
+    if not headers:
+        return {"error": "No VirusTotal API key available"}
 
     response_data = make_api_request(f"domains/{query}", headers)
     data = response_data.get("data")
+    if not data:
+        return domain_data
     attributes = data.get("attributes", {})
 
     domain_data["Detection"] = attributes.get("last_analysis_stats", {})
@@ -44,6 +64,8 @@ def domain(query, headers):
 
     response_data = make_api_request(f"domains/{query}/subdomains?limit=30", headers)
     data = response_data.get("data")
+    if not data:
+        return domain_data
 
     subdomains = []
     for value in data:
@@ -53,11 +75,18 @@ def domain(query, headers):
     return domain_data
 
 
-def url(query, headers):
+def url(query, headers=None):
     url_data = {}
     encoded_query = base64.b64encode(query.encode()).decode()
+
+    headers = _resolve_headers(headers)
+    if not headers:
+        return {"error": "No VirusTotal API key available"}
+
     response_data = make_api_request(f"urls/{encoded_query}", headers)
     data = response_data.get("data")
+    if not data:
+        return url_data
     attributes = data.get("attributes", {})
 
     url_data["Detection"] = attributes.get("last_analysis_stats", {})
@@ -67,11 +96,17 @@ def url(query, headers):
     return url_data
 
 
-def ip_address(query, headers):
+def ip_address(query, headers=None):
     ip_data = {}
+
+    headers = _resolve_headers(headers)
+    if not headers:
+        return {"error": "No VirusTotal API key available"}
 
     response_data = make_api_request(f"ip_addresses/{query}", headers)
     data = response_data.get("data")
+    if not data:
+        return ip_data
     attributes = data.get("attributes", {})
 
     ip_data["Detection"] = attributes.get("last_analysis_stats", {})
@@ -81,6 +116,34 @@ def ip_address(query, headers):
     ip_data["Country"] = attributes.get("country", "")
 
     return ip_data
+
+
+def get_passive_dns(domain):
+    """Get passive DNS records from VirusTotal"""
+    if not API_KEYS:
+        return {"error": "No VirusTotal API key available"}
+    
+    try:
+        headers = {"x-apikey": API_KEYS[0]}
+        response_data = make_api_request(f"domains/{domain}/resolutions?limit=40", headers)
+        
+        data = response_data.get("data", [])
+        records = []
+        
+        for record in data:
+            attributes = record.get("attributes", {})
+            records.append({
+                "ip_address": attributes.get("ip_address"),
+                "date": attributes.get("date"),
+                "host_name": attributes.get("host_name")
+            })
+        
+        return {
+            "records": records,
+            "total_count": len(records)
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 def virustotal(query, input_type):

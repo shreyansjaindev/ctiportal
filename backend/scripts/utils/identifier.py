@@ -2,6 +2,7 @@ import ioc_fanger
 import re
 import sys
 
+# Simplified indicator types - merged URL variants only
 REGEX = {
     "sha256": re.compile(r"\b[A-Fa-f0-9]{64}\b"),
     "sha1": re.compile(r"\b[A-Fa-f0-9]{40}\b"),
@@ -16,12 +17,6 @@ REGEX = {
     ),
     "url": re.compile(
         r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-    ),
-    "url_with_http": re.compile(
-        r"^((https:\/\/|http:\/\/|www\.))(((([a-zA-Z0-9])|([a-zA-Z0-9][a-zA-Z0-9\-]{0,86}[a-zA-Z0-9]))\.(([a-zA-Z0-9])|([a-zA-Z0-9][a-zA-Z0-9\-]{0,73}[a-zA-Z0-9]))\.(([a-zA-Z0-9]{2,12}\.[a-zA-Z0-9]{2,12})|([a-zA-Z0-9]{2,25})))|((([a-zA-Z0-9])|([a-zA-Z0-9][a-zA-Z0-9\-]{0,162}[a-zA-Z0-9]))\.(([a-zA-Z0-9]{2,12}\.[a-zA-Z0-9]{2,12})|([a-zA-Z0-9]{2,25})))).*$"
-    ),
-    "url_without_http": re.compile(
-        r"^(((([a-zA-Z0-9])|([a-zA-Z0-9][a-zA-Z0-9\-]{0,86}[a-zA-Z0-9]))\.(([a-zA-Z0-9])|([a-zA-Z0-9][a-zA-Z0-9\-]{0,73}[a-zA-Z0-9]))\.(([a-zA-Z0-9]{2,12}\.[a-zA-Z0-9]{2,12})|([a-zA-Z0-9]{2,25})))|((([a-zA-Z0-9])|([a-zA-Z0-9][a-zA-Z0-9\-]{0,162}[a-zA-Z0-9]))\.(([a-zA-Z0-9]{2,12}\.[a-zA-Z0-9]{2,12})|([a-zA-Z0-9]{2,25})))).*$"
     ),
     "cve": re.compile(r"(CVE|cve)-\d{4}-\d{4,7}"),
 }

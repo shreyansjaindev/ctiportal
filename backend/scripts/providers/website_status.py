@@ -10,7 +10,7 @@ def get_website_status(query, query_type):
         endpoint_url = f"https://api.redirect-checker.net/?url={protocol}://{domain}&timeout=10&maxhops=5&meta-refresh=1&format=json"
         redirects_data = []
         try:
-            response = requests.get(endpoint_url).json()
+            response = requests.get(endpoint_url, timeout=15).json()
             if response.get("result") == "success":
                 response_data = response["data"]
                 for redirects in response_data:

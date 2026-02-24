@@ -4,67 +4,57 @@
  */
 
 import * as aggregators from "@/shared/lib/aggregators"
-import type { LookupType, IndicatorKind, LookupResult, Provider } from "@/shared/types/intelligence-harvester"
+import type { LookupType, IndicatorType, LookupResult, Provider } from "@/shared/types/intelligence-harvester"
 
 export interface LookupRequest {
   indicator: string
-  kind: IndicatorKind
+  indicatorType: IndicatorType
   selectedTypes: Set<LookupType>
   providers_by_type: Record<string, Provider[]>
-  getProviderForType: (type: LookupType) => string | string[]
+  getProviderForType: (type: LookupType) => string[]
   token: string
 }
 
 /**
- * Check if a lookup type is applicable to an indicator kind
+ * Check if a lookup type is applicable to an indicator type
  */
-export function isLookupApplicable(type: LookupType, kind: IndicatorKind): boolean {
-  const applicabilityMap: Record<LookupType, IndicatorKind[]> = {
+export function isLookupApplicable(type: LookupType, indicatorType: IndicatorType | undefined): boolean {
+  if (!indicatorType) return false
+  
+  const applicabilityMap: Record<LookupType, IndicatorType[]> = {
     whois: ["domain"],
     whois_history: ["domain"],
     dns: ["domain"],
     passive_dns: ["domain"],
-    ip_info: ["ip"],
-    reverse_dns: ["ip"],
-    reputation: ["ip", "domain", "hash"],
+    ip_info: ["ipv4", "ipv6"],
+    reverse_dns: ["ipv4", "ipv6"],
+    reputation: ["ipv4", "ipv6", "domain", "md5", "sha1", "sha256"],
     screenshot: ["domain"],
     email_validator: ["email"],
-    web_search: ["domain"],
-    website_status: ["domain"],
-    vulnerability: ["cve"],
+    website_details: ["domain", "url", "ipv4"],
+    cve_details: ["cve"],
   }
 
-  return applicabilityMap[type]?.includes(kind) ?? false
+  return applicabilityMap[type]?.includes(indicatorType) ?? false
 }
 
 /**
  * Resolve provider IDs for a lookup type
- * Returns empty array if providers should not be used (disabled or auto mode)
+ * Returns empty array if no providers selected
  */
 function resolveProviders(
   _type: LookupType,
-  providerValue: string | string[],
+  providerValue: string[],
   availableProviders?: Provider[]
 ): string[] {
-  // Handle array values (multi-select)
-  if (Array.isArray(providerValue)) {
-    if (providerValue.length === 0 || providerValue[0] === "none") return []
-    if (providerValue[0] === "auto") return []
-
-    if (!availableProviders) return []
-
-    const providerIds = availableProviders.map((p) => p.id)
-    return providerValue.filter((p) => providerIds.includes(p))
+  if (!Array.isArray(providerValue) || providerValue.length === 0) {
+    return []
   }
-
-  // Handle string values (backward compatibility)
-  if (providerValue === "auto" || providerValue === "none") return []
-  if (providerValue === "all") return []
 
   if (!availableProviders) return []
 
   const providerIds = availableProviders.map((p) => p.id)
-  return providerIds.includes(providerValue) ? [providerValue] : []
+  return providerValue.filter((p) => providerIds.includes(p))
 }
 
 /**
@@ -72,12 +62,11 @@ function resolveProviders(
  * Uses unified backend search endpoint
  */
 export async function executeIndicatorLookups(request: LookupRequest): Promise<LookupResult[]> {
-  const { indicator, kind, selectedTypes, providers_by_type, getProviderForType, token } = request
+  const { indicator, indicatorType, selectedTypes, providers_by_type, getProviderForType, token } = request
 
-  const typesToRun = Array.from(selectedTypes).filter((type) => isLookupApplicable(type, kind))
+  const typesToRun = Array.from(selectedTypes).filter((type) => isLookupApplicable(type, indicatorType))
 
   if (typesToRun.length === 0) {
-    // No applicable lookup types for this indicator kind
     return []
   }
 
@@ -88,11 +77,23 @@ export async function executeIndicatorLookups(request: LookupRequest): Promise<L
     const availableProviders = providers_by_type[type as keyof typeof providers_by_type]
     const resolvedProviders = resolveProviders(type, providerValue, availableProviders)
     
-    // Only include in request if there are providers selected
+    console.log(`[Lookup] Type: ${type}, selected providers: ${providerValue}, available: ${availableProviders?.length || 0}, resolved: ${resolvedProviders.length}`)
+    
+    // If no providers selected, use all available providers for this type
     if (resolvedProviders.length > 0) {
       providersForLookup[type] = resolvedProviders
+    } else if (availableProviders && availableProviders.length > 0) {
+      // Fallback: use all available providers for this lookup type
+      providersForLookup[type] = availableProviders.map(p => p.id)
     }
   })
+
+  console.log("[Lookup] Final providers for lookup:", providersForLookup)
+
+  // Check if we have any providers to lookup with
+  if (Object.keys(providersForLookup).length === 0) {
+    throw new Error("No providers available for the requested lookup types")
+  }
 
   // Send batch lookup request to backend
   const response = await aggregators.performIndicatorLookups(
@@ -101,16 +102,38 @@ export async function executeIndicatorLookups(request: LookupRequest): Promise<L
     token
   )
 
+  console.log("[Lookup] Backend response:", response)
+
   // Transform response to match LookupResult format
   const indicatorResult = response.results[0]
-  if (!indicatorResult) return []
+  console.log("[Lookup] indicatorResult:", indicatorResult)
+  
+  if (!indicatorResult) {
+    console.warn("[Lookup] No result found for indicator")
+    return []
+  }
   
   // Validate results is an array before mapping
-  if (!Array.isArray(indicatorResult.results)) return []
+  if (!Array.isArray(indicatorResult.results)) {
+    console.warn("[Lookup] indicatorResult.results is not an array:", indicatorResult.results)
+    return []
+  }
 
-  return indicatorResult.results.map((result) => ({
+  const mappedResults = indicatorResult.results.map((result) => ({
     ...result,
     _lookup_type: result._lookup_type as LookupType,
   })) as LookupResult[]
+  
+  console.log("[Lookup] Mapped results count:", mappedResults.length)
+  if (mappedResults.length > 0) {
+    const firstResult = mappedResults[0]
+    console.log("[Lookup] First result _lookup_type:", firstResult._lookup_type)
+    console.log("[Lookup] First result _provider:", firstResult._provider)
+    console.log("[Lookup] First result has error?", firstResult.error)
+    console.log("[Lookup] First result essential:", firstResult.essential)
+    console.log("[Lookup] First result additional:", firstResult.additional)
+    console.log("[Lookup] First result keys:", Object.keys(firstResult))
+  }
+  return mappedResults
 }
 

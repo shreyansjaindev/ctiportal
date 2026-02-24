@@ -5,6 +5,7 @@ import { Badge } from "@/shared/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover"
 import { getLogoPath } from "@/shared/utils/logo.utils"
 import { cn } from "@/shared/lib/utils"
+import { Switch } from "@/shared/components/ui/switch"
 import type { Provider, ProviderPreset } from "@/shared/types/intelligence-harvester"
 import type { ProviderValue } from "@/shared/hooks"
 
@@ -27,10 +28,8 @@ interface LookupConfigurationProps {
   setScreenshotProvider: (value: ProviderValue) => void
   emailValidationProvider: ProviderValue
   setEmailValidationProvider: (value: ProviderValue) => void
-  vulnerabilityProvider: ProviderValue
-  setVulnerabilityProvider: (value: ProviderValue) => void
-  webSearchProvider: ProviderValue
-  setWebSearchProvider: (value: ProviderValue) => void
+  cveDetailsProvider: ProviderValue
+  setCveDetailsProvider: (value: ProviderValue) => void
   websiteStatusProvider: ProviderValue
   setWebsiteStatusProvider: (value: ProviderValue) => void
   providersByType: {
@@ -43,11 +42,12 @@ interface LookupConfigurationProps {
     reverse_dns?: Provider[]
     screenshot?: Provider[]
     email_validator?: Provider[]
-    vulnerability?: Provider[]
-    web_search?: Provider[]
-    website_status?: Provider[]
+    cve_details?: Provider[]
+    website_details?: Provider[]
   }
   presets?: Record<string, ProviderPreset>
+  autoLoad?: boolean
+  setAutoLoad?: (value: boolean) => void
   className?: string
 }
 
@@ -195,14 +195,14 @@ export function LookupConfiguration({
   setScreenshotProvider,
   emailValidationProvider,
   setEmailValidationProvider,
-  vulnerabilityProvider,
-  setVulnerabilityProvider,
-  webSearchProvider,
-  setWebSearchProvider,
+  cveDetailsProvider,
+  setCveDetailsProvider,
   websiteStatusProvider,
   setWebsiteStatusProvider,
   providersByType,
   presets,
+  autoLoad = false,
+  setAutoLoad,
   className,
 }: LookupConfigurationProps) {
   const lookupTypes: LookupType[] = [
@@ -215,9 +215,8 @@ export function LookupConfiguration({
     { id: 'reverse_dns', label: 'Reverse DNS', value: reverseDnsProvider, setValue: setReverseDnsProvider, providers: providersByType.reverse_dns },
     { id: 'screenshot', label: 'Screenshot', value: screenshotProvider, setValue: setScreenshotProvider, providers: providersByType.screenshot },
     { id: 'email', label: 'Email Validator', value: emailValidationProvider, setValue: setEmailValidationProvider, providers: providersByType.email_validator },
-    { id: 'vuln', label: 'Vulnerability', value: vulnerabilityProvider, setValue: setVulnerabilityProvider, providers: providersByType.vulnerability },
-    { id: 'web_search', label: 'Web Search', value: webSearchProvider, setValue: setWebSearchProvider, providers: providersByType.web_search },
-    { id: 'website_status', label: 'Website Status', value: websiteStatusProvider, setValue: setWebsiteStatusProvider, providers: providersByType.website_status },
+    { id: 'cve', label: 'CVE Details', value: cveDetailsProvider, setValue: setCveDetailsProvider, providers: providersByType.cve_details },
+    { id: 'website_details', label: 'Website Details', value: websiteStatusProvider, setValue: setWebsiteStatusProvider, providers: providersByType.website_details },
   ]
 
   // Helper to check if enabled
@@ -249,9 +248,8 @@ export function LookupConfiguration({
     setReverseDnsProvider(pickAvailable(providers.reverse_dns || [], providersByType.reverse_dns))
     setScreenshotProvider(pickAvailable(providers.screenshot || [], providersByType.screenshot))
     setEmailValidationProvider(pickAvailable(providers.email_validator || [], providersByType.email_validator))
-    setVulnerabilityProvider(pickAvailable(providers.vulnerability || [], providersByType.vulnerability))
-    setWebSearchProvider(pickAvailable(providers.web_search || [], providersByType.web_search))
-    setWebsiteStatusProvider(pickAvailable(providers.website_status || [], providersByType.website_status))
+    setCveDetailsProvider(pickAvailable(providers.cve_details || [], providersByType.cve_details))
+    setWebsiteStatusProvider(pickAvailable(providers.website_details || [], providersByType.website_details))
   }
 
   const clearAllSelections = () => {
@@ -264,40 +262,55 @@ export function LookupConfiguration({
     setReverseDnsProvider([])
     setScreenshotProvider([])
     setEmailValidationProvider([])
-    setVulnerabilityProvider([])
-    setWebSearchProvider([])
+    setCveDetailsProvider([])
     setWebsiteStatusProvider([])
   }
 
   return (
     <Card className={cn("rounded-tr-lg rounded-tl-none rounded-b-none", className)}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            Configure Lookup
-            <Badge variant="secondary" className="text-xs">
-              {enabledCount} of 12 active
-            </Badge>
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={clearAllSelections}
-            >
-              Clear All
-            </Button>
-            {presets && Object.entries(presets).map(([presetKey, presetData]: [string, ProviderPreset]) => (
+      <CardHeader className="space-y-3">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              Configure Lookup
+              <Badge variant="secondary" className="text-xs">
+                {enabledCount} of 11 active
+              </Badge>
+            </CardTitle>
+            <div className="flex gap-2 flex-wrap">
               <Button 
-                key={presetKey}
                 size="sm" 
                 variant="outline" 
-                onClick={() => applyPreset(presetKey)}
-                title={presetData.description}
+                onClick={clearAllSelections}
+                className="h-8"
               >
-                {presetData.name}
+                Clear All
               </Button>
-            ))}
+              {presets && Object.entries(presets).map(([presetKey, presetData]: [string, ProviderPreset]) => (
+                <Button 
+                  key={presetKey}
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => applyPreset(presetKey)}
+                  title={presetData.description}
+                  className="h-8"
+                >
+                  {presetData.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-muted/30">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">Auto-load Data</p>
+              <p className="text-xs text-muted-foreground">
+                Run lookups automatically
+              </p>
+            </div>
+            <Switch
+              checked={autoLoad}
+              onCheckedChange={setAutoLoad}
+            />
           </div>
         </div>
       </CardHeader>

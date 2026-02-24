@@ -15,6 +15,8 @@ import {
   getFacetedRowModel,
   getFacetedUniqueValues,
   getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
 
@@ -46,8 +48,6 @@ interface DataTableProps<TData, TValue> {
   searchControl?: React.ReactNode
   toolbarControls?: React.ReactNode
   rightToolbarControls?: React.ReactNode
-  /** @deprecated Use pagination + onPaginationChange instead */
-  rowsControl?: React.ReactNode
   pagination?: PaginationState
   onPaginationChange?: OnChangeFn<PaginationState>
   pageCount?: number
@@ -60,6 +60,10 @@ interface DataTableProps<TData, TValue> {
   onSelectedRowIdsChange?: React.Dispatch<React.SetStateAction<Set<number>>>
   rowIdAccessor?: (row: TData) => number
   isLoading?: boolean
+  /** Enable server-side processing (default: false = client-side) */
+  serverSide?: boolean
+  /** Optional class override for the internal table element */
+  tableClassName?: string
 }
 
 export function DataTable<TData, TValue>({
@@ -72,7 +76,6 @@ export function DataTable<TData, TValue>({
   searchControl,
   toolbarControls,
   rightToolbarControls,
-  rowsControl,
   pagination,
   onPaginationChange,
   pageCount,
@@ -84,24 +87,33 @@ export function DataTable<TData, TValue>({
   onSelectedRowIdsChange,
   rowIdAccessor,
   isLoading = false,
+  serverSide = false,
+  tableClassName,
 }: DataTableProps<TData, TValue>) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [columnOrder, setColumnOrder] = useState<string[]>([])
+  const [internalPagination, setInternalPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: pageSizeOptions?.[0] ?? 10,
+  })
+  const [internalColumnFilters, setInternalColumnFilters] = useState<ColumnFiltersState>([])
 
   // Custom getFacetedUniqueValues that handles array values
   const customGetFacetedUniqueValues = useCallback(
     (table: Table<TData>, columnId: string) => () => {
       const facets = getFacetedUniqueValues<TData>()(table, columnId)()
-      const customFacets = new Map()
-      for (const [key, value] of facets as any) {
+      const customFacets = new Map<string, number>()
+      for (const [key, value] of facets.entries()) {
         if (Array.isArray(key)) {
           for (const k of key) {
-            const prevValue = customFacets.get(k) || 0
-            customFacets.set(k, prevValue + value)
+            const stringKey = String(k)
+            const prevValue = customFacets.get(stringKey) || 0
+            customFacets.set(stringKey, prevValue + (value as number))
           }
         } else {
-          const prevValue = customFacets.get(key) || 0
-          customFacets.set(key, prevValue + value)
+          const stringKey = String(key)
+          const prevValue = customFacets.get(stringKey) || 0
+          customFacets.set(stringKey, prevValue + (value as number))
         }
       }
       return customFacets
@@ -117,19 +129,26 @@ export function DataTable<TData, TValue>({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: customGetFacetedUniqueValues,
     getFacetedMinMaxValues: getFacetedMinMaxValues(),
-    manualSorting: !!onSortingChange,
+    // Client-side processing (automatic)
+    getSortedRowModel: serverSide ? undefined : getSortedRowModel(),
+    getPaginationRowModel: serverSide ? undefined : getPaginationRowModel(),
+    // Server-side processing (manual)
+    manualSorting: serverSide,
     onSortingChange,
-    manualFiltering: !!onColumnFiltersChange,
-    onColumnFiltersChange,
-    manualPagination: !!onPaginationChange,
-    onPaginationChange,
-    pageCount: onPaginationChange ? (pageCount ?? -1) : undefined,
+    manualFiltering: serverSide,
+    onColumnFiltersChange: serverSide ? onColumnFiltersChange : setInternalColumnFilters,
+    manualPagination: serverSide,
+    onPaginationChange: serverSide ? onPaginationChange : setInternalPagination,
+    pageCount: serverSide ? (pageCount ?? -1) : undefined,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
+    initialState: {
+      pagination: { pageIndex: 0, pageSize: pageSizeOptions?.[0] ?? 10 },
+    },
     state: {
       ...(onSortingChange ? { sorting: sorting ?? [] } : {}),
-      ...(onColumnFiltersChange ? { columnFilters: columnFilters ?? [] } : {}),
-      ...(onPaginationChange ? { pagination: pagination ?? { pageIndex: 0, pageSize: 25 } } : {}),
+      columnFilters: serverSide && onColumnFiltersChange ? (columnFilters ?? []) : internalColumnFilters,
+      pagination: serverSide && onPaginationChange ? (pagination ?? { pageIndex: 0, pageSize: 25 }) : internalPagination,
       columnVisibility,
       columnOrder,
     },
@@ -162,21 +181,25 @@ export function DataTable<TData, TValue>({
     <DataTableProvider
       table={table}
       columns={columns}
-      columnFilters={columnFilters ?? []}
+      columnFilters={serverSide && onColumnFiltersChange ? (columnFilters ?? []) : internalColumnFilters}
       sorting={sorting ?? []}
       columnOrder={columnOrder}
       columnVisibility={columnVisibility}
       enableColumnOrdering
       filterFields={filterFields}
       isLoading={isLoading}
-      totalCount={onPaginationChange ? totalCount : undefined}
+      totalCount={serverSide ? totalCount : undefined}
       getFacetedUniqueValues={getFacetedUniqueValuesForProvider}
-      pagination={onPaginationChange ? (pagination ?? { pageIndex: 0, pageSize: 25 }) : undefined}
+      pagination={serverSide 
+        ? (pagination ?? { pageIndex: 0, pageSize: 25 }) 
+        : (pageSizeOptions ? table.getState().pagination : undefined)
+      }
     >
       <div className="flex h-full w-full flex-col sm:flex-row">
+        {filterFields && filterFields.length > 0 && (
         <div
           className={cn(
-            "hidden h-full w-full flex-col sm:sticky sm:top-0 sm:flex sm:min-h-screen sm:min-w-52 sm:max-w-52 sm:self-start md:min-w-64 md:max-w-64",
+            "hidden h-full w-full flex-col sm:sticky sm:top-0 sm:flex sm:min-h-screen sm:min-w-52 sm:max-w-52 sm:self-start md:min-w-64 md:max-w-64 sm:border-r sm:border-border",
             "group-data-[expanded=false]/controls:hidden",
           )}
         >
@@ -194,10 +217,12 @@ export function DataTable<TData, TValue>({
             <DataTableFilterControls />
           </div>
         </div>
-        <div className="flex max-w-full flex-1 flex-col overflow-hidden border-border sm:border-l">
+        )}
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex flex-col gap-4 bg-background p-2">
             {searchControl && <div className="w-full">{searchControl}</div>}
             <DataTableToolbar
+              hasFilters={filterFields && filterFields.length > 0}
               renderActions={() => (
                 <div className="flex flex-wrap items-center gap-2">
                   {toolbarControls}
@@ -207,7 +232,12 @@ export function DataTable<TData, TValue>({
             />
           </div>
           <div className="z-0">
-            <TableComponent className="border-separate border-spacing-0">
+            <TableComponent
+              className={cn(
+                "border-separate border-spacing-0 w-full",
+                tableClassName
+              )}
+            >
               <TableHeader className="sticky top-0 z-20 bg-background">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id} className="bg-muted/50 hover:bg-muted/50 [&>*]:border-t [&>:not(:last-child)]:border-r">
@@ -279,9 +309,9 @@ export function DataTable<TData, TValue>({
               </TableBody>
             </TableComponent>
           </div>
-          {onPaginationChange
-            ? <DataTablePagination pageSizeOptions={pageSizeOptions} />
-            : rowsControl}
+          {(pageSizeOptions || onPaginationChange) && (
+            <DataTablePagination pageSizeOptions={pageSizeOptions} />
+          )}
         </div>
       </div>
     </DataTableProvider>

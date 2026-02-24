@@ -15,7 +15,7 @@ Type definitions for the Intelligence Harvester feature.
     | "whois" | "ip_info" | "reputation" | "dns" 
     | "passive_dns" | "whois_history" | "reverse_dns"
     | "screenshot" | "email_validator" | "vulnerability"
-    | "web_search" | "website_status"
+    | "website_details"
   ```
 
 - **`IndicatorType`** - Backend indicator classification

@@ -13,7 +13,7 @@ export type { ApiError } from './api'
 export * from './aggregators'
 
 // Indicator utilities
-export { parseIndicators, getInputPlaceholder } from './indicator-utils'
+export { parseIndicators, getInputPlaceholder, detectIndicatorType } from './indicator-utils'
 
 // Auth utilities
 export { useAuth, AuthProvider } from './auth'

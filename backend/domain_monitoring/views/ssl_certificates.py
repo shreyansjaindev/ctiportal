@@ -24,5 +24,5 @@ class SSLCertificateViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
     filterset_class = SSLCertificateFilter
     permission_classes = [IsAuthenticated]
-    ordering_fields = ["domain", "expires"]
-    search_fields = ["domain", "issuer", "subject"]
+    ordering_fields = ["cert_domain", "watched_domain", "created", "cert_index"]
+    search_fields = ["cert_domain", "watched_domain", "company__name"]

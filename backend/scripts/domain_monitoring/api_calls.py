@@ -21,7 +21,7 @@ HEADERS = {
 
 def make_api_request(method, endpoint, params=None, data=None):
     try:
-        response = requests.request(method, endpoint, headers=HEADERS, params=params, json=data)
+        response = requests.request(method, endpoint, headers=HEADERS, params=params, json=data, timeout=10)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -73,7 +73,7 @@ def add_lookalike_domain(resource_match, date, company):
         "source": "whoisxmlapi",
         "company": company,
     }
-    response = requests.post(LOOKALIKE_DOMAINS_ENDPOINT, headers=HEADERS, json=data)
+    response = requests.post(LOOKALIKE_DOMAINS_ENDPOINT, headers=HEADERS, json=data, timeout=10)
     return response
 
 
@@ -84,7 +84,7 @@ def add_ssl_certificate(*args, **kwargs):
         "watched_domain": kwargs["watched_domain"],
         "company": kwargs["company"],
     }
-    response = requests.post(SSL_CERTIFICATES_ENDPOINT, headers=HEADERS, json=data)
+    response = requests.post(SSL_CERTIFICATES_ENDPOINT, headers=HEADERS, json=data, timeout=10)
     return response
 
 
@@ -120,6 +120,7 @@ def post_monitored_domain_alert(data):
         MONITORED_DOMAIN_ALERTS_ENDPOINT,
         headers=HEADERS,
         json=data,
+        timeout=10,
     )
 
 
@@ -129,6 +130,7 @@ def update_monitored_domain(monitored_domain_id, data):
         f"{MONITORED_DOMAINS_ENDPOINT}{monitored_domain_id}/",
         headers=HEADERS,
         json=data,
+        timeout=10,
     )
     if response.status_code == 200:
         return True

@@ -140,6 +140,43 @@ def screenshot(query, api_key):
     return img
 
 
+def get_whois_history(domain):
+    """Get WHOIS history records from WhoisXMLAPI"""
+    if not API_KEYS:
+        return {"error": "No WhoisXMLAPI key available"}
+    
+    api_key = API_KEYS[0]
+    url = f"https://whois-history.whoisxmlapi.com/api/v1?apiKey={api_key}&domainName={domain}&mode=preview"
+    
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            records = data.get("whoisRecords", [])
+            
+            formatted_records = []
+            for record in records:
+                whois_record = record.get("WhoisRecord", {})
+                registry_data = whois_record.get("registryData", {})
+                formatted_records.append({
+                    "created_date": registry_data.get("createdDate"),
+                    "updated_date": registry_data.get("updatedDate"),
+                    "expires_date": registry_data.get("expiresDate"),
+                    "registrar_name": registry_data.get("registrarName"),
+                    "registrant_name": registry_data.get("registrant", {}).get("name"),
+                    "registrant_email": registry_data.get("registrant", {}).get("email"),
+                })
+            
+            return {
+                "records": formatted_records,
+                "total_count": len(formatted_records)
+            }
+        else:
+            return {"error": f"API returned status code {response.status_code}"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def whoisxmlapi_main(query, query_type):
     if not API_KEYS:
         return {}
@@ -167,10 +204,7 @@ def whoisxmlapi_main(query, query_type):
 
 
 if __name__ == "__main__":
-    # query = sys.argv[1]
-    # query_type = sys.argv[2]
-
-    query = "aituvip.com"
-    query_type = "reverse_whois"
+    query = sys.argv[1]
+    query_type = sys.argv[2]
 
     print(whoisxmlapi_main(query, query_type))

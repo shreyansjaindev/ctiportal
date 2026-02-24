@@ -17,8 +17,8 @@ def mha(header):
                 header_dict[line[0]] = line[1].strip()
 
     # Removed extra whitespaces
-    for value in header_dict.values():
-        value = re.sub(r" +", " ", value)
+    for key in header_dict:
+        header_dict[key] = re.sub(r" +", " ", header_dict[key])
 
     # Received Header List
     if header_dict.get("Received", None):

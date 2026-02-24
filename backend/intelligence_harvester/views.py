@@ -1,179 +1,106 @@
-from rest_framework import filters, viewsets
+from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from django_filters.rest_framework import DjangoFilterBackend
-from .models import *
-from .serializers import *
-from .filters import *
-from rest_framework.response import Response
-from rest_framework import status
+from .serializers import IndicatorSerializer, BatchIndicatorLookupSerializer
 from django.http import FileResponse
 import openpyxl
 import io
 import logging
+from datetime import datetime, timezone
+from django.utils.timezone import make_aware
 from scripts.utils.identifier import get_indicator_type
-from scripts.core.engine import collect_data, generate_excel
-from scripts.field_schema import apply_mapping, categorize_fields
-from scripts.aggregators import (
-    whois,
-    geolocation,
-    reputation,
-    vulnerability,
-    email_validator,
-    web_status,
-    passive_dns,
-    whois_history,
-    dns,
-    reverse_dns,
-    web_search,
-    screenshot,
+from scripts.core.engine import generate_excel, generate_sha256_hash
+from scripts.field_schema import categorize_fields
+from scripts.provider_config import (
+    get_category_providers,
+    get_presets,
+    LOOKUP_MODULES,
+    INDICATOR_LOOKUPS,
 )
+from scripts.aggregators import reputation
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from api.response import error, success
-from scripts.PROVIDER_METADATA import get_category_providers, get_presets
-from scripts.constants import SOURCES, ADDITIONAL_SOURCES
+from .models import Source
+
 
 logger = logging.getLogger(__name__)
 
+# Cache timeout in minutes (8 hours)
+CACHE_TIMEOUT_MINUTES = 480
 
-# Helper functions for provider management
-def _get_providers_safe(module, category_name):
+
+def is_lookup_applicable(lookup_type: str, indicator_type: str) -> bool:
+    """Check if a lookup type is applicable for an indicator type"""
+    applicable_lookups = INDICATOR_LOOKUPS.get(indicator_type, [])
+    return lookup_type in applicable_lookups
+
+
+def execute_lookup(lookup_type: str, indicator_value: str, indicator_type: str, provider=None) -> dict:
     """
-    Safely get available providers from a module with error handling.
-    
-    Args:
-        module: The provider module with get_available_providers() method
-        category_name: Display name for logging
-    
-    Returns:
-        List of available provider IDs, or empty list on error
-    """
-    try:
-        return module.get_available_providers()
-    except Exception as e:
-        logger.error(f"Failed to get {category_name} providers: {e}")
-        return []
-
-
-def _build_provider_list(category, available_providers):
-    """
-    Build provider list with metadata and availability status.
-    
-    Args:
-        category: Provider category name
-        available_providers: List of currently available provider IDs
-    
-    Returns:
-        List of provider dictionaries with metadata and availability
-    """
-    return [
-        {**meta, 'available': provider_id in available_providers}
-        for provider_id, meta in get_category_providers(category).items()
-    ]
-
-
-# Lookup routing functions
-def normalize_indicator_kind(indicator_type: str) -> str:
-    """
-    Normalize backend indicator type to lookup kind.
-    
-    Maps detailed indicator types to broader categories used for lookup routing.
-    """
-    if indicator_type in ["ipv4", "ipv6"]:
-        return "ip"
-    if indicator_type in ["domain", "url", "url_with_http", "url_without_http"]:
-        return "domain"
-    if indicator_type == "email":
-        return "email"
-    if indicator_type == "cve":
-        return "cve"
-    if indicator_type in ["md5", "sha1", "sha256", "sha512"]:
-        return "hash"
-    if indicator_type == "keyword":
-        return "keyword"
-    return "unknown"
-
-
-def is_lookup_applicable(lookup_type: str, indicator_kind: str) -> bool:
-    """
-    Check if a lookup type is applicable for an indicator kind.
-    """
-    if lookup_type in [
-        "whois",
-        "whois_history",
-        "dns",
-        "passive_dns",
-        "screenshot",
-        "web_search",
-        "website_status",
-    ]:
-        return (
-            indicator_kind in ["domain", "keyword"]
-            if lookup_type == "web_search"
-            else indicator_kind == "domain"
-        )
-    if lookup_type in ["ip_info", "reverse_dns"]:
-        return indicator_kind == "ip"
-    if lookup_type == "email_validator":
-        return indicator_kind == "email"
-    if lookup_type == "vulnerability":
-        return indicator_kind == "cve"
-    if lookup_type == "reputation":
-        return indicator_kind in ["ip", "domain", "hash"]
-    return False
-
-
-# Lookup type to function mapping
-LOOKUP_HANDLERS = {
-    "whois": lambda val, prov: whois.get(val, provider=prov),
-    "ip_info": lambda val, prov: geolocation.get(val, provider=prov),
-    "passive_dns": lambda val, prov: passive_dns.get(val, provider=prov),
-    "whois_history": lambda val, prov: whois_history.get(val, provider=prov),
-    "dns": lambda val, prov: dns.get(val, provider=prov),
-    "reverse_dns": lambda val, prov: reverse_dns.get(val, provider=prov),
-    "screenshot": lambda val, prov: screenshot.get(val, provider=prov),
-    "email_validator": lambda val, prov: email_validator.get(val, provider=prov),
-    "vulnerability": lambda val, prov: vulnerability.get(val, provider=prov),
-    "web_search": lambda val, prov: web_search.get(val, provider=prov),
-    "website_status": lambda val, prov: web_status.get(val, provider=prov),
-}
-
-
-def execute_lookup(lookup_type: str, indicator_value: str, indicator_kind: str, provider=None) -> dict:
-    """
-    Execute a single lookup for the given type and indicator.
-    
-    Flow:
-    1. Call provider function to get raw data
-    2. Apply optional provider-specific field mappings (normalization)
-    3. Categorize into essential/additional based on central ESSENTIAL_FIELDS schema
-    4. Return with metadata
+    Execute a single lookup for the given type and indicator with caching support.
+    Returns provider data categorized into essential/additional fields.
     """
     try:
-        logger.debug(f"Executing lookup: type={lookup_type}, provider={provider}, indicator_kind={indicator_kind}")
+        logger.debug(f"Executing lookup: type={lookup_type}, provider={provider}, indicator_type={indicator_type}")
         
-        # Handle reputation lookups with kind-specific logic
+        # Generate cache key
+        normalized_value = indicator_value.lower()
+        hashed_value = generate_sha256_hash(normalized_value)
+        cache_source = f"{lookup_type}_{provider or 'auto'}"
+        
+        # Check cache first
+        try:
+            cached_entry = Source.objects.filter(
+                hashed_value=hashed_value,
+                source=cache_source
+            ).first()
+            
+            if cached_entry:
+                # Check if cache is still valid
+                entry_created = cached_entry.created
+                if entry_created.tzinfo is None:
+                    entry_created = make_aware(entry_created, timezone=timezone.utc)
+                
+                timestamp_now = datetime.now(timezone.utc)
+                time_elapsed = (timestamp_now - entry_created).total_seconds() // 60
+                
+                if time_elapsed < CACHE_TIMEOUT_MINUTES:
+                    # Cache hit - return cached data
+                    logger.debug(f"Cache hit for {lookup_type}/{provider} on {indicator_value}")
+                    # data is already a dict (JSONField), no need to parse
+                    return cached_entry.data
+                else:
+                    # Cache expired - delete it
+                    logger.debug(f"Cache expired for {lookup_type}/{provider} on {indicator_value}")
+                    cached_entry.delete()
+        except Exception as cache_error:
+            logger.warning(f"Error checking cache: {cache_error}")
+            # Continue with fresh lookup if cache check fails
+        
+        # Cache miss or expired - perform fresh lookup
+        logger.debug(f"Cache miss for {lookup_type}/{provider} on {indicator_value}, performing fresh lookup")
+        
+        # Handle reputation lookups with type-specific routing
         if lookup_type == "reputation":
-            if indicator_kind == "ip":
-                result = reputation.get_ip(indicator_value, provider=provider, aggregate=False)
-            elif indicator_kind == "domain":
+            if indicator_type in ['ipv4', 'ipv6']:
+                result = reputation.get_ip(indicator_value, provider=provider)
+            elif indicator_type == "domain":
                 result = reputation.get_domain(indicator_value, provider=provider)
-            elif indicator_kind == "hash":
+            elif indicator_type in ['md5', 'sha1', 'sha256', 'sha512']:
                 result = reputation.get_hash(indicator_value, provider=provider)
             else:
-                logger.warning(f"Unsupported indicator kind for reputation: {indicator_kind}")
-                return {"error": f"Unsupported indicator kind for reputation: {indicator_kind}"}
-        # Handle all other lookup types via lookup table
-        elif lookup_type in LOOKUP_HANDLERS:
-            result = LOOKUP_HANDLERS[lookup_type](indicator_value, provider)
+                return {"error": f"Unsupported indicator type for reputation: {indicator_type}"}
+        # Handle all other lookup types
         else:
-            logger.warning(f"Unsupported lookup type: {lookup_type}")
-            return {"error": f"Unsupported lookup type: {lookup_type}"}
+            module = LOOKUP_MODULES.get(lookup_type)
+            if not module:
+                return {"error": f"Unsupported lookup type: {lookup_type}"}
+            result = module.get(indicator_value, provider=provider)
         
         # Ensure result is a dictionary
         if not isinstance(result, dict):
             result = {}
         
-        # If there's an error, return it with metadata
+        # If there's an error, return it with metadata (don't cache errors)
         if result.get("error"):
             logger.warning(f"Lookup error for {lookup_type}/{provider}: {result.get('error')}")
             return {
@@ -182,19 +109,32 @@ def execute_lookup(lookup_type: str, indicator_value: str, indicator_kind: str, 
                 "_provider": provider or "auto",
             }
         
-        # Step 1: Apply provider-specific field mappings (normalize field names)
-        normalized_result = apply_mapping(result, lookup_type, provider)
+        # Categorize into essential/additional based on field schema
+        categorized = categorize_fields(lookup_type, result)
         
-        # Step 2: Categorize into essential/additional based on central schema
-        categorized = categorize_fields(lookup_type, normalized_result)
-        
-        # Step 3: Build response with metadata
+        # Build response with metadata
         response = {
             "essential": categorized["essential"],
             "additional": categorized["additional"],
             "_lookup_type": lookup_type,
             "_provider": provider or "auto",
         }
+        
+        # Store successful result in cache
+        try:
+            Source.objects.update_or_create(
+                hashed_value=hashed_value,
+                source=cache_source,
+                defaults={
+                    'value': normalized_value,
+                    'value_type': indicator_type,
+                    'data': response,  # JSONField handles dict directly
+                }
+            )
+            logger.debug(f"Cached result for {lookup_type}/{provider} on {indicator_value}")
+        except Exception as cache_error:
+            logger.warning(f"Error storing cache: {cache_error}")
+            # Continue even if caching fails
         
         logger.debug(f"Lookup completed successfully: {lookup_type}/{provider}")
         return response
@@ -207,13 +147,6 @@ def execute_lookup(lookup_type: str, indicator_value: str, indicator_kind: str, 
             "_provider": provider or "auto",
         }
 
-class SourceViewSet(viewsets.ModelViewSet):
-    queryset = Source.objects.all()
-    serializer_class = SourceSerializer
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_class = SourceFilter
-
-
 class IdentifierViewSet(viewsets.ViewSet):
     serializer_class = IndicatorSerializer
 
@@ -224,8 +157,9 @@ class IdentifierViewSet(viewsets.ViewSet):
             if serializer.is_valid():
                 indicators = serializer.validated_data["indicators"]
                 logger.info(f"Identifying {len(indicators)} indicators")
-                context = {"query_list": get_indicator_type(indicators)}
-                return success(context["query_list"])
+                result = get_indicator_type(indicators)
+                logger.debug(f"Identifier result: {result}")
+                return success(result)
             else:
                 logger.warning(f"Invalid indicators payload: {serializer.errors}")
                 return error(
@@ -243,13 +177,9 @@ class IdentifierViewSet(viewsets.ViewSet):
             )
 
 
-# Constants
-EXCEL_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-EXCEL_FILENAME = 'attachment; filename="Intelligence_Harvester_Export.xlsx"'
-
-
 class ExcelRenderer(BaseRenderer):
-    media_type = EXCEL_CONTENT_TYPE
+    """Render lookup results as Excel spreadsheet"""
+    media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     format = "xlsx"
     charset = None
     render_style = "binary"
@@ -261,31 +191,18 @@ class ExcelRenderer(BaseRenderer):
         if not wb.sheetnames:
             wb.create_sheet("No Results")
 
-        # Save workbook to a BytesIO object
         output = io.BytesIO()
         wb.save(output)
-
         output.seek(0)
 
-        # Create a FileResponse with the correct content type and headers
         response = FileResponse(output, content_type=self.media_type)
-        response["Content-Disposition"] = "attachment; filename=download.xlsx"
+        response["Content-Disposition"] = 'attachment; filename="Intelligence_Harvester_Export.xlsx"'
         return response
 
 
 class IndicatorLookupViewSet(viewsets.ViewSet):
-    """
-    ViewSet for performing batch indicator lookups across multiple types and providers.
-    
-    This endpoint accepts indicators and requested lookup types, then returns
-    aggregated results from the configured providers.
-    
-    Attributes:
-        serializer_class: Serializer for individual item-based lookups
-        renderer_classes: JSON and Excel output formats
-        permission_classes: Requires authentication
-    """
-    serializer_class = IndicatorLookupSerializer
+    """Perform batch indicator lookups across multiple types and providers"""
+    serializer_class = BatchIndicatorLookupSerializer
     renderer_classes = [JSONRenderer, ExcelRenderer]
     permission_classes = [IsAuthenticated]
 
@@ -305,100 +222,62 @@ class IndicatorLookupViewSet(viewsets.ViewSet):
         try:
             indicators_payload = request.data.get("indicators", [])
             
-            # Check if this is a batch lookup request (with providers_by_type)
-            is_batch_request = (
-                isinstance(indicators_payload, list)
-                and (len(indicators_payload) == 0 or isinstance(indicators_payload[0], str))
-                and "providers_by_type" in request.data
-            )
-
-            if is_batch_request:
-                logger.info(f"Batch lookup request: {len(indicators_payload)} indicators")
-                serializer = BatchIndicatorLookupSerializer(data=request.data)
-                if not serializer.is_valid():
-                    logger.warning(f"Invalid batch lookup payload: {serializer.errors}")
-                    return error(
-                        "Invalid batch lookup payload",
-                        code="validation_error",
-                        details=serializer.errors,
-                        status_code=400,
-                    )
-
-                indicators = serializer.validated_data["indicators"]
-                providers_by_type = serializer.validated_data["providers_by_type"]
-                
-                # Validate providers_by_type is not empty
-                if not providers_by_type:
-                    logger.warning("No lookup types requested")
-                    return error(
-                        "No lookup types requested",
-                        code="validation_error",
-                        status_code=400,
-                    )
-                
-                # Lookup types are determined by the keys in providers_by_type
-                lookup_types = list(providers_by_type.keys())
-                logger.debug(f"Requested lookup types: {lookup_types}")
-
-                detected = get_indicator_type(indicators)
-                indicator_types = {item["value"]: item["type"] for item in detected}
-
-                # Build results for each indicator
-                results = []
-                for indicator_value in indicators:
-                    indicator_type = indicator_types.get(indicator_value, "unknown")
-                    indicator_kind = normalize_indicator_kind(indicator_type)
-                    indicator_results = []
-
-                    # Run applicable lookups for this indicator
-                    for lookup_type in lookup_types:
-                        if not is_lookup_applicable(lookup_type, indicator_kind):
-                            continue
-
-                        providers = providers_by_type.get(lookup_type) or [None]
-                        for provider in providers:
-                            result = execute_lookup(lookup_type, indicator_value, indicator_kind, provider)
-                            indicator_results.append(result)
-
-                    results.append(
-                        {
-                            "indicator": indicator_value,
-                            "indicator_type": indicator_type,
-                            "results": indicator_results,
-                        }
-                    )
-
-                logger.info(f"Batch lookup completed: {len(results)} indicators processed")
-                return success({"results": results, "indicator_types": indicator_types})
-
-            # Handle traditional item-based lookups (legacy support)
-            logger.info(f"Item-based lookup request: {len(indicators_payload)} indicators")
-            serializer = self.serializer_class(data={"indicators": indicators_payload})
+            logger.info(f"Batch lookup request: {len(indicators_payload)} indicators")
+            serializer = BatchIndicatorLookupSerializer(data=request.data)
             if not serializer.is_valid():
-                logger.warning(f"Invalid indicators payload: {serializer.errors}")
+                logger.warning(f"Invalid batch lookup payload: {serializer.errors}")
                 return error(
-                    "Invalid indicators payload",
+                    "Invalid batch lookup payload",
                     code="validation_error",
                     details=serializer.errors,
                     status_code=400,
                 )
 
             indicators = serializer.validated_data["indicators"]
+            providers_by_type = serializer.validated_data["providers_by_type"]
+            
+            # Validate providers_by_type is not empty
+            if not providers_by_type:
+                logger.warning("No lookup types requested")
+                return error(
+                    "No lookup types requested",
+                    code="validation_error",
+                    status_code=400,
+                )
+            
+            # Lookup types are determined by the keys in providers_by_type
+            lookup_types = list(providers_by_type.keys())
+            logger.debug(f"Requested lookup types: {lookup_types}")
 
-            indicator_data_list = [
-                {
-                    "id": indicator.get("id"),
-                    "value": indicator.get("value"),
-                    "value_type": indicator.get("type"),
-                    "sources": indicator.get("checklist"),
-                }
-                for indicator in indicators
-            ]
+            detected = get_indicator_type(indicators)
+            indicator_types = {item["value"]: item["type"] for item in detected}
 
-            results = collect_data(indicator_data_list)
-            logger.info(f"Item-based lookup completed: {len(results)} results")
+            # Build results for each indicator
+            results = []
+            for indicator_value in indicators:
+                indicator_type = indicator_types.get(indicator_value, "unknown")
+                indicator_results = []
 
-            return success(results)
+                # Run applicable lookups for this indicator
+                for lookup_type in lookup_types:
+                    if not is_lookup_applicable(lookup_type, indicator_type):
+                        continue
+
+                    providers = providers_by_type.get(lookup_type) or [None]
+                    for provider in providers:
+                        result = execute_lookup(lookup_type, indicator_value, indicator_type, provider)
+                        indicator_results.append(result)
+
+                results.append(
+                    {
+                        "indicator": indicator_value,
+                        "indicator_type": indicator_type,
+                        "results": indicator_results,
+                    }
+                )
+
+            logger.info(f"Batch lookup completed: {len(results)} indicators processed")
+            return success({"results": results, "indicator_types": indicator_types})
         except Exception as e:
             logger.error(f"Error in indicator lookup: {e}", exc_info=True)
             return error(
@@ -413,30 +292,18 @@ class AllProvidersView(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     
     def list(self, request):
-        # Configuration for all provider categories
-        categories_config = [
-            ('whois', whois, 'whois'),
-            ('ip_info', geolocation, 'geolocation'),
-            ('reputation', reputation, 'reputation'),
-            ('vulnerability', vulnerability, 'vulnerability'),
-            ('email_validator', email_validator, 'email validator'),
-            ('website_status', web_status, 'website status'),
-            ('passive_dns', passive_dns, 'passive dns'),
-            ('whois_history', whois_history, 'whois history'),
-            ('dns', dns, 'dns'),
-            ('reverse_dns', reverse_dns, 'reverse dns'),
-            ('screenshot', screenshot, 'screenshot'),
-            ('web_search', web_search, 'web search'),
-        ]
-        
-        # Build response organized by type
         try:
             providers_by_type = {}
             
-            # Get availability and build provider lists for all categories
-            for category_key, module, display_name in categories_config:
-                available = _get_providers_safe(module, display_name)
-                providers_by_type[category_key] = _build_provider_list(category_key, available)
+            # Build provider list for each lookup type
+            for lookup_type, module in LOOKUP_MODULES.items():
+                # Get provider metadata - all configured providers are supported
+                # Actual availability is determined by API key presence at lookup time
+                provider_metadata = get_category_providers(lookup_type)
+                providers_by_type[lookup_type] = [
+                    {**meta, 'available': True}
+                    for provider_id, meta in provider_metadata.items()
+                ]
             
             return success({
                 'providers_by_type': providers_by_type,
@@ -449,70 +316,3 @@ class AllProvidersView(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Failed to build providers response: {e}")
             return error(f"Failed to load providers: {str(e)}", status_code=500)
-
-
-class IntelligenceSourcesView(viewsets.ViewSet):
-    """List intelligence sources with capabilities and supported types"""
-    permission_classes = [IsAuthenticated]
-
-    def list(self, request):
-        data_needs = {
-            "dns": {
-                "label": "DNS",
-                "supported_types": ["domain", "url", "ipv4"],
-            },
-            "whois": {
-                "label": "WHOIS",
-                "supported_types": ["domain", "url"],
-            },
-            "passive-dns": {
-                "label": "Passive DNS",
-                "supported_types": ["domain", "ipv4", "url"],
-            },
-            "blocklists": {
-                "label": "Blocklists",
-                "supported_types": ["domain", "ipv4", "url"],
-            },
-            "reputation": {
-                "label": "Reputation",
-                "supported_types": ["domain", "ipv4", "url", "md5", "sha1", "sha256", "sha512"],
-            },
-            "vulnerability": {
-                "label": "Vulnerability",
-                "supported_types": ["cve"],
-            },
-            "malware-analysis": {
-                "label": "Malware Analysis",
-                "supported_types": ["md5", "sha1", "sha256", "sha512"],
-            },
-            "screenshot": {
-                "label": "Screenshot",
-                "supported_types": ["domain", "url", "ipv4"],
-            },
-            "availability": {
-                "label": "Availability",
-                "supported_types": ["domain", "url", "ipv4"],
-            },
-            "email": {
-                "label": "Email",
-                "supported_types": ["email"],
-            },
-        }
-
-        sources = SOURCES
-        sources_by_need = {}
-        for need_key, need in data_needs.items():
-            sources_by_need[need_key] = [
-                key
-                for key, source in sources.items()
-                if need_key in source.get("capabilities", [])
-            ]
-
-        return success(
-            {
-                "sources": sources,
-                "additional_sources": ADDITIONAL_SOURCES,
-                "data_needs": data_needs,
-                "sources_by_need": sources_by_need,
-            }
-        )

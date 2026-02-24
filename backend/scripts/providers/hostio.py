@@ -14,7 +14,7 @@ BASE_URL = "https://host.io/api"
 
 
 def request_data(url, params):
-    return requests.get(url, params=params).json()
+    return requests.get(url, params=params, timeout=10).json()
 
 
 def hostio_full(params, domain):
