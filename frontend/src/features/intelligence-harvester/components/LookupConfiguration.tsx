@@ -2,7 +2,8 @@ import { useState } from "react"
 import { Button } from "@/shared/components/ui/button"
 import { Badge } from "@/shared/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover"
-import { getLogoPath } from "@/shared/utils/logo.utils"
+import { ProviderLogo } from "@/shared/components/ProviderLogo"
+import { cn } from "@/shared/lib/utils"
 import type { LookupType, Provider, ProviderPreset } from "@/shared/types/intelligence-harvester"
 import type { ProviderSelections, ProviderValue } from "@/shared/hooks"
 import { LOOKUP_TYPE_CONFIG, ALL_LOOKUP_TYPES } from "@/shared/lib/lookup-config"
@@ -77,12 +78,12 @@ function ProviderPopover({ type }: { type: LookupTypeUIConfig }) {
             {type.providers?.map((provider) => (
               <div
                 key={provider.id}
-                className={`relative p-3 rounded-lg border-2 transition-all ${
+                className={`relative p-3 rounded-lg border transition-colors ${
                   !provider.available
                     ? 'opacity-40 cursor-not-allowed'
                     : isProviderSelected(provider.id)
-                    ? 'border-primary bg-primary/5 cursor-pointer'
-                    : 'border-muted hover:border-muted-foreground/20 hover:bg-muted/50 cursor-pointer'
+                    ? 'border-primary bg-primary text-primary-foreground cursor-pointer'
+                    : 'border-border bg-background hover:bg-accent hover:text-accent-foreground cursor-pointer'
                 }`}
                 onClick={() => {
                   if (provider.available) {
@@ -91,34 +92,25 @@ function ProviderPopover({ type }: { type: LookupTypeUIConfig }) {
                 }}
               >
                 <div className="flex flex-col items-center gap-1 text-center">
-                  {(() => {
-                    const logoPath = getLogoPath(provider.id)
-                    return (
-                      <img 
-                        src={logoPath} 
-                        alt={provider.name}
-                        className="h-8 w-8 object-contain"
-                        onError={(e) => {
-                          // Fallback to letter icon on image load error
-                          const container = e.currentTarget.parentElement
-                          if (container) {
-                            const firstLetter = provider.name.charAt(0).toUpperCase()
-                            const fallback = document.createElement('div')
-                            fallback.className = "flex items-center justify-center w-8 h-8 rounded-md bg-muted text-muted-foreground font-bold text-sm"
-                            fallback.textContent = firstLetter
-                            e.currentTarget.replaceWith(fallback)
-                          }
-                        }}
-                      />
-                    )
-                  })()}
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-black shadow-sm">
+                    <ProviderLogo
+                      providerId={provider.id}
+                      providerName={provider.name}
+                      size="lg"
+                    />
+                  </span>
                   <span className="text-xs font-medium line-clamp-1">{provider.name}</span>
                   {provider.supported_indicators && provider.supported_indicators.length > 0 && (
                     <div className="flex flex-wrap gap-1 justify-center mt-0.5">
                       {provider.supported_indicators.map((indicator) => (
                         <span 
                           key={indicator}
-                          className="text-[9px] px-1 py-0.5 rounded bg-muted text-muted-foreground"
+                          className={cn(
+                            "text-[9px] px-1 py-0.5 rounded",
+                            isProviderSelected(provider.id)
+                              ? "bg-primary-foreground/15 text-primary-foreground/80"
+                              : "bg-muted text-muted-foreground"
+                          )}
                         >
                           {indicator}
                         </span>
@@ -129,9 +121,6 @@ function ProviderPopover({ type }: { type: LookupTypeUIConfig }) {
                     <span className="text-[10px] text-muted-foreground">Unavailable</span>
                   )}
                 </div>
-                {isProviderSelected(provider.id) && (
-                  <div className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
-                )}
               </div>
             ))}
           </div>
@@ -219,23 +208,23 @@ export function LookupConfiguration({
         <p className="text-xs text-muted-foreground">
           Enable categories, then choose providers.
         </p>
-        <div className="grid gap-2 grid-cols-[repeat(auto-fit,minmax(80px,1fr))]">
+        <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(88px,1fr))]">
           {lookupTypes.map((type) => {
             const isEnabled = isValueEnabled(type.value)
             const hasProviders = type.providers && type.providers.length > 0
             const isDisabled = !hasProviders
+            const selectedCount = type.value.length
             
             return (
-              <button
-                type="button"
+              <Button
                 key={type.id}
-                className={`relative group min-h-16 rounded-lg border px-2 py-2 transition-all ${
-                  isDisabled
-                    ? 'border-muted bg-muted/30 opacity-50 cursor-not-allowed'
-                    : isEnabled 
-                      ? 'border-primary bg-primary/5 hover:bg-primary/10'
-                      : 'border-muted hover:border-muted-foreground/20 hover:bg-muted/30'
-                }`}
+                type="button"
+                variant={isEnabled ? "secondary" : "outline"}
+                className={cn(
+                  "relative h-auto min-h-20 w-full justify-center px-3 py-3 text-center whitespace-normal",
+                  isEnabled && "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+                  isDisabled && "cursor-not-allowed opacity-50"
+                )}
                 disabled={isDisabled}
               >
                 {/* Settings popover - show when has providers */}
@@ -248,23 +237,24 @@ export function LookupConfiguration({
                   className="flex h-full items-center justify-center"
                 >
                   <div className="flex flex-col items-center gap-1.5 text-center">
-                    <span className={`text-xs font-medium leading-tight ${
-                      isDisabled 
-                        ? 'text-muted-foreground/50' 
-                        : isEnabled 
-                          ? 'text-primary' 
-                          : 'text-muted-foreground'
-                    }`}>
+                    <span className={cn(
+                      "text-xs font-medium leading-tight",
+                      isDisabled
+                        ? "text-muted-foreground/70"
+                        : isEnabled
+                          ? "text-primary-foreground"
+                          : "text-foreground"
+                    )}>
                       {type.label}
                     </span>
+                    {isEnabled && (
+                      <span className="text-[11px] text-primary-foreground/80">
+                        {selectedCount} provider{selectedCount === 1 ? "" : "s"} selected
+                      </span>
+                    )}
                   </div>
                 </div>
-
-                {/* Active indicator dot */}
-                {isEnabled && (
-                  <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary border-2 border-background" />
-                )}
-              </button>
+              </Button>
             )
           })}
         </div>

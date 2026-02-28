@@ -65,10 +65,17 @@ def ibm_cve(cve, headers=None):
     cve_data = {}
     temp_list = []
 
-    data = make_api_request(f"vulnerabilities/search/{cve}", headers)[0]
+    response = make_api_request(f"vulnerabilities/search/{cve}", headers)
+    if response.get("error", None):
+        return response
 
-    if data.get("error", None):
-        return data
+    if not isinstance(response, list):
+        return {"error": "IBM X-Force returned an unexpected CVE response"}
+
+    if not response:
+        return {"error": f"IBM X-Force returned no results for {cve}"}
+
+    data = response[0]
 
     if data.get("xfdbid", None):
         cve_data["ID"] = data.get("xfdbid", "Not Found")

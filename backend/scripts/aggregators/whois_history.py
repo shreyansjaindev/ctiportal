@@ -10,7 +10,7 @@ from ..providers.securitytrails import get_whois_history as securitytrails_whois
 logger = logging.getLogger(__name__)
 
 PROVIDERS = {
-    'whoisxml': whoisxml_whois_history,
+    'whoisxmlapi': whoisxml_whois_history,
     'securitytrails': securitytrails_whois_history,
 }
 
@@ -21,7 +21,7 @@ def get(domain: str, provider: Optional[str] = None) -> Dict[str, Any]:
 
     Args:
         domain: Domain to query
-        provider: Specific provider to use (None for auto-fallback). Options: 'whoisxml', 'securitytrails'
+        provider: Specific provider to use (None for auto-fallback). Options: 'whoisxmlapi', 'securitytrails'
     """
     if provider is not None:
         if provider not in PROVIDERS:

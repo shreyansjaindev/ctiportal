@@ -18,7 +18,7 @@ export type LookupType =
   | "screenshot"
   | "email_validator"
   | "cve_details"
-  | "website_status"
+  | "web_redirects"
   | "web_scan"
 
 /**

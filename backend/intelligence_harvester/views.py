@@ -220,7 +220,7 @@ class IndicatorLookupViewSet(viewsets.ViewSet):
         {
             "indicators": ["example.com"],
             "providers_by_type": {
-                "whois": ["whoisxml"],
+                "whois": ["whoisxmlapi"],
                 "reputation": ["abuseipdb"]
             }
         }

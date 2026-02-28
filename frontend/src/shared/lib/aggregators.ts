@@ -78,7 +78,7 @@ export async function identifyIndicators(
  * @example
  * const response = await performIndicatorLookups(
  *   ['example.com'],
- *   { whois: ['whoisxml'], reputation: ['abuseipdb'] },
+ *   { whois: ['whoisxmlapi'], reputation: ['abuseipdb'] },
  *   token
  * )
  */

@@ -98,7 +98,7 @@ export default function IntelligenceHarvesterPage() {
     return allProvidersQuery.data?.providers_by_type || {
       whois: [], ip_info: [], reputation: [], dns: [], passive_dns: [],
       whois_history: [], reverse_dns: [], screenshot: [], email_validator: [],
-      cve_details: [], website_status: [], web_scan: [],
+      cve_details: [], web_redirects: [], web_scan: [],
     }
   }, [allProvidersQuery.data?.providers_by_type])
 
@@ -248,19 +248,6 @@ export default function IntelligenceHarvesterPage() {
     if (changedTypes.length === 0) return
 
     const enabledChanged = changedTypes.filter(t => enabledTypes.has(t as LookupType)) as LookupType[]
-    const disabledChanged = changedTypes.filter(t => !enabledTypes.has(t as LookupType))
-
-    // Drop stale results for types that were just disabled.
-    if (disabledChanged.length > 0) {
-      const disabledSet = new Set(disabledChanged)
-      setAllResults(prev => {
-        const next = new Map<string, LookupResult[]>()
-        prev.forEach((results, indicator) => {
-          next.set(indicator, results.filter(r => r._lookup_type && !disabledSet.has(r._lookup_type)))
-        })
-        return next
-      })
-    }
 
     if (enabledChanged.length === 0 || !token) return
     // Capture token here - TypeScript can't narrow it inside an inner function.
@@ -307,10 +294,10 @@ export default function IntelligenceHarvesterPage() {
         <Sheet open={configOpen} onOpenChange={setConfigOpen}>
           <SheetTrigger asChild>
             <Button
-              variant="outline"
+              variant="default"
               size="icon"
               className="flex-shrink-0"
-              title="Provider configuration"
+              title="Provider auto-load setup"
             >
               <SettingsIcon className="h-4 w-4" />
             </Button>

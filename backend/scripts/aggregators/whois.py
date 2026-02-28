@@ -27,10 +27,10 @@ def _whoisxml_get(domain: str) -> Dict[str, Any]:
     return {'error': 'WhoisXML lookup failed for all API keys'}
 
 
-# Fallback order: builtin (free, no key) → whoisxml → securitytrails
+# Fallback order: builtin (free, no key) → whoisxmlapi → securitytrails
 PROVIDERS = {
     'builtin_whois': lambda d: builtin_whois_lookup(d),
-    'whoisxml': _whoisxml_get,
+    'whoisxmlapi': _whoisxml_get,
     'securitytrails': lambda d: securitytrails_whois(d, 'domain'),
 }
 
@@ -41,7 +41,7 @@ def get(domain: str, provider: Optional[str] = None) -> Dict[str, Any]:
 
     Args:
         domain: Domain name to look up
-        provider: Specific provider to use (None for auto-fallback). Options: 'builtin_whois', 'whoisxml', 'securitytrails'
+        provider: Specific provider to use (None for auto-fallback). Options: 'builtin_whois', 'whoisxmlapi', 'securitytrails'
     """
     if provider is not None:
         if provider not in PROVIDERS:

@@ -42,12 +42,12 @@ export function DataTableToolbar({ renderActions, hasFilters = true }: DataTable
           {open ? (
             <>
               <PanelLeftClose className="h-4 w-4" />
-              <span className="hidden md:block">Hide Controls</span>
+              <span className="hidden md:block">Hide Filters</span>
             </>
           ) : (
             <>
               <PanelLeftOpen className="h-4 w-4" />
-              <span className="hidden md:block">Show Controls</span>
+              <span className="hidden md:block">Show Filters</span>
             </>
           )}
         </Button>
@@ -59,18 +59,18 @@ export function DataTableToolbar({ renderActions, hasFilters = true }: DataTable
           <p className="hidden text-sm text-muted-foreground sm:block">
             {filters.length ? (
               <>
-                <span className="font-mono font-medium">
+                <span className="font-medium">
                   {rows.filtered.toLocaleString()}
                 </span>{" "}
                 of{" "}
-                <span className="font-mono font-medium">
+                <span className="font-medium">
                   {rows.total.toLocaleString()}
                 </span>{" "}
                 row(s) <span className="sr-only sm:not-sr-only">filtered</span>
               </>
             ) : (
               <>
-                <span className="font-mono font-medium">
+                <span className="font-medium">
                   {rows.total.toLocaleString()}
                 </span>{" "}
                 row(s)
@@ -78,7 +78,7 @@ export function DataTableToolbar({ renderActions, hasFilters = true }: DataTable
             )}
           </p>
           <p className="block text-sm text-muted-foreground sm:hidden">
-            <span className="font-mono font-medium">
+            <span className="font-medium">
               {rows.filtered.toLocaleString()}
             </span>{" "}
             row(s)

@@ -6,12 +6,12 @@ import { RedirectChain } from "../RedirectChain"
 import { formatValue } from "./utils"
 import { FieldTable } from "./FieldTable"
 
-interface WebsiteStatusDisplayProps {
+interface WebRedirectsDisplayProps {
   result: LookupResult
   isOverview?: boolean
 }
 
-export function WebsiteStatusDisplay({ result, isOverview = false }: WebsiteStatusDisplayProps) {
+export function WebRedirectsDisplay({ result, isOverview = false }: WebRedirectsDisplayProps) {
   if (result.error) {
     return (
       <Alert variant="destructive">

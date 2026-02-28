@@ -16,7 +16,8 @@ from .providers.virustotal import virustotal
 from .providers.abuseipdb import abuseipdb
 from .providers.apilayer import emailvalidator
 from .providers.urlscan import urlscan
-from .providers.website_status import get_website_status
+from .providers.redirect_checker import redirect_checker
+from .providers.geekflare import geekflare_redirect_checker
 from .providers.hostio import hostio
 from .providers.phishtank import phishtank
 
@@ -27,7 +28,8 @@ from .aggregators import (
     reputation,
     cve_details,
     email_validator,
-    web_status,
+    web_redirects,
+    web_scan,
     passive_dns,
     whois_history,
     dns,
@@ -51,16 +53,16 @@ LOOKUP_MODULES = {
     'screenshot': screenshot_aggregator,
     'email_validator': email_validator,
     'cve_details': cve_details,
-    'website_status': web_status,
-    'web_scan': web_status,
+    'web_redirects': web_redirects,
+    'web_scan': web_scan,
     'subdomains': subdomains,
 }
 
 # Map indicator types to applicable lookup types
 INDICATOR_LOOKUPS = {
-    'domain': ['whois', 'dns', 'passive_dns', 'subdomains', 'whois_history', 'screenshot', 'reputation', 'website_status', 'web_scan'],
-    'url': ['website_status', 'web_scan', 'screenshot', 'reputation'],
-    'ipv4': ['ip_info', 'reverse_dns', 'reputation', 'website_status', 'web_scan'],
+    'domain': ['whois', 'dns', 'passive_dns', 'subdomains', 'whois_history', 'screenshot', 'reputation', 'web_redirects', 'web_scan'],
+    'url': ['web_redirects', 'web_scan', 'screenshot', 'reputation'],
+    'ipv4': ['ip_info', 'reverse_dns', 'reputation', 'web_redirects', 'web_scan'],
     'ipv6': ['ip_info', 'reverse_dns', 'reputation'],
     'email': ['email_validator'],
     'cve': ['cve_details'],
@@ -124,9 +126,14 @@ SOURCE_REGISTRY = {
         "function": urlscan,
         "supported_types": ["domain", "url", "ipv4"],
     },
-    "websitestatus": {
-        "title": "HTTP Status",
-        "function": get_website_status,
+    "redirect_checker": {
+        "title": "Redirect Checker",
+        "function": redirect_checker,
+        "supported_types": ["domain", "url", "ipv4"],
+    },
+    "geekflare": {
+        "title": "Geekflare",
+        "function": geekflare_redirect_checker,
         "supported_types": ["domain", "url", "ipv4"],
     },
     "hostio": {
@@ -151,7 +158,7 @@ PROVIDER_PRESETS = {
             'dns': ['builtin_dns'],
             'ip_info': ['builtin_ipinfo'],
             'reverse_dns': ['builtin_dns'],
-            'website_status': ['builtin_http'],
+            'web_redirects': ['redirect_checker'],
             'email_validator': ['builtin_smtp'],
             'cve_details': ['nvd'],
         }
@@ -167,9 +174,9 @@ PROVIDER_PRESETS = {
             'passive_dns': ['securitytrails'],
             'subdomains': ['virustotal'],
             'reverse_dns': ['builtin_dns'],
-            'whois_history': ['whoisxml'],
+            'whois_history': ['whoisxmlapi'],
             'cve_details': ['nvd'],
-            'website_status': ['builtin_http'],
+            'web_redirects': ['redirect_checker'],
             'web_scan': ['urlscan'],
             'email_validator': ['builtin_smtp'],
         }
@@ -178,18 +185,18 @@ PROVIDER_PRESETS = {
         'name': 'Full',
         'description': 'Complete provider set for comprehensive intelligence',
         'providers': {
-            'whois': ['builtin_whois', 'whoisxml', 'securitytrails'],
+            'whois': ['builtin_whois', 'whoisxmlapi', 'securitytrails'],
             'dns': ['builtin_dns'],
             'ip_info': ['builtin_ipinfo', 'ipapi'],
             'reputation': ['virustotal', 'abuseipdb'],
             'passive_dns': ['virustotal'],
             'subdomains': ['virustotal'],
-            'whois_history': ['whoisxml'],
+            'whois_history': ['whoisxmlapi'],
             'reverse_dns': ['builtin_dns'],
             'screenshot': ['screenshotlayer', 'screenshotmachine'],
             'email_validator': ['builtin_smtp', 'apilayer'],
             'cve_details': ['nvd'],
-            'website_status': ['builtin_http', 'httpstatus'],
+            'web_redirects': ['redirect_checker', 'geekflare'],
             'web_scan': ['urlscan'],
         }
     }
@@ -203,8 +210,8 @@ PROVIDER_METADATA = {
             'name': 'Built-in WHOIS',
             'supported_indicators': ['domain'],
         },
-        'whoisxml': {
-            'id': 'whoisxml',
+        'whoisxmlapi': {
+            'id': 'whoisxmlapi',
             'name': 'WhoisXML API',
             'supported_indicators': ['domain'],
         },
@@ -256,8 +263,8 @@ PROVIDER_METADATA = {
     
     # WHOIS History Providers
     'whois_history': {
-        'whoisxml': {
-            'id': 'whoisxml',
+        'whoisxmlapi': {
+            'id': 'whoisxmlapi',
             'name': 'WhoisXML API',
             'supported_indicators': ['domain'],
         },
@@ -324,8 +331,8 @@ PROVIDER_METADATA = {
             'name': 'IPInfo.io',
             'supported_indicators': ['ipv4', 'ipv6'],
         },
-        'whoisxml': {
-            'id': 'whoisxml',
+        'whoisxmlapi': {
+            'id': 'whoisxmlapi',
             'name': 'WhoisXML API',
             'supported_indicators': ['ipv4', 'ipv6'],
         },
@@ -358,8 +365,8 @@ PROVIDER_METADATA = {
             'name': 'Hunter.io',
             'supported_indicators': ['email'],
         },
-        'whoisxml': {
-            'id': 'whoisxml',
+        'whoisxmlapi': {
+            'id': 'whoisxmlapi',
             'name': 'WhoisXML API',
             'supported_indicators': ['email'],
         },
@@ -384,16 +391,16 @@ PROVIDER_METADATA = {
         },
     },
     
-    # Website Status Providers
-    'website_status': {
-        'httpstatus': {
-            'id': 'httpstatus',
-            'name': 'HTTPStatus.io',
+    # Web Redirects Providers
+    'web_redirects': {
+        'redirect_checker': {
+            'id': 'redirect_checker',
+            'name': 'Redirect Checker',
             'supported_indicators': ['domain', 'url'],
         },
-        'builtin_http': {
-            'id': 'builtin_http',
-            'name': 'Built-in HTTP',
+        'geekflare': {
+            'id': 'geekflare',
+            'name': 'Geekflare',
             'supported_indicators': ['domain', 'url'],
         }
     },

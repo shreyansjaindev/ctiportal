@@ -54,6 +54,20 @@ function formatValue(key: string, value: unknown): React.ReactNode {
   return String(value)
 }
 
+function renderImage(value: unknown, className: string) {
+  if (typeof value !== "string") return null
+
+  if (value.startsWith("data:image/")) {
+    return <img src={value} alt="Screenshot" className={className} />
+  }
+
+  if (isBase64Image(value)) {
+    return <img src={`data:image/png;base64,${value}`} alt="Screenshot" className={className} />
+  }
+
+  return null
+}
+
 export function ScreenshotDisplay({ result, isOverview = false }: ScreenshotDisplayProps) {
   if (result.error) {
     return (
@@ -82,7 +96,8 @@ export function ScreenshotDisplay({ result, isOverview = false }: ScreenshotDisp
     )
   }
 
-  // Type-specific tab - all fields merged
+  // Expanded view - prioritize the screenshot itself and let it use the
+  // available card space before showing any metadata below it.
   const allFields = Object.entries({
     ...result.essential,
     ...result.additional
@@ -103,16 +118,18 @@ export function ScreenshotDisplay({ result, isOverview = false }: ScreenshotDisp
     !key.toLowerCase().includes("screenshot") && !key.toLowerCase().includes("image")
   )
 
+  const primaryImageField = imageFields[0]
+
   return (
     <div className="space-y-4">
-      {imageFields.map(([key, value]) => (
-        <div key={key} className="space-y-2">
-          <div className="text-xs font-medium text-muted-foreground">
-            {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+      {primaryImageField && (
+        <div className="overflow-hidden rounded-lg border bg-muted/20 p-3">
+          <div className="flex justify-center">
+            {renderImage(primaryImageField[1], "h-auto max-h-[70vh] w-full rounded-md object-contain")
+              ?? <span className="text-sm text-muted-foreground">{formatValue(primaryImageField[0], primaryImageField[1])}</span>}
           </div>
-          {formatValue(key, value)}
         </div>
-      ))}
+      )}
       {regularFields.length > 0 && (
         <FieldTable
           rows={regularFields.map(([key, value]) => ({

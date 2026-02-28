@@ -21,15 +21,13 @@ const BASE = '/images/providers'
 const LOGO_MAP: Record<string, string> = {
   ibm_xforce:      'ibm',
   hybrid_analysis: 'hybridanalysis',
-  httpstatus:      'httpstatus.io',
-  whoisxml:        'whoisxmlapi',
   whoisxmlapi:     'whoisxmlapi',
   nvd:             'nist',
 }
 
 // Providers whose file is a PNG (everything else defaults to SVG).
 const PNG_IDS = new Set([
-  'hostio', 'httpstatus.io', 'hybridanalysis', 'ibm',
+  'hostio', 'hybridanalysis', 'ibm',
   'ipapi', 'phishtank', 'pulsedive', 'securitytrails',
   'urlscan', 'whoisxmlapi',
 ])
@@ -55,8 +53,8 @@ export function hasLogo(providerId: string): boolean {
   const id = providerId.toLowerCase()
   const filename = LOGO_MAP[id] ?? id
   return [
-    'abuseipdb', 'hostio', 'httpstatus.io', 'hybridanalysis', 'ibm',
-    'ipapi', 'nist', 'phishtank', 'pulsedive', 'securitytrails',
+    'abuseipdb', 'geekflare', 'hostio', 'hybridanalysis', 'ibm',
+    'ipapi', 'ipinfoio', 'nist', 'phishtank', 'pulsedive', 'securitytrails',
     'urlscan', 'virustotal', 'whoisxmlapi',
   ].includes(filename)
 }

@@ -1,8 +1,9 @@
 import sys
+
 import requests
 
 
-def get_website_status(query, query_type):
+def redirect_checker(query):
     protocols = ["http", "https"]
     domain = query.split("://", 1)[-1]
 
@@ -14,7 +15,7 @@ def get_website_status(query, query_type):
             if response.get("result") == "success":
                 response_data = response["data"]
                 for redirects in response_data:
-                    if redirects["request"]["error"] == False:
+                    if redirects["request"]["error"] is False:
                         data = redirects.get("response", {}).get("info", {})
                         redirects_data.append(
                             {
@@ -22,31 +23,15 @@ def get_website_status(query, query_type):
                                 "code": str(data.get("http_code", "")),
                             }
                         )
-            return redirects_data
-        except requests.RequestException as e:
-            print(f"{query}: {e}")
+            return {
+                "url": query,
+                "redirects": redirects_data,
+            }
+        except requests.RequestException as exc:
+            print(f"{query}: {exc}")
 
-    return [{"url": "", "code": ""}]
-
-
-# def website_status_webfx(weburl):
-#     data = []
-
-#     url = "https://www.webfx.com/tools/http-status-tool/http-status.php"
-#     url_data = {
-#         "urls[]": [weburl],
-#     }
-
-#     response = requests.post(url, data=url_data)
-#     full_data = response.json()["response"]
-#     for url_data in full_data:
-#         for url in url_data:
-#             host = url["HTTPRequest"]["url"]
-#             status_code = url["HTTPCode"]["code"]
-#             data.append([host, status_code])
-
-#     return {"website_status": data}
+    return {"error": "No data returned"}
 
 
 if __name__ == "__main__":
-    print(get_website_status(sys.argv[1]))
+    print(redirect_checker(sys.argv[1]))

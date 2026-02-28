@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react"
+
 import { getLogoPathWithFallback } from "@/shared/utils/logo.utils"
 import { cn } from "@/shared/lib/utils"
 
@@ -14,15 +16,27 @@ const sizeClasses = {
   lg: "h-8 w-8",
 }
 
-function letterFallback(name: string, size: "sm" | "md" | "lg"): HTMLDivElement {
-  const div = document.createElement('div')
-  div.className = cn(
-    "flex items-center justify-center rounded bg-muted text-muted-foreground font-semibold flex-shrink-0",
-    sizeClasses[size],
-    size === "sm" ? "text-[9px]" : size === "md" ? "text-xs" : "text-sm"
+function LetterFallback({
+  name,
+  size,
+  className,
+}: {
+  name: string
+  size: "sm" | "md" | "lg"
+  className?: string
+}) {
+  return (
+    <span
+      className={cn(
+        "flex items-center justify-center text-muted-foreground font-semibold flex-shrink-0",
+        sizeClasses[size],
+        size === "sm" ? "text-[9px]" : size === "md" ? "text-xs" : "text-sm",
+        className
+      )}
+    >
+      {name.charAt(0).toUpperCase()}
+    </span>
   )
-  div.textContent = name.charAt(0).toUpperCase()
-  return div
 }
 
 export function ProviderLogo({ 
@@ -33,19 +47,29 @@ export function ProviderLogo({
 }: ProviderLogoProps) {
   const { primary, fallback } = getLogoPathWithFallback(providerId)
   const name = providerName || providerId
+  const [src, setSrc] = useState(primary)
+  const [showFallback, setShowFallback] = useState(false)
+
+  useEffect(() => {
+    setSrc(primary)
+    setShowFallback(false)
+  }, [primary, providerId])
+
+  if (showFallback) {
+    return <LetterFallback name={name} size={size} className={className} />
+  }
 
   return (
     <img
-      src={primary}
+      src={src}
       alt={name}
       className={cn(sizeClasses[size], "object-contain flex-shrink-0", className)}
       onError={(e) => {
-        const img = e.currentTarget
-        // Try alternate extension first, then letter avatar
-        if (img.src !== window.location.origin + fallback) {
-          img.src = fallback
+        const currentSrc = e.currentTarget.getAttribute("src")
+        if (currentSrc !== fallback) {
+          setSrc(fallback)
         } else {
-          img.replaceWith(letterFallback(name, size))
+          setShowFallback(true)
         }
       }}
     />

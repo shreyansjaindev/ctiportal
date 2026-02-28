@@ -32,7 +32,7 @@ def _whoisxml_emailverify(email: str) -> dict:
 PROVIDERS = {
     'apilayer': apilayer_validator,
     'hunterio': hunterio_verify,
-    'whoisxml': _whoisxml_emailverify,
+    'whoisxmlapi': _whoisxml_emailverify,
     'builtin_smtp': smtp_validate,
 }
 
@@ -43,7 +43,7 @@ def get(email: str, provider: Optional[str] = None) -> Dict[str, Any]:
 
     Args:
         email: Email address to validate
-        provider: Specific provider to use (None for auto-fallback). Options: 'apilayer', 'hunterio', 'whoisxml', 'builtin_smtp'
+        provider: Specific provider to use (None for auto-fallback). Options: 'apilayer', 'hunterio', 'whoisxmlapi', 'builtin_smtp'
     """
     if provider is not None:
         if provider not in PROVIDERS:

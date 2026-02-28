@@ -25,7 +25,9 @@ function loadFromStorage(): ProviderSelections {
     return Object.fromEntries(
       ALL_LOOKUP_TYPES.map(type => [
         type,
-        Array.isArray(parsed[type]) ? parsed[type]! : defaults[type],
+        Array.isArray(parsed[type])
+          ? parsed[type]!
+          : defaults[type],
       ])
     ) as ProviderSelections
   } catch {
@@ -39,7 +41,7 @@ function loadFromStorage(): ProviderSelections {
  *
  * @example
  * const { selections, setProviderForType, enabledTypes } = useProviderSelection()
- * setProviderForType("whois", ["builtin_whois", "whoisxml"])
+ * setProviderForType("whois", ["builtin_whois", "whoisxmlapi"])
  */
 export function useProviderSelection() {
   const [providers, setProviders] = useState<ProviderSelections>(() => loadFromStorage())

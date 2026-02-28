@@ -4,14 +4,14 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
 import { cn } from "@/shared/lib/utils"
 import { useMemo, useState, useCallback } from "react"
-import { Info, Loader2, AlertCircle, RefreshCw, Maximize2, ArrowLeft } from "lucide-react"
+import { Info, Loader2, AlertCircle, RefreshCw, ArrowLeft, ArrowRight } from "lucide-react"
 import type { IndicatorResult, LookupResult, IndicatorType, LookupType, Provider } from "@/shared/types/intelligence-harvester"
 import { isLookupApplicable, executeIndicatorLookups } from "@/shared/services/lookup.service"
 import { detectIndicatorType } from "@/shared/lib/indicator-utils"
 import { ProviderLogo } from "@/shared/components/ProviderLogo"
 import { LOOKUP_LABELS, ALL_LOOKUP_TYPES } from "@/shared/lib/lookup-config"
 
-import { WebsiteStatusDisplay } from "./displays/WebsiteStatusDisplay"
+import { WebRedirectsDisplay } from "./displays/WebRedirectsDisplay"
 import { WebScanDisplay } from "./displays/WebScanDisplay"
 import { DnsDisplay } from "./displays/DnsDisplay"
 import { WhoisDisplay } from "./displays/WhoisDisplay"
@@ -36,7 +36,7 @@ interface LookupResultsProps {
 
 function getDisplayComponent(type: string, result: LookupResult, isOverview: boolean) {
   switch (type) {
-    case "website_status": return <WebsiteStatusDisplay result={result} isOverview={isOverview} />
+    case "web_redirects":  return <WebRedirectsDisplay result={result} isOverview={isOverview} />
     case "web_scan":       return <WebScanDisplay result={result} isOverview={isOverview} />
     case "dns":            return <DnsDisplay result={result} isOverview={isOverview} />
     case "whois":          return <WhoisDisplay result={result} isOverview={isOverview} />
@@ -49,6 +49,36 @@ function getDisplayComponent(type: string, result: LookupResult, isOverview: boo
   }
 }
 
+function getLookupErrorMessage(result: LookupResult | null | undefined): string | null {
+  const rawError = result?.error
+
+  if (typeof rawError === "string" && rawError.trim()) {
+    return rawError
+  }
+
+  if (typeof rawError === "number" || typeof rawError === "boolean") {
+    return String(rawError)
+  }
+
+  if (Array.isArray(rawError)) {
+    const joined = rawError
+      .map((item) => (typeof item === "string" ? item : JSON.stringify(item)))
+      .filter(Boolean)
+      .join(" ")
+      .trim()
+    return joined || "Lookup failed"
+  }
+
+  if (rawError && typeof rawError === "object") {
+    const details = rawError as Record<string, unknown>
+    if (typeof details.error === "string" && details.error.trim()) return details.error
+    if (typeof details.detail === "string" && details.detail.trim()) return details.detail
+    return JSON.stringify(details)
+  }
+
+  return null
+}
+
 // One card per lookup type in the grid. Handles all per-type states:
 //   idle -> loading -> (data | error | empty)
 // Compact display only; expand button opens the full-area card.
@@ -56,6 +86,7 @@ interface LookupTypeCardProps {
   type: LookupType
   typeResults: LookupResult[]
   isLoading: boolean
+  loadingTarget?: string | null
   isFetched: boolean
   error: string | undefined
   providersByType: Record<string, Provider[]>
@@ -69,7 +100,7 @@ interface LookupTypeCardProps {
 }
 
 function LookupTypeCard({
-  type, typeResults, isLoading, isFetched, error,
+  type, typeResults, isLoading, loadingTarget = null, isFetched, error,
   providersByType, selectedProviders = [], onLoad, onRetry, onExpand, showLoadAll = true,
   expanded = false, onCollapse,
 }: LookupTypeCardProps) {
@@ -84,13 +115,14 @@ function LookupTypeCard({
   const returnedProviderIds = new Set(typeResults.map(r => r._provider).filter(Boolean))
 
   const resolvedProviderId = activeProviderId
-    ?? (dataResults[0]?._provider ?? null)
+    ?? (dataResults[0]?._provider ?? typeResults[0]?._provider ?? null)
 
   const activeResult = resolvedProviderId
     ? typeResults.find(r => r._provider === resolvedProviderId) ?? null
     : null
+  const activeErrorMessage = getLookupErrorMessage(activeResult)
   const activeResultHasData = activeResult
-    ? !activeResult.error && Object.keys(activeResult.essential ?? {}).length > 0
+    ? !activeErrorMessage && Object.keys(activeResult.essential ?? {}).length > 0
     : false
   const activeProviderReturned = resolvedProviderId
     ? returnedProviderIds.has(resolvedProviderId)
@@ -115,34 +147,36 @@ function LookupTypeCard({
       borderClass
     )}>
       <CardHeader className={cn("px-4", isIdleState && !expanded && "pb-4", (!isIdleState || expanded) && "pb-2")}>
-        <div className="flex flex-col gap-0.5">
-          <CardTitle className={cn("leading-tight", isIdleState ? "text-base" : "text-sm")}>{label}</CardTitle>
-          {isIdleState ? (
-            <CardDescription>
-              {availableProviders.length > 0 ? "Choose a provider to fetch" : "Click to load"}
-            </CardDescription>
-          ) : null}
-          {isLoading && !hasData && (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" /> Fetching data...
-            </span>
-          )}
-          {error && !hasData && (
-            <span className="flex items-center gap-1 text-xs text-destructive">
-              <AlertCircle className="h-3 w-3" />
-              <span className="line-clamp-1">{error}</span>
-            </span>
-          )}
-        </div>
-        <CardAction className="flex shrink-0 items-center gap-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <CardTitle className={cn("leading-tight", isIdleState ? "text-base" : "text-sm")}>{label}</CardTitle>
+            {isIdleState ? (
+              <CardDescription>
+                {availableProviders.length > 0 ? null : "Click to load"}
+              </CardDescription>
+            ) : null}
+            {isLoading && !hasData && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Fetching data...
+              </span>
+            )}
+            {error && !hasData && (
+              <span className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3" />
+                <span className="line-clamp-1">{error}</span>
+              </span>
+            )}
+          </div>
+          <CardAction className="mt-[-2px] flex shrink-0 items-center gap-1 self-start">
           {expanded ? (
             <Button variant="ghost" size="sm" className="gap-2" onClick={onCollapse}>
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
           ) : isFetched && (
-            <Button variant="ghost" size="icon" className="h-6 w-6 -mt-0.5" onClick={onExpand} title="View full details">
-              <Maximize2 className="h-3 w-3" />
+            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={onExpand} title="View more">
+              View more
+              <ArrowRight className="h-3 w-3" />
             </Button>
           )}
           {showLoadAll && isIdleState && !expanded && selectedProviders.length > 0 && (
@@ -154,21 +188,37 @@ function LookupTypeCard({
               <ArrowLeft className="h-3.5 w-3.5 rotate-180 transition-transform group-hover:translate-x-0.5" />
             </button>
           )}
-        </CardAction>
+          </CardAction>
+        </div>
       </CardHeader>
 
       {availableProviders.length > 0 ? (
         isIdleState ? (
           <CardContent className="flex flex-wrap gap-2 px-4">
             {availableProviders.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => { setActiveProviderId(p.id); if (!returnedProviderIds.has(p.id) && !isLoading) onLoad(p.id) }}
-                className="active:scale-95 flex items-center gap-2 rounded-md border border-border bg-background px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground hover:shadow-sm"
-              >
-                <ProviderLogo providerId={p.id} providerName={p.name} size="md" />
-                <span>{p.name}</span>
-              </button>
+              (() => {
+                const isProviderLoading = isLoading && (
+                  loadingTarget === p.id ||
+                  (loadingTarget === "__selected__" && selectedProviders.includes(p.id))
+                )
+
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => { setActiveProviderId(p.id); if (!returnedProviderIds.has(p.id) && !isLoading) onLoad(p.id) }}
+                    className="active:scale-95 flex items-center gap-2.5 rounded-md border border-border bg-card px-4 py-3 text-sm font-medium text-card-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  >
+                    {isProviderLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-white text-black shadow-sm">
+                        <ProviderLogo providerId={p.id} providerName={p.name} size="md" />
+                      </span>
+                    )}
+                    <span>{p.name}</span>
+                  </button>
+                )
+              })()
             ))}
           </CardContent>
         ) : (
@@ -185,6 +235,10 @@ function LookupTypeCard({
               {availableProviders.map((p) => {
                 const wasReturned = returnedProviderIds.has(p.id)
                 const hasError = wasReturned && typeResults.find(r => r._provider === p.id)?.error
+                const isProviderLoading = isLoading && !wasReturned && (
+                  loadingTarget === p.id ||
+                  (loadingTarget === "__selected__" && selectedProviders.includes(p.id))
+                )
 
                 return (
                   <TabsTrigger
@@ -196,12 +250,18 @@ function LookupTypeCard({
                       isLoading && !wasReturned && "opacity-30"
                     )}
                   >
-                    <ProviderLogo
-                      providerId={p.id}
-                      providerName={p.name}
-                      size={expanded ? "sm" : "md"}
-                      className={cn(!expanded && "h-5 w-5")}
-                    />
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white p-1 text-black shadow-sm dark:bg-white dark:text-black">
+                      {isProviderLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <ProviderLogo
+                          providerId={p.id}
+                          providerName={p.name}
+                          size={expanded ? "sm" : "md"}
+                          className="h-full w-full max-h-4 max-w-4"
+                        />
+                      )}
+                    </span>
                     <span
                       className={cn(
                         "truncate",
@@ -240,12 +300,14 @@ function LookupTypeCard({
 
       {resolvedProviderId && activeProviderReturned && (
         <CardContent className={cn("px-4", !isIdleState && "pt-4", expanded && "min-h-0 flex-1 overflow-y-auto")}>
-          {activeResult?.error
+          {activeErrorMessage
             ? (
-              <div className={cn("flex items-start gap-1.5 text-xs text-destructive", expanded && "px-1")}>
-                <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-                <span className="break-words">{activeResult.error}</span>
-              </div>
+              <Alert variant="destructive" className={cn("text-xs", expanded && "mx-1")}>
+                <AlertCircle className="h-3.5 w-3.5" />
+                <AlertDescription className="break-words">
+                  {activeErrorMessage}
+                </AlertDescription>
+              </Alert>
             )
             : activeResultHasData && activeResult
               ? getDisplayComponent(type, activeResult, !expanded)
@@ -266,6 +328,7 @@ export function LookupResults({
   getProviderForType, providersByType, onResultsUpdate,
 }: LookupResultsProps) {
   const [loadingTypes, setLoadingTypes] = useState<Set<LookupType>>(new Set())
+  const [loadingTargets, setLoadingTargets] = useState<Map<LookupType, string | null>>(new Map())
   const [fetchedKeys, setFetchedKeys] = useState<Set<string>>(new Set())
   const [typeErrors, setTypeErrors] = useState<Map<LookupType, string>>(new Map())
   const [detailType, setDetailType] = useState<LookupType | null>(null)
@@ -307,6 +370,11 @@ export function LookupResults({
     if (!isRetry && (loadingTypes.has(type) || fetchedKeys.has(cacheKey))) return
 
     setLoadingTypes(prev => new Set(prev).add(type))
+    setLoadingTargets(prev => {
+      const next = new Map(prev)
+      next.set(type, providerOverride ?? "__selected__")
+      return next
+    })
     setTypeErrors(prev => {
       const next = new Map(prev)
       next.delete(type)
@@ -337,6 +405,11 @@ export function LookupResults({
         next.delete(type)
         return next
       })
+      setLoadingTargets(prev => {
+        const next = new Map(prev)
+        next.delete(type)
+        return next
+      })
     }
   }, [activeIndicator, activeIndicatorType, token, getProviderForType, providersByType, onResultsUpdate, loadingTypes, fetchedKeys])
 
@@ -361,6 +434,7 @@ export function LookupResults({
               type={detailType}
               typeResults={resultsByType[detailType] ?? []}
               isLoading={loadingTypes.has(detailType)}
+              loadingTarget={loadingTargets.get(detailType) ?? null}
               isFetched={fetchedKeys.has(`${detailType}:`) || (resultsByType[detailType]?.length ?? 0) > 0}
               error={typeErrors.get(detailType)}
               providersByType={providersByType ?? {}}
@@ -384,6 +458,7 @@ export function LookupResults({
                   type={type}
                   typeResults={resultsByType[type] ?? []}
                   isLoading={loadingTypes.has(type)}
+                  loadingTarget={loadingTargets.get(type) ?? null}
                   isFetched={fetchedKeys.has(`${type}:`) || (resultsByType[type]?.length ?? 0) > 0}
                   error={typeErrors.get(type)}
                   providersByType={providersByType ?? {}}

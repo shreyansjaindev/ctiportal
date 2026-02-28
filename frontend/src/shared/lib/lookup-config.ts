@@ -20,7 +20,7 @@ export const LOOKUP_TYPE_CONFIG: LookupTypeConfig[] = [
   { id: "reverse_dns",    label: "Reverse DNS",      applicableIndicators: ["ipv4", "ipv6"],                         defaultProviders: ["builtin_dns"] },
   { id: "whois_history",  label: "WHOIS History",    applicableIndicators: ["domain"] },
   { id: "screenshot",     label: "Screenshot",       applicableIndicators: ["domain"] },
-  { id: "website_status", label: "Website Status",   applicableIndicators: ["domain", "url", "ipv4"],               defaultProviders: ["builtin_http"] },
+  { id: "web_redirects",  label: "Web Redirects",    applicableIndicators: ["domain", "url", "ipv4"],               defaultProviders: ["redirect_checker"] },
   { id: "web_scan",       label: "Web Scan",         applicableIndicators: ["domain", "url", "ipv4"] },
   { id: "email_validator",label: "Email Validation", applicableIndicators: ["email"],                                 defaultProviders: ["builtin_smtp"] },
   { id: "cve_details",    label: "CVE Details",      applicableIndicators: ["cve"] },

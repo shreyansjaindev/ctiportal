@@ -28,12 +28,12 @@ def _whoisxml_iplocation(ip: str) -> dict:
     return {'error': 'WhoisXML IP location failed for all API keys'}
 
 
-# Fallback order: builtin (no rate limit) → ipapi → ipinfoio → whoisxml
+# Fallback order: builtin (no rate limit) → ipapi → ipinfoio → whoisxmlapi
 PROVIDERS = {
     'builtin_ipinfo': builtin_ipinfo_lookup,
     'ipapi': ipapi_lookup,
     'ipinfoio': ipinfoio_lookup,
-    'whoisxml': _whoisxml_iplocation,
+    'whoisxmlapi': _whoisxml_iplocation,
 }
 
 
@@ -43,7 +43,7 @@ def get(ip: str, provider: Optional[str] = None) -> Dict[str, Any]:
 
     Args:
         ip: IP address to look up
-        provider: Specific provider to use (None for auto-fallback). Options: 'builtin_ipinfo', 'ipapi', 'ipinfoio', 'whoisxml'
+        provider: Specific provider to use (None for auto-fallback). Options: 'builtin_ipinfo', 'ipapi', 'ipinfoio', 'whoisxmlapi'
     """
     if provider is not None:
         if provider not in PROVIDERS:

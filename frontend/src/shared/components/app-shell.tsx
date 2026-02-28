@@ -2,7 +2,8 @@ import { Outlet, useLocation } from "react-router-dom"
 
 import { Input } from "@/shared/components/ui/input"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/shared/components/ui/sidebar"
-import { AppSidebar } from "@/shared/components"
+import { AppSidebar } from "@/shared/components/app-sidebar"
+import { ModeToggle } from "@/shared/components/mode-toggle"
 import { navItems } from "@/shared/components/navigation"
 import { SearchIcon } from "lucide-react"
 import { Separator } from "@/shared/components/ui/separator"
@@ -28,14 +29,17 @@ export function AppShell() {
                   </p>
                 </div>
               </div>
-              <div className="hidden w-full max-w-md items-center md:flex">
-                <div className="relative w-full">
-                  <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search indicators, apps, or tools..."
-                    className="pl-9"
-                  />
+              <div className="hidden items-center gap-2 md:flex">
+                <div className="w-full min-w-0 md:min-w-80 md:max-w-xl lg:max-w-2xl">
+                  <div className="relative w-full">
+                    <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search indicators, apps, or tools..."
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
+                <ModeToggle />
               </div>
             </div>
           </header>

@@ -108,7 +108,7 @@ export function DataTableFilterCheckbox<TData>({
                   ) : (
                     <span className="truncate font-normal">{option.label}</span>
                   )}
-                  <span className="ml-auto flex shrink-0 items-center justify-center font-mono text-xs">
+                  <span className="ml-auto flex shrink-0 items-center justify-center text-xs">
                     {isLoading ? (
                       <Skeleton className="h-4 w-4" />
                     ) : facetedValue?.has(option.value) ? (

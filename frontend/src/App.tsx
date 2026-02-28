@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { Navigate, Route, Routes } from "react-router-dom"
 
 import { AppShell } from "@/shared/components"
+import { ThemeProvider } from "@/shared/components/theme-provider"
 import { useAuth } from "@/shared/lib"
 import ActiveDirectoryPage from "@/features/active-directory"
 import DomainMonitoringPage from "@/features/domain-monitoring"
@@ -31,29 +32,31 @@ function PublicOnly({ children }: { children: ReactNode }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
-      <Route
-        element={
-          <RequireAuth>
-            <AppShell />
-          </RequireAuth>
-        }
-      >
-        <Route index element={<HomePage />} />
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <Routes>
+        <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
         <Route
-          path="/intelligence-harvester"
-          element={<IntelligenceHarvesterPage />}
-        />
-        <Route path="/domain-monitoring" element={<DomainMonitoringPage />} />
-        <Route path="/threatstream" element={<ThreatstreamPage />} />
-        <Route path="/active-directory" element={<ActiveDirectoryPage />} />
-        <Route path="/text-formatter" element={<TextFormatterPage />} />
-        <Route path="/url-decoder" element={<UrlDecoderPage />} />
-        <Route path="/screenshot" element={<ScreenshotPage />} />
-        <Route path="/mail-header-analyzer" element={<MhaPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+          element={
+            <RequireAuth>
+              <AppShell />
+            </RequireAuth>
+          }
+        >
+          <Route index element={<HomePage />} />
+          <Route
+            path="/intelligence-harvester"
+            element={<IntelligenceHarvesterPage />}
+          />
+          <Route path="/domain-monitoring" element={<DomainMonitoringPage />} />
+          <Route path="/threatstream" element={<ThreatstreamPage />} />
+          <Route path="/active-directory" element={<ActiveDirectoryPage />} />
+          <Route path="/text-formatter" element={<TextFormatterPage />} />
+          <Route path="/url-decoder" element={<UrlDecoderPage />} />
+          <Route path="/screenshot" element={<ScreenshotPage />} />
+          <Route path="/mail-header-analyzer" element={<MhaPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </ThemeProvider>
   )
 }

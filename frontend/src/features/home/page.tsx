@@ -90,12 +90,12 @@ export default function HomePage() {
             : appsData.map((app) => (
                 <Card
                   key={app.name}
-                  className="transition hover:shadow-md"
+                  className="border-border/70 bg-card transition-colors hover:border-border hover:bg-accent/20"
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <span
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-500/10 text-neutral-700"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-muted text-foreground"
                       >
                         {app.name
                           .split(" ")

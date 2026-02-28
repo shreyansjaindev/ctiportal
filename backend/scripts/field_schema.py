@@ -102,11 +102,24 @@ ESSENTIAL_FIELDS: Dict[str, List[str]] = {
     ],
     "cve_details": [
         "cve_id",
+        "cvss_version",
         "cvss_score",
+        "cvss_v4_score",
+        "cvss_v4_severity",
+        "cvss_v4_vector",
+        "cvss_v3_1_score",
+        "cvss_v3_1_severity",
+        "cvss_v3_1_vector",
+        "cvss_v3_0_score",
+        "cvss_v3_0_severity",
+        "cvss_v3_0_vector",
+        "cvss_v2_score",
+        "cvss_v2_vector",
         "severity",
+        "cvss_vector",
         "published_date",
     ],
-    "website_status": [
+    "web_redirects": [
         "url",
         "status_code",
         "redirects",
@@ -125,6 +138,7 @@ ESSENTIAL_FIELDS: Dict[str, List[str]] = {
         "scan_mode",
     ],
     "screenshot": [
+        "image",
         "screenshot_url",
         "status",
     ],

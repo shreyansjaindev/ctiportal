@@ -24,7 +24,7 @@ export function DataTableFilterResetButton<TData>({
     <div
       role="button"
       tabIndex={0}
-      className="h-5 rounded-full border border-input bg-background px-1.5 py-1 font-mono text-[10px] hover:bg-accent hover:text-accent-foreground cursor-pointer inline-flex items-center"
+      className="h-5 rounded-full border border-input bg-background px-1.5 py-1 text-[10px] hover:bg-accent hover:text-accent-foreground cursor-pointer inline-flex items-center"
       onClick={(e) => {
         e.stopPropagation();
         column?.setFilterValue(undefined);
