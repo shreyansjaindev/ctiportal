@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
-import { getLogoPathWithFallback } from "@/shared/utils/logo.utils"
 import { cn } from "@/shared/lib/utils"
+import { getLogoPath } from "@/shared/utils/logo.utils"
 
 interface ProviderLogoProps {
   providerId: string
@@ -39,21 +39,19 @@ function LetterFallback({
   )
 }
 
-export function ProviderLogo({ 
-  providerId, 
-  providerName, 
+export function ProviderLogo({
+  providerId,
+  providerName,
   className,
-  size = "md" 
+  size = "md",
 }: ProviderLogoProps) {
-  const { primary, fallback } = getLogoPathWithFallback(providerId)
+  const src = getLogoPath(providerId)
   const name = providerName || providerId
-  const [src, setSrc] = useState(primary)
   const [showFallback, setShowFallback] = useState(false)
 
   useEffect(() => {
-    setSrc(primary)
     setShowFallback(false)
-  }, [primary, providerId])
+  }, [providerId, src])
 
   if (showFallback) {
     return <LetterFallback name={name} size={size} className={className} />
@@ -64,14 +62,7 @@ export function ProviderLogo({
       src={src}
       alt={name}
       className={cn(sizeClasses[size], "object-contain flex-shrink-0", className)}
-      onError={(e) => {
-        const currentSrc = e.currentTarget.getAttribute("src")
-        if (currentSrc !== fallback) {
-          setSrc(fallback)
-        } else {
-          setShowFallback(true)
-        }
-      }}
+      onError={() => setShowFallback(true)}
     />
   )
 }
