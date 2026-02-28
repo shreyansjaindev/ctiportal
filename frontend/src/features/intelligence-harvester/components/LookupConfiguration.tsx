@@ -1,65 +1,30 @@
 import { useState } from "react"
 import { Button } from "@/shared/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
 import { Badge } from "@/shared/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover"
 import { getLogoPath } from "@/shared/utils/logo.utils"
-import { cn } from "@/shared/lib/utils"
-import { Switch } from "@/shared/components/ui/switch"
-import type { Provider, ProviderPreset } from "@/shared/types/intelligence-harvester"
-import type { ProviderValue } from "@/shared/hooks"
+import type { LookupType, Provider, ProviderPreset } from "@/shared/types/intelligence-harvester"
+import type { ProviderSelections, ProviderValue } from "@/shared/hooks"
+import { LOOKUP_TYPE_CONFIG, ALL_LOOKUP_TYPES } from "@/shared/lib/lookup-config"
+
+type ProvidersByType = Partial<Record<LookupType, Provider[]>>
 
 interface LookupConfigurationProps {
-  whoisProvider: ProviderValue
-  setWhoisProvider: (value: ProviderValue) => void
-  geoProvider: ProviderValue
-  setGeoProvider: (value: ProviderValue) => void
-  reputationProvider: ProviderValue
-  setReputationProvider: (value: ProviderValue) => void
-  dnsProvider: ProviderValue
-  setDnsProvider: (value: ProviderValue) => void
-  passiveDnsProvider: ProviderValue
-  setPassiveDnsProvider: (value: ProviderValue) => void
-  whoisHistoryProvider: ProviderValue
-  setWhoisHistoryProvider: (value: ProviderValue) => void
-  reverseDnsProvider: ProviderValue
-  setReverseDnsProvider: (value: ProviderValue) => void
-  screenshotProvider: ProviderValue
-  setScreenshotProvider: (value: ProviderValue) => void
-  emailValidationProvider: ProviderValue
-  setEmailValidationProvider: (value: ProviderValue) => void
-  cveDetailsProvider: ProviderValue
-  setCveDetailsProvider: (value: ProviderValue) => void
-  websiteStatusProvider: ProviderValue
-  setWebsiteStatusProvider: (value: ProviderValue) => void
-  providersByType: {
-    whois?: Provider[]
-    ip_info?: Provider[]
-    reputation?: Provider[]
-    dns?: Provider[]
-    passive_dns?: Provider[]
-    whois_history?: Provider[]
-    reverse_dns?: Provider[]
-    screenshot?: Provider[]
-    email_validator?: Provider[]
-    cve_details?: Provider[]
-    website_details?: Provider[]
-  }
+  selections: ProviderSelections
+  setProviderForType: (type: LookupType, value: ProviderValue) => void
+  providersByType: ProvidersByType
   presets?: Record<string, ProviderPreset>
-  autoLoad?: boolean
-  setAutoLoad?: (value: boolean) => void
-  className?: string
 }
 
-type LookupType = {
-  id: string
+type LookupTypeUIConfig = {
+  id: LookupType
   label: string
   value: ProviderValue
   setValue: (v: ProviderValue) => void
   providers?: Provider[]
 }
 
-function ProviderPopover({ type }: { type: LookupType }) {
+function ProviderPopover({ type }: { type: LookupTypeUIConfig }) {
   const [open, setOpen] = useState(false)
   
   // Always use arrays for provider selection
@@ -177,47 +142,18 @@ function ProviderPopover({ type }: { type: LookupType }) {
 }
 
 export function LookupConfiguration({
-  whoisProvider,
-  setWhoisProvider,
-  geoProvider,
-  setGeoProvider,
-  reputationProvider,
-  setReputationProvider,
-  dnsProvider,
-  setDnsProvider,
-  passiveDnsProvider,
-  setPassiveDnsProvider,
-  whoisHistoryProvider,
-  setWhoisHistoryProvider,
-  reverseDnsProvider,
-  setReverseDnsProvider,
-  screenshotProvider,
-  setScreenshotProvider,
-  emailValidationProvider,
-  setEmailValidationProvider,
-  cveDetailsProvider,
-  setCveDetailsProvider,
-  websiteStatusProvider,
-  setWebsiteStatusProvider,
+  selections,
+  setProviderForType,
   providersByType,
   presets,
-  autoLoad = false,
-  setAutoLoad,
-  className,
 }: LookupConfigurationProps) {
-  const lookupTypes: LookupType[] = [
-    { id: 'whois', label: 'WHOIS', value: whoisProvider, setValue: setWhoisProvider, providers: providersByType.whois },
-    { id: 'dns', label: 'DNS', value: dnsProvider, setValue: setDnsProvider, providers: providersByType.dns },
-    { id: 'ip_info', label: 'IP Info', value: geoProvider, setValue: setGeoProvider, providers: providersByType.ip_info },
-    { id: 'reputation', label: 'Reputation', value: reputationProvider, setValue: setReputationProvider, providers: providersByType.reputation },
-    { id: 'passive_dns', label: 'Passive DNS', value: passiveDnsProvider, setValue: setPassiveDnsProvider, providers: providersByType.passive_dns },
-    { id: 'whois_history', label: 'WHOIS History', value: whoisHistoryProvider, setValue: setWhoisHistoryProvider, providers: providersByType.whois_history },
-    { id: 'reverse_dns', label: 'Reverse DNS', value: reverseDnsProvider, setValue: setReverseDnsProvider, providers: providersByType.reverse_dns },
-    { id: 'screenshot', label: 'Screenshot', value: screenshotProvider, setValue: setScreenshotProvider, providers: providersByType.screenshot },
-    { id: 'email', label: 'Email Validator', value: emailValidationProvider, setValue: setEmailValidationProvider, providers: providersByType.email_validator },
-    { id: 'cve', label: 'CVE Details', value: cveDetailsProvider, setValue: setCveDetailsProvider, providers: providersByType.cve_details },
-    { id: 'website_details', label: 'Website Details', value: websiteStatusProvider, setValue: setWebsiteStatusProvider, providers: providersByType.website_details },
-  ]
+  const lookupTypes: LookupTypeUIConfig[] = LOOKUP_TYPE_CONFIG.map(c => ({
+    id: c.id,
+    label: c.label,
+    value: selections[c.id],
+    setValue: (v: ProviderValue) => setProviderForType(c.id, v),
+    providers: providersByType[c.id],
+  }))
 
   // Helper to check if enabled
   const isValueEnabled = (value: ProviderValue) => {
@@ -225,6 +161,7 @@ export function LookupConfiguration({
   }
 
   const enabledCount = lookupTypes.filter(t => isValueEnabled(t.value)).length
+  const totalCount = ALL_LOOKUP_TYPES.length
 
   const pickAvailable = (preferred: string[], providers?: Provider[]): ProviderValue => {
     if (!providers || providers.length === 0) return []
@@ -236,86 +173,52 @@ export function LookupConfiguration({
   const applyPreset = (presetName: string) => {
     const config = presets?.[presetName] as ProviderPreset | undefined
     if (!config?.providers) return
-
-    const providers = config.providers
-    
-    setWhoisProvider(pickAvailable(providers.whois || [], providersByType.whois))
-    setDnsProvider(pickAvailable(providers.dns || [], providersByType.dns))
-    setGeoProvider(pickAvailable(providers.ip_info || [], providersByType.ip_info))
-    setReputationProvider(pickAvailable(providers.reputation || [], providersByType.reputation))
-    setPassiveDnsProvider(pickAvailable(providers.passive_dns || [], providersByType.passive_dns))
-    setWhoisHistoryProvider(pickAvailable(providers.whois_history || [], providersByType.whois_history))
-    setReverseDnsProvider(pickAvailable(providers.reverse_dns || [], providersByType.reverse_dns))
-    setScreenshotProvider(pickAvailable(providers.screenshot || [], providersByType.screenshot))
-    setEmailValidationProvider(pickAvailable(providers.email_validator || [], providersByType.email_validator))
-    setCveDetailsProvider(pickAvailable(providers.cve_details || [], providersByType.cve_details))
-    setWebsiteStatusProvider(pickAvailable(providers.website_details || [], providersByType.website_details))
+    const presetProviders = config.providers as Partial<Record<LookupType, string[]>>
+    for (const c of LOOKUP_TYPE_CONFIG) {
+      setProviderForType(c.id, pickAvailable(presetProviders[c.id] || [], providersByType[c.id]))
+    }
   }
 
   const clearAllSelections = () => {
-    setWhoisProvider([])
-    setDnsProvider([])
-    setGeoProvider([])
-    setReputationProvider([])
-    setPassiveDnsProvider([])
-    setWhoisHistoryProvider([])
-    setReverseDnsProvider([])
-    setScreenshotProvider([])
-    setEmailValidationProvider([])
-    setCveDetailsProvider([])
-    setWebsiteStatusProvider([])
+    ALL_LOOKUP_TYPES.forEach(type => setProviderForType(type, []))
   }
 
   return (
-    <Card className={cn("rounded-tr-lg rounded-tl-none rounded-b-none", className)}>
-      <CardHeader className="space-y-3">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              Configure Lookup
-              <Badge variant="secondary" className="text-xs">
-                {enabledCount} of 11 active
-              </Badge>
-            </CardTitle>
-            <div className="flex gap-2 flex-wrap">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={clearAllSelections}
-                className="h-8"
-              >
-                Clear All
-              </Button>
-              {presets && Object.entries(presets).map(([presetKey, presetData]: [string, ProviderPreset]) => (
-                <Button 
-                  key={presetKey}
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => applyPreset(presetKey)}
-                  title={presetData.description}
-                  className="h-8"
-                >
-                  {presetData.name}
-                </Button>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-muted/30">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">Auto-load Data</p>
-              <p className="text-xs text-muted-foreground">
-                Run lookups automatically
-              </p>
-            </div>
-            <Switch
-              checked={autoLoad}
-              onCheckedChange={setAutoLoad}
-            />
-          </div>
+    <div className="space-y-4">
+      <div className="space-y-2 rounded-lg border p-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Presets</span>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {/* Lookup type cards with inline config */}
+        <p className="text-xs text-muted-foreground">
+          Apply a saved auto-load setup.
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <Button size="sm" variant="outline" onClick={clearAllSelections}>
+            Clear All
+          </Button>
+          {presets && Object.entries(presets).map(([presetKey, presetData]: [string, ProviderPreset]) => (
+            <Button
+              key={presetKey}
+              size="sm"
+              variant="outline"
+              onClick={() => applyPreset(presetKey)}
+              title={presetData.description}
+            >
+              {presetData.name}
+            </Button>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-2 rounded-lg border p-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Provider Categories</span>
+          <Badge variant="secondary" className="text-xs">
+            {enabledCount} of {totalCount} enabled
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Enable categories, then choose providers.
+        </p>
         <div className="grid gap-2 grid-cols-[repeat(auto-fit,minmax(80px,1fr))]">
           {lookupTypes.map((type) => {
             const isEnabled = isValueEnabled(type.value)
@@ -323,15 +226,17 @@ export function LookupConfiguration({
             const isDisabled = !hasProviders
             
             return (
-              <div 
+              <button
+                type="button"
                 key={type.id}
-                className={`relative group rounded-lg border transition-all ${
+                className={`relative group min-h-16 rounded-lg border px-2 py-2 transition-all ${
                   isDisabled
-                    ? 'border-muted bg-muted/30 opacity-50'
+                    ? 'border-muted bg-muted/30 opacity-50 cursor-not-allowed'
                     : isEnabled 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-muted hover:border-muted-foreground/20'
+                      ? 'border-primary bg-primary/5 hover:bg-primary/10'
+                      : 'border-muted hover:border-muted-foreground/20 hover:bg-muted/30'
                 }`}
+                disabled={isDisabled}
               >
                 {/* Settings popover - show when has providers */}
                 {hasProviders && (
@@ -340,14 +245,10 @@ export function LookupConfiguration({
                 
                 {/* Main card content */}
                 <div
-                  className={`p-2 h-full flex items-center justify-center ${
-                    isDisabled 
-                      ? 'cursor-not-allowed' 
-                      : 'cursor-pointer hover:bg-primary/5'
-                  }`}
+                  className="flex h-full items-center justify-center"
                 >
                   <div className="flex flex-col items-center gap-1.5 text-center">
-                    <span className={`text-[11px] font-medium leading-tight ${
+                    <span className={`text-xs font-medium leading-tight ${
                       isDisabled 
                         ? 'text-muted-foreground/50' 
                         : isEnabled 
@@ -363,13 +264,12 @@ export function LookupConfiguration({
                 {isEnabled && (
                   <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary border-2 border-background" />
                 )}
-              </div>
+              </button>
             )
           })}
         </div>
-
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 

@@ -2,42 +2,38 @@
 Reverse DNS aggregator for IP to hostname resolution
 """
 import logging
+from typing import Optional, Dict, Any
 
-# Import provider functions at module level for early error detection
+from ..providers.builtin_dns import ip_to_hostname
 from ..providers.securitytrails import get_reverse_dns as securitytrails_reverse_dns
-from .lookup import ip_to_hostname
 
 logger = logging.getLogger(__name__)
 
+# SecurityTrails first (richer data), builtin DNS as fallback
+PROVIDERS = {
+    'securitytrails': securitytrails_reverse_dns,
+    'builtin_dns': ip_to_hostname,
+}
 
-def get(ip, provider=None):
+
+def get(ip: str, provider: Optional[str] = None) -> Dict[str, Any]:
     """
-    Get reverse DNS (PTR) record for an IP
-    
+    Get reverse DNS (PTR) records for an IP address.
+
     Args:
         ip: IP address to query
-        provider: Specific provider to use (optional)
-    
-    Returns:
-        dict: Reverse DNS data
+        provider: Specific provider to use (None for auto-fallback). Options: 'builtin_dns', 'securitytrails'
     """
-    # If specific provider requested
-    if provider:
-        if provider == 'system_dns':
-            return ip_to_hostname(ip)
-        elif provider == 'securitytrails':
-            return securitytrails_reverse_dns(ip)
-        else:
+    if provider is not None:
+        if provider not in PROVIDERS:
             return {'error': f'Provider {provider} not available'}
-    
-    # Try providers in order of preference - SecurityTrails first if available, then system DNS
-    result = securitytrails_reverse_dns(ip)
-    if 'error' not in result:
+        result = PROVIDERS[provider](ip)
+        if not result.get('error'):
+            result['_provider'] = provider
         return result
-    
-    # Fallback to system DNS
-    result = ip_to_hostname(ip)
-    if 'error' not in result:
-        return result
-    
-    return {'error': 'All reverse DNS providers failed'}
+
+    for prov_id, func in PROVIDERS.items():
+        result = func(ip)
+        if result and not result.get('error'):
+            result['_provider'] = prov_id
+            return result

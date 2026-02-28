@@ -1,24 +1,25 @@
-import { Card, CardContent } from "@/shared/components/ui/card"
-import { Badge } from "@/shared/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/shared/components/ui/alert"
 import { Button } from "@/shared/components/ui/button"
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
 import { cn } from "@/shared/lib/utils"
-import { useMemo, useState, useCallback, useEffect } from "react"
-import { Info, Loader2, AlertCircle, RefreshCw } from "lucide-react"
+import { useMemo, useState, useCallback } from "react"
+import { Info, Loader2, AlertCircle, RefreshCw, Maximize2, ArrowLeft } from "lucide-react"
 import type { IndicatorResult, LookupResult, IndicatorType, LookupType, Provider } from "@/shared/types/intelligence-harvester"
 import { isLookupApplicable, executeIndicatorLookups } from "@/shared/services/lookup.service"
 import { detectIndicatorType } from "@/shared/lib/indicator-utils"
 import { ProviderLogo } from "@/shared/components/ProviderLogo"
+import { LOOKUP_LABELS, ALL_LOOKUP_TYPES } from "@/shared/lib/lookup-config"
 
-// Import display components
-import { WebsiteDetailsDisplay } from "./displays/WebsiteDetailsDisplay"
+import { WebsiteStatusDisplay } from "./displays/WebsiteStatusDisplay"
+import { WebScanDisplay } from "./displays/WebScanDisplay"
 import { DnsDisplay } from "./displays/DnsDisplay"
 import { WhoisDisplay } from "./displays/WhoisDisplay"
 import { ReputationDisplay } from "./displays/ReputationDisplay"
 import { ScreenshotDisplay } from "./displays/ScreenshotDisplay"
 import { PassiveDnsDisplay } from "./displays/PassiveDnsDisplay"
 import { WhoisHistoryDisplay } from "./displays/WhoisHistoryDisplay"
+import { SubdomainsDisplay } from "./displays/SubdomainsDisplay"
 import { DefaultDisplay } from "./displays/DefaultDisplay"
 
 interface LookupResultsProps {
@@ -33,491 +34,369 @@ interface LookupResultsProps {
   onResultsUpdate?: (indicator: string, newResults: LookupResult[]) => void
 }
 
-const LOOKUP_LABELS: Record<string, string> = {
-  whois: "WHOIS",
-  ip_info: "IP Info",
-  reputation: "Reputation",
-  dns: "DNS",
-  passive_dns: "Passive DNS",
-  whois_history: "WHOIS History",
-  reverse_dns: "Reverse DNS",
-  screenshot: "Screenshot",
-  email_validator: "Email Validation",
-  cve_details: "CVE Details",
-  website_details: "Website Details",
-}
-
-// All possible lookup types in preferred display order
-const ALL_LOOKUP_TYPES: LookupType[] = [
-  "whois",
-  "ip_info",
-  "reputation",
-  "dns",
-  "passive_dns",
-  "reverse_dns",
-  "whois_history",
-  "screenshot",
-  "website_details",
-  "email_validator",
-  "cve_details",
-]
-
-// Router function to select the appropriate display component
-function getDisplayComponent(lookupType: string, result: LookupResult, isOverview: boolean) {
-  switch (lookupType) {
-    case "website_details":
-      return <WebsiteDetailsDisplay result={result} isOverview={isOverview} />
-    case "dns":
-      return <DnsDisplay result={result} isOverview={isOverview} />
-    case "whois":
-      return <WhoisDisplay result={result} isOverview={isOverview} />
-    case "reputation":
-      return <ReputationDisplay result={result} isOverview={isOverview} />
-    case "screenshot":
-      return <ScreenshotDisplay result={result} isOverview={isOverview} />
-    case "passive_dns":
-      return <PassiveDnsDisplay result={result} isOverview={isOverview} />
-    case "whois_history":
-      return <WhoisHistoryDisplay result={result} isOverview={isOverview} />
-    default:
-      return <DefaultDisplay result={result} isOverview={isOverview} />
+function getDisplayComponent(type: string, result: LookupResult, isOverview: boolean) {
+  switch (type) {
+    case "website_status": return <WebsiteStatusDisplay result={result} isOverview={isOverview} />
+    case "web_scan":       return <WebScanDisplay result={result} isOverview={isOverview} />
+    case "dns":            return <DnsDisplay result={result} isOverview={isOverview} />
+    case "whois":          return <WhoisDisplay result={result} isOverview={isOverview} />
+    case "reputation":     return <ReputationDisplay result={result} isOverview={isOverview} />
+    case "screenshot":     return <ScreenshotDisplay result={result} isOverview={isOverview} />
+    case "passive_dns":    return <PassiveDnsDisplay result={result} isOverview={isOverview} />
+    case "subdomains":     return <SubdomainsDisplay result={result} isOverview={isOverview} />
+    case "whois_history":  return <WhoisHistoryDisplay result={result} isOverview={isOverview} />
+    default:               return <DefaultDisplay result={result} isOverview={isOverview} />
   }
 }
 
-function normalizeProviderKey(value: string | undefined): string {
-  if (!value) return ""
-  return value.toLowerCase().replace(/[^a-z0-9]/g, "")
+// One card per lookup type in the grid. Handles all per-type states:
+//   idle -> loading -> (data | error | empty)
+// Compact display only; expand button opens the full-area card.
+interface LookupTypeCardProps {
+  type: LookupType
+  typeResults: LookupResult[]
+  isLoading: boolean
+  isFetched: boolean
+  error: string | undefined
+  providersByType: Record<string, Provider[]>
+  selectedProviders?: string[]
+  onLoad: (providerId?: string) => void
+  onRetry: () => void
+  onExpand: () => void
+  showLoadAll?: boolean
+  expanded?: boolean
+  onCollapse?: () => void
 }
 
-export function LookupResults({ results, activeIndicator, indicatorTypes, isLoading = false, className, token, getProviderForType, providersByType, onResultsUpdate }: LookupResultsProps) {
+function LookupTypeCard({
+  type, typeResults, isLoading, isFetched, error,
+  providersByType, selectedProviders = [], onLoad, onRetry, onExpand, showLoadAll = true,
+  expanded = false, onCollapse,
+}: LookupTypeCardProps) {
+  const [activeProviderId, setActiveProviderId] = useState<string | null>(null)
+
+  const availableProviders = (providersByType[type] || []).filter(p => p.available)
+
+  const dataResults = typeResults.filter(r => !r.error && Object.keys(r.essential ?? {}).length > 0)
+  const hasData = dataResults.length > 0
+  const label = LOOKUP_LABELS[type] || type
+
+  const returnedProviderIds = new Set(typeResults.map(r => r._provider).filter(Boolean))
+
+  const resolvedProviderId = activeProviderId
+    ?? (dataResults[0]?._provider ?? null)
+
+  const activeResult = resolvedProviderId
+    ? typeResults.find(r => r._provider === resolvedProviderId) ?? null
+    : null
+  const activeResultHasData = activeResult
+    ? !activeResult.error && Object.keys(activeResult.essential ?? {}).length > 0
+    : false
+  const activeProviderReturned = resolvedProviderId
+    ? returnedProviderIds.has(resolvedProviderId)
+    : false
+  const activeTabValue = resolvedProviderId ?? "__none__"
+
+  const isIdleState = !isFetched && !isLoading
+  const borderClass = error && !hasData
+    ? "border-destructive/40"
+    : isIdleState
+      ? "border-dashed"
+      : "border"
+
+  return (
+    <Card className={cn(
+      "w-full min-w-0 gap-0 shadow-none",
+      expanded
+        ? "h-full min-h-0 bg-background py-4"
+        : isIdleState
+          ? "min-h-[11rem] bg-muted/20 py-6"
+          : "py-4",
+      borderClass
+    )}>
+      <CardHeader className={cn("px-4", isIdleState && !expanded && "pb-4", (!isIdleState || expanded) && "pb-2")}>
+        <div className="flex flex-col gap-0.5">
+          <CardTitle className={cn("leading-tight", isIdleState ? "text-base" : "text-sm")}>{label}</CardTitle>
+          {isIdleState ? (
+            <CardDescription>
+              {availableProviders.length > 0 ? "Choose a provider to fetch" : "Click to load"}
+            </CardDescription>
+          ) : null}
+          {isLoading && !hasData && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> Fetching data...
+            </span>
+          )}
+          {error && !hasData && (
+            <span className="flex items-center gap-1 text-xs text-destructive">
+              <AlertCircle className="h-3 w-3" />
+              <span className="line-clamp-1">{error}</span>
+            </span>
+          )}
+        </div>
+        <CardAction className="flex shrink-0 items-center gap-1">
+          {expanded ? (
+            <Button variant="ghost" size="sm" className="gap-2" onClick={onCollapse}>
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          ) : isFetched && (
+            <Button variant="ghost" size="icon" className="h-6 w-6 -mt-0.5" onClick={onExpand} title="View full details">
+              <Maximize2 className="h-3 w-3" />
+            </Button>
+          )}
+          {showLoadAll && isIdleState && !expanded && selectedProviders.length > 0 && (
+            <button
+              onClick={() => onLoad()}
+              className="group flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Load selected
+              <ArrowLeft className="h-3.5 w-3.5 rotate-180 transition-transform group-hover:translate-x-0.5" />
+            </button>
+          )}
+        </CardAction>
+      </CardHeader>
+
+      {availableProviders.length > 0 ? (
+        isIdleState ? (
+          <CardContent className="flex flex-wrap gap-2 px-4">
+            {availableProviders.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => { setActiveProviderId(p.id); if (!returnedProviderIds.has(p.id) && !isLoading) onLoad(p.id) }}
+                className="active:scale-95 flex items-center gap-2 rounded-md border border-border bg-background px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground hover:shadow-sm"
+              >
+                <ProviderLogo providerId={p.id} providerName={p.name} size="md" />
+                <span>{p.name}</span>
+              </button>
+            ))}
+          </CardContent>
+        ) : (
+          <Tabs
+            value={activeTabValue}
+            onValueChange={(value) => {
+              if (value === "__none__") return
+              setActiveProviderId(value)
+              if (!returnedProviderIds.has(value) && !isLoading) onLoad(value)
+            }}
+            className="gap-0 border-b"
+          >
+            <TabsList variant="line" className={cn("w-full justify-start flex-wrap px-4 rounded-none", expanded ? "h-auto" : "h-10")}>
+              {availableProviders.map((p) => {
+                const wasReturned = returnedProviderIds.has(p.id)
+                const hasError = wasReturned && typeResults.find(r => r._provider === p.id)?.error
+
+                return (
+                  <TabsTrigger
+                    key={p.id}
+                    value={p.id}
+                    title={p.name}
+                    className={cn(
+                      "group h-full px-2 gap-1.5 text-xs data-[state=active]:shadow-none",
+                      isLoading && !wasReturned && "opacity-30"
+                    )}
+                  >
+                    <ProviderLogo
+                      providerId={p.id}
+                      providerName={p.name}
+                      size={expanded ? "sm" : "md"}
+                      className={cn(!expanded && "h-5 w-5")}
+                    />
+                    <span
+                      className={cn(
+                        "truncate",
+                        expanded
+                          ? ""
+                          : "max-w-0 overflow-hidden opacity-0 transition-all duration-150 group-hover:max-w-24 group-hover:opacity-100"
+                      )}
+                    >
+                      {p.name}
+                    </span>
+                    {hasError && <AlertCircle className="h-3 w-3 text-destructive" />}
+                  </TabsTrigger>
+                )
+              })}
+            </TabsList>
+            {availableProviders.map((p) => (
+              <TabsContent key={p.id} value={p.id} className="m-0" />
+            ))}
+          </Tabs>
+        )
+      ) : isIdleState ? (
+        <button
+          onClick={() => onLoad()}
+          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <span>Fetch data</span>
+          <ArrowLeft className="h-3 w-3 rotate-180" />
+        </button>
+      ) : null}
+
+      {error && !hasData && (
+        <Button variant="outline" size="sm" className="mt-3 h-6 self-start gap-1.5 text-xs" onClick={onRetry}>
+          <RefreshCw className="h-2.5 w-2.5" /> Retry
+        </Button>
+      )}
+
+      {resolvedProviderId && activeProviderReturned && (
+        <CardContent className={cn("px-4", !isIdleState && "pt-4", expanded && "min-h-0 flex-1 overflow-y-auto")}>
+          {activeResult?.error
+            ? (
+              <div className={cn("flex items-start gap-1.5 text-xs text-destructive", expanded && "px-1")}>
+                <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                <span className="break-words">{activeResult.error}</span>
+              </div>
+            )
+            : activeResultHasData && activeResult
+              ? getDisplayComponent(type, activeResult, !expanded)
+              : (
+                <p className="text-xs text-muted-foreground">
+                  No data returned for {availableProviders.find(p => p.id === resolvedProviderId)?.name ?? resolvedProviderId}
+                </p>
+              )}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
+export function LookupResults({
+  results, activeIndicator, indicatorTypes,
+  isLoading = false, className, token,
+  getProviderForType, providersByType, onResultsUpdate,
+}: LookupResultsProps) {
   const [loadingTypes, setLoadingTypes] = useState<Set<LookupType>>(new Set())
-  const [activeTab, setActiveTab] = useState<string>("overview")
-  const [loadedTypes, setLoadedTypes] = useState<Set<string>>(new Set())
-  const [errorTypes, setErrorTypes] = useState<Map<string, string>>(new Map())
-  // Track active provider per lookup type (for types with multiple providers)
-  const [activeProviderPerType, setActiveProviderPerType] = useState<Map<string, string>>(new Map())
-  
-  const filteredResults = activeIndicator
-    ? results.filter((item) => item.indicator === activeIndicator)
-    : results
+  const [fetchedKeys, setFetchedKeys] = useState<Set<string>>(new Set())
+  const [typeErrors, setTypeErrors] = useState<Map<LookupType, string>>(new Map())
+  const [detailType, setDetailType] = useState<LookupType | null>(null)
 
-  const activeResult = filteredResults[0]
+  const activeResult = results.find(item => item.indicator === activeIndicator)
 
-  // Get the indicator type for the active indicator
-  // Try from the indicatorTypes map first, fallback to client-side detection
   const activeIndicatorType = useMemo(() => {
     if (!activeIndicator) return undefined
-    
-    // First try to get from the backend-identified types
-    if (indicatorTypes && indicatorTypes.has(activeIndicator)) {
-      return indicatorTypes.get(activeIndicator)
-    }
-    
-    // Fallback to client-side detection if backend identification is pending
-    return detectIndicatorType(activeIndicator)
+    return indicatorTypes?.get(activeIndicator) ?? detectIndicatorType(activeIndicator)
   }, [activeIndicator, indicatorTypes])
 
-  // Group results by lookup type
   const resultsByType = useMemo(() => {
-    if (!activeResult) return {}
     const grouped: Record<string, LookupResult[]> = {}
-    activeResult.results.forEach((result) => {
-      const type = result._lookup_type || "unknown"
-      if (!grouped[type]) grouped[type] = []
-      grouped[type].push(result)
+    activeResult?.results.forEach(r => {
+      const type = r._lookup_type || "unknown"
+      grouped[type] = [...(grouped[type] ?? []), r]
     })
     return grouped
   }, [activeResult])
 
-  // Show ALL applicable tabs for this indicator type (not just ones with results)
   const lookupTypes = useMemo(() => {
     if (!activeIndicatorType) {
-      // Fallback: show only types with actual results
-      return Object.keys(resultsByType).filter(type => resultsByType[type].length > 0).sort() as LookupType[]
+      return Object.keys(resultsByType).filter(t => resultsByType[t].length > 0) as LookupType[]
     }
-    
-    // Return all applicable lookup types for this indicator, ordered by preference
     return ALL_LOOKUP_TYPES.filter(type => isLookupApplicable(type, activeIndicatorType))
   }, [activeIndicatorType, resultsByType])
 
-  // Filter types that have actual data (not just errors) for overview
-  const typesWithData = lookupTypes.filter(type => {
-    const results = resultsByType[type]
-    if (!results || results.length === 0) {
-      return false
-    }
-    
-    const hasData = results.some(result => {
-      if (result.error) {
-        return false
-      }
-      // For screenshot type, check both essential and additional for image data
-      if (type === "screenshot") {
-        const allData = { ...result.essential, ...result.additional }
-        return Object.keys(allData).length > 0
-      }
-      // For other types, only show types with essential data in overview
-      const hasEssential = result.essential && Object.keys(result.essential).length > 0
-      return hasEssential
-    })
-    
-    return hasData
-  })
+  const handleLookupType = useCallback(async (
+    type: LookupType,
+    isRetry = false,
+    providerOverride?: string,
+  ) => {
+    if (!activeIndicator || !activeIndicatorType || !token || !getProviderForType || !providersByType) return
 
-  // Trigger lookup for a specific type
-  const handleLookupType = useCallback(async (type: LookupType, isRetry = false, providerOverride?: string) => {
-    if (!activeIndicator || !activeIndicatorType || !token || !getProviderForType || !providersByType) {
-      console.warn('Missing required props for lookup')
-      return
-    }
+    const providerLookup = getProviderForType
+    const providerMap = providersByType
 
-    // Skip if already loading or loaded (unless it's a retry)
-    const cacheKey = `${activeIndicator}:${type}:${providerOverride || "__all__"}`
-    if (!isRetry && (loadingTypes.has(type) || loadedTypes.has(cacheKey))) {
-      return
-    }
+    const cacheKey = `${type}:${providerOverride ?? ""}`
+    if (!isRetry && (loadingTypes.has(type) || fetchedKeys.has(cacheKey))) return
 
     setLoadingTypes(prev => new Set(prev).add(type))
-    // Clear previous error for this type
-    setErrorTypes(prev => {
+    setTypeErrors(prev => {
       const next = new Map(prev)
-      next.delete(cacheKey)
+      next.delete(type)
       return next
     })
 
+    function resolveProviders(): string[] {
+      if (providerOverride) return [providerOverride]
+      return providerLookup(type)
+    }
+
     try {
-      const defaultProviderIds = (providersByType[type] || [])
-        .filter((provider) => provider.available)
-        .map((provider) => provider.id)
-
-      const selectedProviderIds = providerOverride
-        ? [providerOverride]
-        : (() => {
-            const selected = getProviderForType(type)
-            return selected.length > 0 ? selected : defaultProviderIds
-          })()
-
-      const localGetProviderForType = (lookupType: LookupType): string[] => {
-        if (lookupType === type) {
-          return selectedProviderIds
-        }
-        return getProviderForType(lookupType)
-      }
-
-      const results = await executeIndicatorLookups({
+      const fetched = await executeIndicatorLookups({
         indicator: activeIndicator,
         indicatorType: activeIndicatorType,
         selectedTypes: new Set([type]),
-        providers_by_type: providersByType,
-        getProviderForType: localGetProviderForType,
+        providers_by_type: providerMap,
+        getProviderForType: (t) => t === type ? resolveProviders() : providerLookup(t),
         token,
       })
-
-      // Update results if callback provided
-      if (onResultsUpdate && results.length > 0) {
-        onResultsUpdate(activeIndicator, results)
-      }
-    } catch (error) {
-      console.error(`Failed to fetch ${type} data:`, error)
-      // Store error message
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch data'
-      setErrorTypes(prev => new Map(prev).set(cacheKey, errorMessage))
+      if (onResultsUpdate && fetched.length > 0) onResultsUpdate(activeIndicator, fetched)
+    } catch (err) {
+      setTypeErrors(prev => new Map(prev).set(type, err instanceof Error ? err.message : "Failed to fetch data"))
     } finally {
-      // Always mark as loaded to prevent infinite retry
-      setLoadedTypes(prev => new Set(prev).add(cacheKey))
+      setFetchedKeys(prev => new Set(prev).add(cacheKey))
       setLoadingTypes(prev => {
         const next = new Set(prev)
         next.delete(type)
         return next
       })
     }
-  }, [activeIndicator, activeIndicatorType, token, getProviderForType, providersByType, onResultsUpdate, loadingTypes, loadedTypes])
+  }, [activeIndicator, activeIndicatorType, token, getProviderForType, providersByType, onResultsUpdate, loadingTypes, fetchedKeys])
 
-  // Auto-load data when a tab without results is activated
-  useEffect(() => {
-    if (activeTab === "overview" || !activeIndicator || !activeIndicatorType) return
-    
-    const type = activeTab as LookupType
-    const hasResults = resultsByType[type]?.length > 0
-    const selectedProviderIds = getProviderForType ? getProviderForType(type) : []
-    const availableProviderIds = (providersByType?.[type] || [])
-      .filter((provider) => provider.available)
-      .map((provider) => provider.id)
-    const effectiveProviders = selectedProviderIds.length > 0 ? selectedProviderIds : availableProviderIds
-    const firstProvider = effectiveProviders[0]
-    const cacheKey = `${activeIndicator}:${type}:${firstProvider || "__all__"}`
-    
-    // Auto-load if no results and not already loading/loaded
-    if (!hasResults && !loadingTypes.has(type) && !loadedTypes.has(cacheKey)) {
-      handleLookupType(type, false, firstProvider)
-    }
-  }, [activeTab, activeIndicator, activeIndicatorType, resultsByType, loadingTypes, loadedTypes, handleLookupType, getProviderForType, providersByType])
-
-  // Reset loaded cache when indicator changes
-  useEffect(() => {
-    setLoadedTypes(new Set())
-    setErrorTypes(new Map())
-    setActiveTab("overview")
-  }, [activeIndicator])
+  if (!activeIndicator) {
+    return (
+      <div className={cn("h-full flex items-center justify-center p-6", className)}>
+        <Alert className="max-w-sm">
+          <Info className="h-4 w-4" />
+          <AlertTitle>No observable selected</AlertTitle>
+          <AlertDescription>Select an observable from the list to see lookup results</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
 
   return (
-    <Card className={cn("h-full flex flex-col min-w-0 rounded-br-lg rounded-bl-none rounded-t-none", className)}>
-      <CardContent className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto">
-        {isLoading ? (
-          <div className="space-y-4 p-6">
-            <div className="space-y-2">
-              <div className="h-4 w-1/4 bg-muted animate-pulse rounded" />
-              <div className="h-10 w-full bg-muted animate-pulse rounded" />
+    <div className={cn("h-full flex min-w-0 flex-col", className)}>
+      <div className="relative flex-1 min-h-0">
+        <div className="h-full overflow-y-auto p-4">
+          {detailType ? (
+            <LookupTypeCard
+              type={detailType}
+              typeResults={resultsByType[detailType] ?? []}
+              isLoading={loadingTypes.has(detailType)}
+              isFetched={fetchedKeys.has(`${detailType}:`) || (resultsByType[detailType]?.length ?? 0) > 0}
+              error={typeErrors.get(detailType)}
+              providersByType={providersByType ?? {}}
+              selectedProviders={getProviderForType?.(detailType) ?? []}
+              onLoad={(pid) => handleLookupType(detailType, false, pid)}
+              onRetry={() => handleLookupType(detailType, true)}
+              onExpand={() => setDetailType(detailType)}
+              expanded
+              onCollapse={() => setDetailType(null)}
+              showLoadAll={false}
+            />
+          ) : isLoading && lookupTypes.length === 0 ? (
+            <div className="flex h-full items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="space-y-2 rounded-lg border p-4">
-                  <div className="h-3 w-1/3 bg-muted animate-pulse rounded" />
-                  <div className="h-6 w-2/3 bg-muted animate-pulse rounded" />
-                </div>
+          ) : (
+            <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {lookupTypes.map(type => (
+                <LookupTypeCard
+                  key={type}
+                  type={type}
+                  typeResults={resultsByType[type] ?? []}
+                  isLoading={loadingTypes.has(type)}
+                  isFetched={fetchedKeys.has(`${type}:`) || (resultsByType[type]?.length ?? 0) > 0}
+                  error={typeErrors.get(type)}
+                  providersByType={providersByType ?? {}}
+                  selectedProviders={getProviderForType?.(type) ?? []}
+                  onLoad={(pid) => handleLookupType(type, false, pid)}
+                  onRetry={() => handleLookupType(type, true)}
+                  onExpand={() => setDetailType(type)}
+                />
               ))}
             </div>
-            <div className="space-y-2">
-              <div className="h-4 w-1/4 bg-muted animate-pulse rounded" />
-              <div className="h-32 w-full bg-muted animate-pulse rounded" />
-            </div>
-          </div>
-        ) : !activeIndicator ? (
-          <div className="p-6">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>No indicator selected</AlertTitle>
-              <AlertDescription>
-                Select an indicator from the list to see available lookup types
-              </AlertDescription>
-            </Alert>
-          </div>
-        ) : (
-        <>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full justify-start flex-wrap h-auto px-6">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              {lookupTypes.map((type) => {
-                const hasResults = resultsByType[type]?.length > 0
-              const isLoading = loadingTypes.has(type as LookupType)
-              return (
-                <TabsTrigger key={type} value={type}>
-                  {isLoading && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-                  {LOOKUP_LABELS[type] || type}
-                  {hasResults && (
-                    <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">
-                      {resultsByType[type].length}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              )
-            })}
-          </TabsList>
-
-          {/* Overview Tab - Essential Fields Only */}
-          <TabsContent value="overview" className="space-y-6 px-6 py-4">
-            {typesWithData.length === 0 ? (
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>No lookup results yet</AlertTitle>
-                <AlertDescription>
-                  Click "Run Lookup" to fetch data for {activeIndicator}
-                </AlertDescription>
-              </Alert>
-            ) : (
-              typesWithData.map((type) => {
-                const typeResults = resultsByType[type]
-                
-                return (
-                  <div key={type} className="space-y-3">
-                    <h3 className="text-sm font-medium flex items-center gap-2">
-                      <Badge variant="default" className="text-xs">
-                        {LOOKUP_LABELS[type] || type}
-                      </Badge>
-                    </h3>
-                    
-                    {typeResults.map((result, idx) => {
-                      // Skip results with errors
-                      if (result.error) return null
-                      
-                      // For screenshot type, check both essential and additional
-                      if (type === "screenshot") {
-                        const allData = { ...result.essential, ...result.additional }
-                        if (Object.keys(allData).length === 0) return null
-                      } else {
-                        // For other types, skip if no essential data
-                        if (!result.essential || Object.keys(result.essential).length === 0) return null
-                      }
-                      
-                      return (
-                        <div key={idx}>
-                          {result._provider && (
-                            <div className="flex items-center gap-2 mb-2">
-                              <ProviderLogo providerId={result._provider} providerName={result._provider} size="sm" />
-                              <span className="text-xs text-muted-foreground">
-                                {result._provider}
-                              </span>
-                            </div>
-                          )}
-                          {getDisplayComponent(type, result, true)}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              })
-            )}
-          </TabsContent>
-
-          {/* Type-specific tabs */}
-          {lookupTypes.map((type) => {
-            const typeResults = resultsByType[type] || []
-            const hasResults = typeResults.length > 0
-            const isLoadingType = loadingTypes.has(type as LookupType)
-            const cacheKey = `${activeIndicator}:${type}`
-            const errorMessage = errorTypes.get(cacheKey)
-
-            const providerOptions = (providersByType?.[type] || []).filter((provider) => provider.available)
-            const providerNameById = new Map(providerOptions.map((provider) => [provider.id, provider.name]))
-
-            const resolveResultForProvider = (providerId: string) => {
-              const idKey = normalizeProviderKey(providerId)
-              const providerName = providerNameById.get(providerId)
-              const nameKey = normalizeProviderKey(providerName)
-              return typeResults.find((result) => {
-                const resultKey = normalizeProviderKey(result._provider)
-                return resultKey === idKey || (nameKey !== "" && resultKey === nameKey)
-              })
-            }
-
-            const selectedProviderIds = getProviderForType ? getProviderForType(type as LookupType) : []
-            const configuredProviderIds = providerOptions.map((provider) => provider.id)
-
-            const uniqueProviderIds = Array.from(new Set([
-              ...configuredProviderIds,
-              ...selectedProviderIds,
-              ...typeResults.map((result) => result._provider).filter(Boolean) as string[],
-            ]))
-
-            const providerTabs = uniqueProviderIds.map((providerId, index) => {
-              const providerResult = resolveResultForProvider(providerId)
-              return {
-                value: `${index}:${providerId}`,
-                providerId,
-                label: providerNameById.get(providerId) || providerId,
-                result: providerResult,
-              }
-            })
-
-            if (providerTabs.length === 0 && hasResults) {
-              typeResults.forEach((result, index) => {
-                const providerLabel = result._provider || `Result ${index + 1}`
-                providerTabs.push({
-                  value: `${index}:${providerLabel}`,
-                  providerId: providerLabel,
-                  label: providerLabel,
-                  result,
-                })
-              })
-            }
-
-            const storedProvider = activeProviderPerType.get(type)
-            const activeProvider =
-              storedProvider && providerTabs.some((tab) => tab.value === storedProvider)
-                ? storedProvider
-                : providerTabs[0]?.value
-            
-            return (
-              <TabsContent key={type} value={type} className="space-y-4">
-                {isLoadingType ? (
-                  <div className="flex items-center justify-center py-8 px-6">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    <span className="ml-2 text-sm text-muted-foreground">Loading {LOOKUP_LABELS[type] || type} data...</span>
-                  </div>
-                ) : errorMessage ? (
-                  <div className="px-6">
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Error loading data</AlertTitle>
-                      <AlertDescription className="space-y-3">
-                        <p>{errorMessage}</p>
-                        <Button 
-                          onClick={() => handleLookupType(type as LookupType, true)}
-                          variant="outline"
-                          size="sm"
-                          className="gap-2"
-                        >
-                          <RefreshCw className="h-3 w-3" />
-                          Retry
-                        </Button>
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                ) : providerTabs.length === 0 ? (
-                  <div className="px-6">
-                    <Alert>
-                      <Info className="h-4 w-4" />
-                      <AlertTitle>No providers configured</AlertTitle>
-                      <AlertDescription>
-                        No providers are selected for this lookup type.
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                ) : (
-                  <Tabs 
-                    value={activeProvider} 
-                    onValueChange={(value) => {
-                      const providerId = value.includes(":") ? value.split(":").slice(1).join(":") : value
-                      setActiveProviderPerType(prev => new Map(prev).set(type, value))
-
-                      const providerHasResult = !!resolveResultForProvider(providerId)
-                      const providerCacheKey = `${activeIndicator}:${type}:${providerId}`
-
-                      if (!providerHasResult && !loadingTypes.has(type as LookupType) && !loadedTypes.has(providerCacheKey)) {
-                        handleLookupType(type as LookupType, false, providerId)
-                      }
-                    }}
-                    className="w-full"
-                  >
-                    <TabsList className="w-full justify-start flex-wrap h-auto px-6">
-                      {providerTabs.map((tab) => (
-                        <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
-                          <ProviderLogo providerId={tab.providerId} providerName={tab.label} size="sm" />
-                          <span>{tab.label}</span>
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                    {providerTabs.map((tab) => {
-                      return (
-                        <TabsContent key={tab.value} value={tab.value} className="mt-4">
-                          {tab.result ? (
-                            getDisplayComponent(type, tab.result, false)
-                          ) : (
-                            <div className="px-6">
-                              <Alert>
-                                <Info className="h-4 w-4" />
-                                <AlertTitle>No data available</AlertTitle>
-                                <AlertDescription>
-                                  No results were returned for {tab.label}.
-                                </AlertDescription>
-                              </Alert>
-                            </div>
-                          )}
-                        </TabsContent>
-                      )
-                    })}
-                  </Tabs>
-                )}
-              </TabsContent>
-            )
-          })}
-        </Tabs>
-        </>
-      )}
-      </CardContent>
-    </Card>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
-
-export default LookupResults
-

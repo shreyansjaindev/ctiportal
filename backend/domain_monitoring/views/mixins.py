@@ -20,30 +20,39 @@ class CountMixin:
         status_counts = queryset.values("status").annotate(count=Count("status")).order_by("status")
         return total_count, status_counts
 
-    def get_limited_queryset(self, queryset, limit=5000):
-        """Limit queryset to prevent excessive memory usage"""
-        return queryset[:limit] if queryset.count() > limit else queryset
+    def get_limited_queryset(self, queryset, total_count, limit=5000):
+        """Limit queryset to prevent excessive memory usage."""
+        return queryset[:limit] if total_count > limit else queryset
 
     def get_queryset_with_counts(self, request, limit=False):
-        """Get filtered queryset with count metadata"""
+        """Get filtered queryset with count metadata."""
         queryset = self.filter_queryset(self.get_queryset())
         total_count, status_counts = self.get_counts(queryset)
         if limit:
-            queryset = self.get_limited_queryset(queryset)
+            queryset = self.get_limited_queryset(queryset, total_count)
         return queryset, total_count, status_counts
 
     def list_with_counts(self, request, *args, **kwargs):
-        """List items with count metadata"""
+        """List items with count metadata included in the response."""
         queryset, total_count, status_counts = self.get_queryset_with_counts(
             request, limit=kwargs.get("limit_queryset", False)
         )
-        serializer = self.get_serializer(queryset, many=True)
-        # Return pagination-friendly response
+
+        counts_meta = {
+            "total": total_count,
+            "by_status": {item["status"]: item["count"] for item in status_counts},
+        }
+
+        # Paginate first to avoid serializing the full queryset when paging is active
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        return Response(serializer.data)
+            response = self.get_paginated_response(serializer.data)
+            response.data["counts"] = counts_meta
+            return response
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({"counts": counts_meta, "items": serializer.data})
 
 
 class BulkOperationsMixin:

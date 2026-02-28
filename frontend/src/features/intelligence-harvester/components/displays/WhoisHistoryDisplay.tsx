@@ -3,6 +3,7 @@ import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import { DataTable } from "@/shared/components/data-table"
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
+import { FieldTable } from "./FieldTable"
 
 interface WhoisHistoryDisplayProps {
   result: LookupResult
@@ -131,7 +132,18 @@ function isHistoryRecords(value: unknown): value is HistoryRecord[] {
   return Array.isArray(value) && value.every((item) => item && typeof item === "object")
 }
 
-export function WhoisHistoryDisplay({ result }: WhoisHistoryDisplayProps) {
+const DATE_KEYS = ["started", "createdDate", "created_date", "updatedDate", "updated_date"]
+const REGISTRAR_KEYS = ["registrarName", "registrar_name", "registrar"]
+const END_KEYS = ["ended", "expiresDate", "expires_date"]
+
+function pickField(row: HistoryRecord, keys: string[]): unknown {
+  for (const key of keys) {
+    if (row[key] !== undefined && row[key] !== null && row[key] !== "") return row[key]
+  }
+  return null
+}
+
+export function WhoisHistoryDisplay({ result, isOverview = false }: WhoisHistoryDisplayProps) {
   if (result.error) {
     return (
       <Alert variant="destructive">
@@ -141,7 +153,7 @@ export function WhoisHistoryDisplay({ result }: WhoisHistoryDisplayProps) {
     )
   }
 
-  const records = (result.additional?.records ?? result.essential?.records) as unknown
+  const records = (result.essential?.records ?? result.additional?.records) as unknown
   const rows = isHistoryRecords(records) ? records : []
 
   const discovered = Array.from(
@@ -178,11 +190,26 @@ export function WhoisHistoryDisplay({ result }: WhoisHistoryDisplayProps) {
     )
   }
 
+  if (isOverview) {
+    const registrars = Array.from(
+      new Set(rows.map(r => pickField(r, REGISTRAR_KEYS)).filter(Boolean).map(String))
+    )
+    const earliest = renderCellValue("started", pickField(rows.at(-1)!, DATE_KEYS))
+    const latestEnd = renderCellValue("ended", pickField(rows[0], END_KEYS))
+
+    const cards: { label: string; value: React.ReactNode }[] = [
+      { label: "Records found", value: rows.length },
+      { label: "Unique registrars", value: registrars.length || "—" },
+      ...(String(earliest) !== "—" ? [{ label: "Earliest registration", value: earliest }] : []),
+      ...(String(latestEnd) !== "—" ? [{ label: "Latest expiry", value: latestEnd }] : []),
+      ...(registrars.length > 0 ? [{ label: "Registrars", value: registrars.slice(0, 3).join(", ") + (registrars.length > 3 ? ` +${registrars.length - 3} more` : "") }] : []),
+    ]
+
+    return <FieldTable rows={cards} />
+  }
+
   return (
-    <div className="space-y-3">
-      <div className="text-sm text-muted-foreground">
-        Showing {rows.length} WHOIS history record{rows.length === 1 ? "" : "s"}
-      </div>
+    <div className="space-y-2 px-6 py-4">
       <DataTable
         columns={columns}
         data={rows}
@@ -193,5 +220,3 @@ export function WhoisHistoryDisplay({ result }: WhoisHistoryDisplayProps) {
     </div>
   )
 }
-
-export default WhoisHistoryDisplay

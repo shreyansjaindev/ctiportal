@@ -1,6 +1,6 @@
 """
-Free WHOIS lookup using python-whois library
-No API key required
+Built-in WHOIS lookup using the python-whois library.
+No API key required.
 """
 import logging
 

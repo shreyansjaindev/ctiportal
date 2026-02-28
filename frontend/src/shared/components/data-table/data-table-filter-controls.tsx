@@ -26,10 +26,8 @@ export function DataTableFilterControls() {
         return (
           <AccordionItem key={value} value={value} className="border-none">
             <AccordionTrigger className="w-full px-2 py-0 hover:no-underline data-[state=closed]:text-muted-foreground data-[state=open]:text-foreground focus-within:data-[state=closed]:text-foreground hover:data-[state=closed]:text-foreground">
-              <div className="flex w-full items-center justify-between gap-2 truncate py-2 pr-2">
-                <div className="flex items-center gap-2 truncate">
-                  <p className="text-sm font-medium">{field.label}</p>
-                </div>
+              <div className="flex min-w-0 items-center gap-2 py-2 pr-2">
+                <p className="truncate text-sm font-medium">{field.label}</p>
                 <DataTableFilterResetButton {...field} />
               </div>
             </AccordionTrigger>

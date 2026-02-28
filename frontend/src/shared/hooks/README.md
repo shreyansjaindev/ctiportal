@@ -25,7 +25,7 @@ function Component() {
   const { selections, setters, enabledTypes } = useProviderSelection()
   
   // Set providers
-  setters.setWhois(['free_whois', 'whoisxml'])
+  setters.setWhois(['builtin_whois', 'whoisxml'])
   
   // Check enabled types
   console.log(enabledTypes) // Set { 'whois' }

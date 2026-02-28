@@ -12,12 +12,14 @@ export type LookupType =
   | "reputation"
   | "dns"
   | "passive_dns"
+  | "subdomains"
   | "whois_history"
   | "reverse_dns"
   | "screenshot"
   | "email_validator"
   | "cve_details"
-  | "website_details"
+  | "website_status"
+  | "web_scan"
 
 /**
  * Backend indicator type classification from API

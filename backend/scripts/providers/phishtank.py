@@ -38,7 +38,7 @@ def get_results(url):
     return results
 
 
-def phishtank(value, value_type="url"):
+def phishtank(value):
     error = check_api_key(API_KEY, "PhishTank")
     if error:
         return error

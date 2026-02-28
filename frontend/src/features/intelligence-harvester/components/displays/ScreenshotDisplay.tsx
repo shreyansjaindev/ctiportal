@@ -1,16 +1,12 @@
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
+import { isBase64Image } from "./utils"
+import { FieldTable } from "./FieldTable"
 
 interface ScreenshotDisplayProps {
   result: LookupResult
   isOverview?: boolean
-}
-
-function isBase64Image(value: unknown): boolean {
-  if (typeof value !== "string") return false
-  // Check if it's a base64 image string
-  return value.startsWith("data:image/") || value.match(/^[A-Za-z0-9+/=]+$/) !== null
 }
 
 function formatValue(key: string, value: unknown): React.ReactNode {
@@ -70,7 +66,7 @@ export function ScreenshotDisplay({ result, isOverview = false }: ScreenshotDisp
 
   if (isOverview) {
     // Overview tab - show screenshot image if available
-    const allData = { ...result.essential, ...result.additional }
+    const allData = result.essential || {}
     const screenshotField = Object.entries(allData).find(([key]) => 
       key.toLowerCase().includes("screenshot") || key.toLowerCase().includes("image")
     )
@@ -100,24 +96,31 @@ export function ScreenshotDisplay({ result, isOverview = false }: ScreenshotDisp
     )
   }
 
+  const imageFields = allFields.filter(([key]) =>
+    key.toLowerCase().includes("screenshot") || key.toLowerCase().includes("image")
+  )
+  const regularFields = allFields.filter(([key]) =>
+    !key.toLowerCase().includes("screenshot") && !key.toLowerCase().includes("image")
+  )
+
   return (
     <div className="space-y-4">
-      {allFields.map(([key, value]) => {
-        const isImageField = key.toLowerCase().includes("screenshot") || key.toLowerCase().includes("image")
-        
-        return (
-          <div key={key} className={isImageField ? "space-y-2" : "grid grid-cols-[200px_1fr] gap-4 text-sm py-2 border-b last:border-0"}>
-            <div className={isImageField ? "font-medium text-sm mb-2" : "font-medium text-muted-foreground"}>
-              {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-            </div>
-            <div className={isImageField ? "" : "text-sm break-all whitespace-pre-wrap"}>
-              {formatValue(key, value)}
-            </div>
+      {imageFields.map(([key, value]) => (
+        <div key={key} className="space-y-2">
+          <div className="text-xs font-medium text-muted-foreground">
+            {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
           </div>
-        )
-      })}
+          {formatValue(key, value)}
+        </div>
+      ))}
+      {regularFields.length > 0 && (
+        <FieldTable
+          rows={regularFields.map(([key, value]) => ({
+            label: key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+            value: <span className="break-all whitespace-pre-wrap">{formatValue(key, value)}</span>,
+          }))}
+        />
+      )}
     </div>
   )
 }
-
-export default ScreenshotDisplay

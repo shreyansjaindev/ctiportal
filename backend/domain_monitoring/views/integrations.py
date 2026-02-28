@@ -8,11 +8,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from scripts.providers.proofpoint import (
+from scripts.integrations.proofpoint import (
     proofpoint_add_domains,
     proofpoint_generate_access_token,
 )
-from scripts.providers.trellix import process_yara_rules
+from scripts.integrations.trellix import process_yara_rules
 
 from ..serializers import DomainsSerializer
 

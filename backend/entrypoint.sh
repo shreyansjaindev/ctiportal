@@ -16,12 +16,16 @@ python manage.py collectstatic --noinput --clear --verbosity=2
 echo ""
 echo "Creating default superuser if it doesn't exist..."
 python manage.py shell << END
+import os
 from django.contrib.auth.models import User
-if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@ctiportal.local', 'admin123')
-    print("✓ Created default superuser: admin / admin123")
+password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+if not password:
+    print("WARNING: DJANGO_SUPERUSER_PASSWORD not set — skipping superuser creation")
+elif not User.objects.filter(username='admin').exists():
+    User.objects.create_superuser('admin', 'admin@ctiportal.local', password)
+    print("Created default superuser: admin")
 else:
-    print("✓ Superuser 'admin' already exists")
+    print("Superuser admin already exists")
 END
 
 echo ""

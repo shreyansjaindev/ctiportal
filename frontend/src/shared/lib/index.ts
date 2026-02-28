@@ -6,7 +6,6 @@
 // API client
 export { apiGet, apiPost, apiPatch, apiDelete } from './api'
 export { API_BASE } from './api'
-export { getStoredTokens, storeTokens, clearTokens } from './api'
 export type { ApiError } from './api'
 
 // Aggregators (Intelligence Harvester API)
@@ -17,6 +16,7 @@ export { parseIndicators, getInputPlaceholder, detectIndicatorType } from './ind
 
 // Auth utilities
 export { useAuth, AuthProvider } from './auth'
+export type { UserMe } from './auth'
 
 // General utilities
 export { cn } from './utils'

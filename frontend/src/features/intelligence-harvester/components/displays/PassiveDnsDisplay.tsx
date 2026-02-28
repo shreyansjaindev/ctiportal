@@ -1,11 +1,11 @@
 import { AlertCircle } from "lucide-react"
+import { FieldTable } from "./FieldTable"
 import { Alert, AlertDescription, AlertTitle } from "@/shared/components/ui/alert"
 import { DataTable } from "@/shared/components/data-table"
 import { DataTableColumnHeader } from "@/shared/components/data-table/data-table-column-header"
 import type { DataTableFilterField } from "@/shared/components/data-table/types"
 import type { ColumnDef } from "@tanstack/react-table"
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
-import { useMemo } from "react"
 
 interface PassiveDnsDisplayProps {
   result: LookupResult
@@ -70,80 +70,48 @@ function extractRecords(result: LookupResult): PassiveDnsRecord[] {
   return []
 }
 
+function arrayFilterFn(row: import("@tanstack/react-table").Row<PassiveDnsRecord>, id: string, filterValue: unknown) {
+  if (!filterValue || !Array.isArray(filterValue) || filterValue.length === 0) return true
+  return filterValue.includes(row.getValue(id) as string)
+}
+
+const COLUMNS: ColumnDef<PassiveDnsRecord>[] = [
+  {
+    id: "ip_address",
+    accessorKey: "ip_address",
+    accessorFn: (row) => row.ip_address || row.ip || "—",
+    enableColumnFilter: true,
+    filterFn: arrayFilterFn,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="IP Address" />,
+    cell: ({ row }) => <span>{row.original.ip_address || row.original.ip || "—"}</span>,
+  },
+  {
+    id: "date",
+    accessorKey: "date",
+    accessorFn: (row) => row.date || row.timestamp || row.last_seen || row.first_seen || 0,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Date" />,
+    cell: ({ row }) => {
+      const ts = row.original.date || row.original.timestamp || row.original.last_seen || row.original.first_seen
+      return <span>{ts ? formatDate(ts) : "—"}</span>
+    },
+  },
+  {
+    id: "host_name",
+    accessorKey: "host_name",
+    accessorFn: (row) => row.host_name || row.hostname || "—",
+    enableColumnFilter: true,
+    filterFn: arrayFilterFn,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Host Name" />,
+    cell: ({ row }) => <span>{row.original.host_name || row.original.hostname || "—"}</span>,
+  },
+]
+
+const FILTER_FIELDS: DataTableFilterField<PassiveDnsRecord>[] = [
+  { label: "IP Address", value: "ip_address", type: "checkbox", defaultOpen: true },
+  { label: "Host Name", value: "host_name", type: "checkbox", defaultOpen: true },
+]
+
 export function PassiveDnsDisplay({ result, isOverview = false }: PassiveDnsDisplayProps) {
-  // Define columns for the DataTable
-  const columns = useMemo<ColumnDef<PassiveDnsRecord>[]>(() => [
-    {
-      id: "ip_address",
-      accessorKey: "ip_address",
-      accessorFn: (row) => row.ip_address || row.ip || "—",
-      enableColumnFilter: true,
-      filterFn: (row, id, filterValue) => {
-        if (!filterValue || !Array.isArray(filterValue) || filterValue.length === 0) {
-          return true
-        }
-        const value = row.getValue(id) as string
-        return filterValue.includes(value)
-      },
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="IP Address" />
-      ),
-      cell: ({ row }) => {
-        const ip = row.original.ip_address || row.original.ip || "—"
-        return <span className="font-mono text-sm">{ip}</span>
-      },
-    },
-    {
-      id: "date",
-      accessorKey: "date",
-      accessorFn: (row) => row.date || row.timestamp || row.last_seen || row.first_seen || 0,
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Date" />
-      ),
-      cell: ({ row }) => {
-        const timestamp = row.original.date || row.original.timestamp || row.original.last_seen || row.original.first_seen
-        if (!timestamp) return <span className="text-sm">—</span>
-        return <span className="text-sm">{formatDate(timestamp)}</span>
-      },
-    },
-    {
-      id: "host_name",
-      accessorKey: "host_name",
-      accessorFn: (row) => row.host_name || row.hostname || "—",
-      enableColumnFilter: true,
-      filterFn: (row, id, filterValue) => {
-        if (!filterValue || !Array.isArray(filterValue) || filterValue.length === 0) {
-          return true
-        }
-        const value = row.getValue(id) as string
-        return filterValue.includes(value)
-      },
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Host Name" />
-      ),
-      cell: ({ row }) => {
-        const hostname = row.original.host_name || row.original.hostname || "—"
-        return <span className="font-mono text-sm">{hostname}</span>
-      },
-    },
-  ], [])
-
-  // Define filter fields for the DataTable
-  const filterFields = useMemo<DataTableFilterField<PassiveDnsRecord>[]>(() => [
-    {
-      label: "IP Address",
-      value: "ip_address",
-      type: "checkbox",
-      defaultOpen: true,
-    },
-    {
-      label: "Host Name",
-      value: "host_name",
-      type: "checkbox",
-      defaultOpen: true,
-    },
-  ], [])
-
   if (result.error) {
     return (
       <Alert variant="destructive">
@@ -164,23 +132,32 @@ export function PassiveDnsDisplay({ result, isOverview = false }: PassiveDnsDisp
     )
   }
 
-  // For overview mode, limit to 5 records
-  const displayRecords = isOverview ? records.slice(0, 5) : records
+  if (isOverview) {
+    const uniqueIps = Array.from(new Set(records.map(r => r.ip_address || r.ip).filter(Boolean))) as string[]
+    const uniqueHosts = Array.from(new Set(records.map(r => r.host_name || r.hostname).filter(Boolean))) as string[]
+    const compact = (items: string[], max = 6): React.ReactNode =>
+      items.length === 0 ? "—" : (
+        <div className="space-y-0.5">
+          {items.slice(0, max).map((item, i) => <div key={i}>{item}</div>)}
+          {items.length > max && <div className="text-muted-foreground">+{items.length - max} more</div>}
+        </div>
+      )
+
+    const stats: { label: string; value: React.ReactNode }[] = [
+      { label: "Records found", value: records.length },
+      { label: "IPs", value: compact(uniqueIps) },
+      { label: "Hostnames", value: compact(uniqueHosts) },
+    ]
+
+    return <FieldTable rows={stats} />
+  }
 
   return (
-    <>
-      <DataTable
-        columns={columns}
-        data={displayRecords}
-        pageSizeOptions={isOverview ? undefined : [10, 25, 50, 100]}
-        filterFields={isOverview ? undefined : filterFields}
-      />
-
-      {isOverview && records.length > 5 && (
-        <div className="text-xs text-muted-foreground text-center px-6 py-2">
-          Showing 5 of {records.length} records. View the tab for all records.
-        </div>
-      )}
-    </>
+    <DataTable
+      columns={COLUMNS}
+      data={records}
+      pageSizeOptions={[10, 25, 50, 100]}
+      filterFields={FILTER_FIELDS}
+    />
   )
 }

@@ -214,6 +214,38 @@ def get_reverse_dns(ip):
     return {"error": "Request Failed"}
 
 
+def get_subdomains(domain):
+    """Get subdomains for a domain from SecurityTrails"""
+    error = check_api_key(API_KEY, "SecurityTrails")
+    if error:
+        return error
+
+    url = f"https://api.securitytrails.com/v1/domain/{domain}/subdomains?children_only=false&include_inactive=true"
+
+    for _ in range(5):
+        try:
+            response = requests.get(url, headers=HEADERS)
+            if response.status_code == 429:
+                time.sleep(2)
+                continue
+            elif response.status_code == 403:
+                return {"error": response.json().get("message", "API access forbidden")}
+            elif response.status_code == 200:
+                results = response.json()
+                subdomain_labels = results.get("subdomains", [])
+                # SecurityTrails returns labels only (e.g. ["www", "mail"]) — expand to FQDNs
+                subdomains = [f"{label}.{domain}" for label in subdomain_labels]
+                return {
+                    "subdomains": subdomains,
+                    "total_count": results.get("subdomain_count", len(subdomains)),
+                }
+        except Exception as e:
+            logger.error(f"Error in API request to {url}: {e}")
+            return {"error": str(e)}
+
+    return {"error": "Request Failed"}
+
+
 if __name__ == "__main__":
     domain = sys.argv[1]
     value_type = sys.argv[2]

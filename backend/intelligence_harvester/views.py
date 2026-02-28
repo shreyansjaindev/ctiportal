@@ -1,7 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from .serializers import IndicatorSerializer, BatchIndicatorLookupSerializer
-from django.http import FileResponse
 import openpyxl
 import io
 import logging
@@ -149,6 +148,7 @@ def execute_lookup(lookup_type: str, indicator_value: str, indicator_type: str, 
 
 class IdentifierViewSet(viewsets.ViewSet):
     serializer_class = IndicatorSerializer
+    permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
         try:
@@ -177,6 +177,7 @@ class IdentifierViewSet(viewsets.ViewSet):
             )
 
 
+# FileResponse is no longer used — Excel bytes are returned directly from ExcelRenderer.
 class ExcelRenderer(BaseRenderer):
     """Render lookup results as Excel spreadsheet"""
     media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -195,9 +196,14 @@ class ExcelRenderer(BaseRenderer):
         wb.save(output)
         output.seek(0)
 
-        response = FileResponse(output, content_type=self.media_type)
-        response["Content-Disposition"] = 'attachment; filename="Intelligence_Harvester_Export.xlsx"'
-        return response
+        # Set Content-Disposition via the response in renderer_context.
+        # Renderers must return bytes — returning a Response object here is wrong.
+        if renderer_context:
+            resp = renderer_context.get("response")
+            if resp:
+                resp["Content-Disposition"] = 'attachment; filename="Intelligence_Harvester_Export.xlsx"'
+
+        return output.read()
 
 
 class IndicatorLookupViewSet(viewsets.ViewSet):

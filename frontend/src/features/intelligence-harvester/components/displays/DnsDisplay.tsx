@@ -1,10 +1,22 @@
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
+import { FieldTable } from "./FieldTable"
 
 interface DnsDisplayProps {
   result: LookupResult
   isOverview?: boolean
+}
+
+// Common DNS record type ordering — superset used for both overview and detail
+const DNS_RECORD_ORDER = ["a", "aaaa", "mx", "ns", "cname", "txt", "soa", "dmarc", "spf"]
+
+function sortByDnsOrder(entries: [string, unknown][]) {
+  return entries.sort(([a], [b]) => {
+    const ia = DNS_RECORD_ORDER.indexOf(a.toLowerCase())
+    const ib = DNS_RECORD_ORDER.indexOf(b.toLowerCase())
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib)
+  })
 }
 
 function formatDnsRecord(value: unknown): React.ReactNode {
@@ -15,7 +27,7 @@ function formatDnsRecord(value: unknown): React.ReactNode {
         {value.map((record, idx) => (
           <div
             key={idx}
-            className="bg-muted px-2 py-1 rounded text-sm"
+            className="bg-muted px-2 py-1 rounded"
           >
             {typeof record === "object" && record !== null 
               ? JSON.stringify(record, null, 2)
@@ -33,10 +45,10 @@ function formatDnsRecord(value: unknown): React.ReactNode {
   }
   
   if (typeof value === "object") {
-    return <div className="text-sm whitespace-pre-wrap">{JSON.stringify(value, null, 2)}</div>
+    return <div className="whitespace-pre-wrap">{JSON.stringify(value, null, 2)}</div>
   }
 
-  return <div className="text-sm">{String(value)}</div>
+  return <div>{String(value)}</div>
 }
 
 export function DnsDisplay({ result, isOverview = false }: DnsDisplayProps) {
@@ -50,54 +62,33 @@ export function DnsDisplay({ result, isOverview = false }: DnsDisplayProps) {
   }
 
   if (isOverview) {
-    // Overview tab - grid layout for essential DNS records
     const essentialFields = Object.entries(result.essential || {}).filter(
       ([, value]) => value !== null && value !== undefined
     )
 
     if (essentialFields.length === 0) return null
 
-    const dnsRecordOrder = ["a", "aaaa", "mx", "ns", "cname", "txt", "soa"]
+    const sorted = sortByDnsOrder(essentialFields)
 
-    // Sort records by common DNS order
-    const sorted = essentialFields.sort(
-      ([keyA], [keyB]) => {
-        const indexA = dnsRecordOrder.indexOf(keyA.toLowerCase())
-        const indexB = dnsRecordOrder.indexOf(keyB.toLowerCase())
-        return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB)
-      }
-    )
-
-    return (
-      <div className="grid auto-rows-min grid-cols-1 sm:grid-cols-2 gap-3">
-        {sorted.map(([key, value]) => (
-          <div key={key} className="rounded-lg border p-3">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-              {key.toUpperCase()} Records
-            </div>
-            <div className="space-y-1">
-              {Array.isArray(value) ? (
-                value.length > 0 ? (
-                  value.map((record, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-muted px-2 py-1 rounded break-all text-sm"
-                    >
-                      {String(record)}
-                    </div>
-                  ))
-                ) : (
-                  <span className="text-sm text-muted-foreground italic">Not Found</span>
-                )
-              ) : (
-                <span className={typeof value === "string" && (value === "Not Found" || value === "") ? "text-sm text-muted-foreground italic" : "text-sm"}>
-                  {value === "" ? "Not Found" : String(value)}
-                </span>
-              )}
-            </div>
+    const dnsRows = sorted.map(([key, value]) => {
+      const items = Array.isArray(value) ? value.map(String) : value === "" ? [] : [String(value)]
+      return {
+        label: key,
+        value: items.length === 0 ? (
+          <span className="text-muted-foreground italic">Not Found</span>
+        ) : (
+          <div className="space-y-0.5">
+            {items.slice(0, 6).map((item, i) => <div key={i}>{item}</div>)}
+            {items.length > 6 && <div className="text-muted-foreground text-xs">+{items.length - 6} more</div>}
           </div>
-        ))}
-      </div>
+        ),
+      }
+    })
+    return (
+      <FieldTable
+        rows={dnsRows}
+        labelClassName="text-muted-foreground uppercase tracking-wide text-xs leading-5"
+      />
     )
   }
 
@@ -115,29 +106,12 @@ export function DnsDisplay({ result, isOverview = false }: DnsDisplayProps) {
     )
   }
 
-  const dnsRecordOrder = ["a", "aaaa", "mx", "ns", "cname", "txt", "soa", "dmarc", "spf"]
-
-  // Sort all records by DNS type order
-  const sorted = allFields.sort(([keyA], [keyB]) => {
-    const indexA = dnsRecordOrder.indexOf(keyA.toLowerCase())
-    const indexB = dnsRecordOrder.indexOf(keyB.toLowerCase())
-    return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB)
-  })
+  const sorted = sortByDnsOrder(allFields)
 
   return (
-    <div className="grid auto-rows-min grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {sorted.map(([key, value]) => (
-        <div key={key} className="rounded-lg border p-4">
-          <div className="font-medium text-sm mb-3 text-foreground">
-            {key.toUpperCase()} Records
-          </div>
-          <div>
-            {formatDnsRecord(value)}
-          </div>
-        </div>
-      ))}
-    </div>
+    <FieldTable
+      rows={sorted.map(([key, value]) => ({ label: key, value: formatDnsRecord(value) }))}
+      labelClassName="text-muted-foreground uppercase tracking-wide text-xs leading-5"
+    />
   )
 }
-
-export default DnsDisplay

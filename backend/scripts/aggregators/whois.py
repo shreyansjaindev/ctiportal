@@ -3,140 +3,76 @@ WHOIS lookup aggregator with multiple provider support and automatic fallbacks
 """
 import logging
 import os
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from ..utils.api_helpers import check_api_key
+
+from ..providers.builtin_whois import get_whois as builtin_whois_lookup
+from ..providers.whoisxmlapi import whois as whoisxml_lookup
+from ..providers.securitytrails import get_whois as securitytrails_whois
 
 logger = logging.getLogger(__name__)
 
-# Import providers
-from ..providers.free_whois import get_whois as free_whois_lookup
-from ..providers.whoisxmlapi import whois as whoisxml_lookup
-from ..providers.securitytrails import get_whois as securitytrails_whois
+
+def _whoisxml_get(domain: str) -> Dict[str, Any]:
+    """WhoisXML lookup with multi-key rotation."""
+    api_keys_str = os.getenv("WHOISXMLAPI_DRS", "")
+    error = check_api_key(api_keys_str, "WhoisXML")
+    if error:
+        return error
+    for api_key in [k.strip() for k in api_keys_str.split(",") if k.strip()]:
+        try:
+            return whoisxml_lookup(domain, api_key)
+        except Exception as e:
+            logger.error(f"WhoisXML error with key: {e}")
+    return {'error': 'WhoisXML lookup failed for all API keys'}
+
+
+# Fallback order: builtin (free, no key) → whoisxml → securitytrails
+PROVIDERS = {
+    'builtin_whois': lambda d: builtin_whois_lookup(d),
+    'whoisxml': _whoisxml_get,
+    'securitytrails': lambda d: securitytrails_whois(d, 'domain'),
+}
 
 
 def get(domain: str, provider: Optional[str] = None) -> Dict[str, Any]:
     """
-    Get WHOIS data for a domain with automatic fallbacks
-    
+    Get WHOIS data for a domain.
+
     Args:
-        domain: Domain name to lookup
-        provider: Specific provider to use (None for auto-fallback)
-                 Options: 'free_whois', 'whoisxml', 'securitytrails'
-        
-    Returns:
-        WHOIS data dictionary with '_provider' metadata
+        domain: Domain name to look up
+        provider: Specific provider to use (None for auto-fallback). Options: 'builtin_whois', 'whoisxml', 'securitytrails'
     """
-    # If specific provider requested
-    if provider == 'whoisxml':
-        result = _try_whoisxml(domain)
+    if provider is not None:
+        if provider not in PROVIDERS:
+            return {'error': f'Provider {provider} not available'}
+        result = PROVIDERS[provider](domain)
         if not result.get('error'):
-            result['_provider'] = 'whoisxml'
+            result['_provider'] = provider
         return result
-    elif provider == 'securitytrails':
-        result = _try_securitytrails(domain)
-        if not result.get('error'):
-            result['_provider'] = 'securitytrails'
-        return result
-    elif provider == 'free_whois':
-        result = _try_free_whois(domain)
-        if not result.get('error'):
-            result['_provider'] = 'free_whois'
-        return result
-    elif provider is not None:
-        # Provider requested but not available
-        return {
-            'error': f'Provider {provider} not available'
-        }
-    
-    # Auto-fallback chain (free first, then paid)
-    providers = []
-    
-    providers.append(('free_whois', _try_free_whois))
-    providers.append(('whoisxml', _try_whoisxml))
-    providers.append(('securitytrails', _try_securitytrails))
-    
-    # Try each provider in order
-    for provider_name, provider_func in providers:
+
+    for prov_id, func in PROVIDERS.items():
         try:
-            result = provider_func(domain)
+            result = func(domain)
             if result and not result.get('error'):
-                result['_provider'] = provider_name
+                result['_provider'] = prov_id
                 return result
         except Exception as e:
-            logger.warning(f"WHOIS provider {provider_name} failed: {e}")
-            continue
-    
+            logger.warning(f"WHOIS provider {prov_id} failed: {e}")
+
     return {'error': 'All WHOIS providers failed'}
 
 
 def get_all(domain: str) -> Dict[str, Dict[str, Any]]:
     """
-    Get WHOIS from all available providers (for comparison)
-    
-    Args:
-        domain: Domain name to lookup
-        
-    Returns:
-        Dictionary with provider names as keys
+    Query all WHOIS providers and return combined results (for comparison).
     """
     results = {}
-    
-    try:
-        result = _try_free_whois(domain)
-        result['_provider'] = 'free_whois'
-        results['free_whois'] = result
-    except Exception as e:
-        logger.error(f"Free WHOIS error: {e}")
-
-    try:
-        result = _try_whoisxml(domain)
-        result['_provider'] = 'whoisxml'
-        results['whoisxml'] = result
-    except Exception as e:
-        logger.error(f"WhoisXML error: {e}")
-
-    try:
-        result = _try_securitytrails(domain)
-        result['_provider'] = 'securitytrails'
-        results['securitytrails'] = result
-    except Exception as e:
-        logger.error(f"SecurityTrails error: {e}")
-    
-    return results
-
-
-def _try_free_whois(domain: str) -> Dict[str, Any]:
-    """Try free python-whois lookup"""
-    try:
-        return free_whois_lookup(domain)
-    except Exception as e:
-        logger.error(f"Free WHOIS error: {e}")
-        return {'error': str(e)}
-
-
-def _try_whoisxml(domain: str) -> Dict[str, Any]:
-    """Try WhoisXMLAPI lookup"""
-    api_keys_str = os.getenv("WHOISXMLAPI_DRS", "")
-    error = check_api_key(api_keys_str, "WhoisXML")
-    if error:
-        return error
-    
-    api_keys = [k.strip() for k in api_keys_str.split(",") if k.strip()]
-    
-    for api_key in api_keys:
+    for prov_id, func in PROVIDERS.items():
         try:
-            return whoisxml_lookup(domain, api_key)
+            result = func(domain)
+            result['_provider'] = prov_id
+            results[prov_id] = result
         except Exception as e:
-            logger.error(f"WhoisXML error with key: {e}")
-            continue
-    
-    return {'error': 'WhoisXML lookup failed for all API keys'}
-
-
-def _try_securitytrails(domain: str) -> Dict[str, Any]:
-    """Try SecurityTrails WHOIS lookup"""
-    try:
-        return securitytrails_whois(domain, 'domain')
-    except Exception as e:
-        logger.error(f"SecurityTrails WHOIS error: {e}")
-        return {'error': str(e)}
+            logger.error(f"WHOIS provider {prov_id} error: {e}")
+    return results

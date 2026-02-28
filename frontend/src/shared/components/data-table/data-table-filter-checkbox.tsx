@@ -52,7 +52,7 @@ export function DataTableFilterCheckbox<TData>({
         {Array.from({ length: 3 }).map((_, index) => (
           <div
             key={index}
-            className="flex items-center justify-between gap-2 px-2 py-2.5"
+            className="flex items-center justify-between gap-2 px-2 py-2"
           >
             <Skeleton className="h-4 w-4 rounded-sm" />
             <Skeleton className="h-4 w-full rounded-sm" />
@@ -70,7 +70,7 @@ export function DataTableFilterCheckbox<TData>({
             placeholder="Search..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            className="pl-8 h-9"
+            className="pl-8 h-8"
           />
         </div>
       ) : null}
@@ -83,7 +83,7 @@ export function DataTableFilterCheckbox<TData>({
               <div
                 key={String(option.value)}
                 className={cn(
-                  "group flex items-center space-x-2 px-2 py-2.5 hover:bg-accent/50",
+                  "group flex items-center space-x-2 px-2 py-1 hover:bg-accent/50",
                   index !== filterOptions.length - 1 ? "border-b" : undefined,
                 )}
               >

@@ -14,53 +14,49 @@
  * getLogoPath('virustotal')  // returns '/assets/logos/virustotal.svg'
  * getLogoPath('abuseipdb')   // returns '/assets/logos/abuseipdb.svg'
  */
-export function getLogoPath(providerId: string): string {
-  // Normalize provider ID to lowercase
-  const normalizedId = providerId.toLowerCase()
-  
-  // Return SVG path - frontend team manages actual file existence
-  return `/assets/logos/${normalizedId}.svg`
+const BASE = '/images/providers'
+
+// Explicit file map: provider ID → filename under /images/providers/
+// Only needed when the ID doesn't exactly match the filename (minus extension).
+const LOGO_MAP: Record<string, string> = {
+  ibm_xforce:      'ibm',
+  hybrid_analysis: 'hybridanalysis',
+  httpstatus:      'httpstatus.io',
+  whoisxml:        'whoisxmlapi',
+  whoisxmlapi:     'whoisxmlapi',
+  nvd:             'nist',
 }
 
-/**
- * Get logo path with fallback extension
- * Tries SVG first, then PNG
- * 
- * @param {string} providerId - Provider ID
- * @returns {string} Logo path with SVG priority
- */
-export function getLogoPathWithFallback(providerId: string): {
-  svg: string
-  png: string
-} {
-  const normalizedId = providerId.toLowerCase()
+// Providers whose file is a PNG (everything else defaults to SVG).
+const PNG_IDS = new Set([
+  'hostio', 'httpstatus.io', 'hybridanalysis', 'ibm',
+  'ipapi', 'phishtank', 'pulsedive', 'securitytrails',
+  'urlscan', 'whoisxmlapi',
+])
+
+export function getLogoPath(providerId: string): string {
+  const id = providerId.toLowerCase()
+  const filename = LOGO_MAP[id] ?? id
+  const ext = PNG_IDS.has(filename) ? 'png' : 'svg'
+  return `${BASE}/${filename}.${ext}`
+}
+
+export function getLogoPathWithFallback(providerId: string): { primary: string; fallback: string } {
+  const id = providerId.toLowerCase()
+  const filename = LOGO_MAP[id] ?? id
+  const isPng = PNG_IDS.has(filename)
   return {
-    svg: `/assets/logos/${normalizedId}.svg`,
-    png: `/assets/logos/${normalizedId}.png`,
+    primary:  `${BASE}/${filename}.${isPng ? 'png' : 'svg'}`,
+    fallback: `${BASE}/${filename}.${isPng ? 'svg' : 'png'}`,
   }
 }
 
-/**
- * Check if a logo file likely exists (based on known providers)
- * This is optional - can be used for error handling
- * 
- * @param {string} providerId - Provider ID
- * @returns {boolean} True if provider is likely to have a logo
- */
 export function hasLogo(providerId: string): boolean {
-  const knownProviders = [
-    'whoisxml', 'securitytrails', 'free_whois',
-    'virustotal', 'abuseipdb', 'ibm_xforce',
-    'urlscan', 'ipapi', 'ipinfo',
-    'hostio', 'phishtank', 'pulsedive', 'hybridanalysis', 'hybrid_analysis',
-    'nvd', 'vulners',
-    'httpstatus', 'requests',
-    'system_dns', 'cloudflare', 'google_dns', 'api_ninjas',
-    'screenshotmachine',
-    'screenshotlayer',
-    'apilayer', 'hunter',
-    'duckduckgo',
-    'reverse_dns',
-  ]
-  return knownProviders.includes(providerId.toLowerCase())
+  const id = providerId.toLowerCase()
+  const filename = LOGO_MAP[id] ?? id
+  return [
+    'abuseipdb', 'hostio', 'httpstatus.io', 'hybridanalysis', 'ibm',
+    'ipapi', 'nist', 'phishtank', 'pulsedive', 'securitytrails',
+    'urlscan', 'virustotal', 'whoisxmlapi',
+  ].includes(filename)
 }

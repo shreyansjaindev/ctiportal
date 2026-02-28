@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 from api.pagination import ItemsLimitOffsetPagination
 from api.response import error, success
 from api.serializers import UserMeSerializer
-from scripts.providers.anomali.threatstream import (
+from scripts.integrations.anomali.threatstream import (
     threatstream_export,
     threatstream_export_feeds,
 )
@@ -39,8 +39,9 @@ APPS = [
 
 
 class HealthView(APIView):
-    """Health check endpoint"""
-    permission_classes = [IsAuthenticated]
+    """Health check endpoint — public so load balancers and deploy platforms can probe it."""
+    permission_classes = []
+    authentication_classes = []
 
     def get(self, request):
         return success({"status": "ok"})

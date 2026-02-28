@@ -2,41 +2,37 @@
 Passive DNS aggregator for historical DNS records
 """
 import logging
+from typing import Optional, Dict, Any
 
-# Import provider functions at module level for early error detection
 from ..providers.securitytrails import get_passive_dns as securitytrails_passive_dns
 from ..providers.virustotal import get_passive_dns as virustotal_passive_dns
 
 logger = logging.getLogger(__name__)
 
+PROVIDERS = {
+    'securitytrails': securitytrails_passive_dns,
+    'virustotal': virustotal_passive_dns,
+}
 
-def get(domain, provider=None):
+
+def get(domain: str, provider: Optional[str] = None) -> Dict[str, Any]:
     """
-    Get passive DNS records for a domain
-    
+    Get passive DNS records for a domain.
+
     Args:
         domain: Domain to query
-        provider: Specific provider to use (optional)
-    
-    Returns:
-        dict: Passive DNS data
+        provider: Specific provider to use (None for auto-fallback). Options: 'securitytrails', 'virustotal'
     """
-    # If specific provider requested
-    if provider:
-        if provider == 'securitytrails':
-            return securitytrails_passive_dns(domain)
-        elif provider == 'virustotal':
-            return virustotal_passive_dns(domain)
-        else:
+    if provider is not None:
+        if provider not in PROVIDERS:
             return {'error': f'Provider {provider} not available'}
-    
-    # Try providers in order of preference
-    result = securitytrails_passive_dns(domain)
-    if 'error' not in result:
+        result = PROVIDERS[provider](domain)
+        if not result.get('error'):
+            result['_provider'] = provider
         return result
 
-    result = virustotal_passive_dns(domain)
-    if 'error' not in result:
-        return result
-    
-    return {'error': 'All passive DNS providers failed'}
+    for prov_id, func in PROVIDERS.items():
+        result = func(domain)
+        if result and not result.get('error'):
+            result['_provider'] = prov_id
+            return result

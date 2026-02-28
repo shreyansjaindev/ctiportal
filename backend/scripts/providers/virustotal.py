@@ -37,12 +37,7 @@ def file(query, headers=None):
         return file_data
     attributes = data.get("attributes", {})
 
-    file_data["Detection"] = attributes.get("last_analysis_stats", {})
-    file_data["Filenames"] = attributes.get("names", "")
-    file_data["MD5"] = attributes.get("md5", "")
-    file_data["SHA1"] = attributes.get("sha1", "")
-    file_data["SHA256"] = attributes.get("sha256", "")
-
+    file_data = dict(attributes)
     return file_data
 
 
@@ -59,20 +54,37 @@ def domain(query, headers=None):
         return domain_data
     attributes = data.get("attributes", {})
 
-    domain_data["Detection"] = attributes.get("last_analysis_stats", {})
-    domain_data["Categories"] = attributes.get("categories")
+    domain_data = dict(attributes)
 
-    response_data = make_api_request(f"domains/{query}/subdomains?limit=30", headers)
-    data = response_data.get("data")
-    if not data:
-        return domain_data
-
-    subdomains = []
-    for value in data:
-        subdomains.append(value.get("id"))
-    domain_data["Subdomains"] = subdomains
+    # Flatten SSL certificate (deeply nested raw object → usable dict)
+    cert = domain_data.pop("last_https_certificate", None)
+    if isinstance(cert, dict):
+        domain_data["ssl_certificate"] = {
+            "issuer": cert.get("issuer", {}),
+            "subject": cert.get("subject", {}),
+            "valid_from": cert.get("validity", {}).get("not_before", ""),
+            "valid_to": cert.get("validity", {}).get("not_after", ""),
+        }
 
     return domain_data
+
+
+def get_subdomains(domain, headers=None):
+    """Get first page of subdomains plus the real total count from VirusTotal."""
+    headers = _resolve_headers(headers)
+    if not headers:
+        return {"error": "No VirusTotal API key available"}
+
+    response_data = make_api_request(f"domains/{domain}/subdomains?limit=40", headers)
+    data = response_data.get("data")
+    if not data:
+        return {"subdomains": [], "total_count": 0}
+
+    subdomains = [value.get("id") for value in data if value.get("id")]
+    # meta.count is the real total VT has, regardless of how many we fetched
+    total_count = response_data.get("meta", {}).get("count", len(subdomains))
+
+    return {"subdomains": subdomains, "total_count": total_count}
 
 
 def url(query, headers=None):
@@ -89,10 +101,7 @@ def url(query, headers=None):
         return url_data
     attributes = data.get("attributes", {})
 
-    url_data["Detection"] = attributes.get("last_analysis_stats", {})
-    url_data["Redirection Chain"] = attributes.get("redirection_chain", [])
-    url_data["Final URL"] = attributes.get("last_final_url", "")
-
+    url_data = dict(attributes)
     return url_data
 
 
@@ -109,11 +118,17 @@ def ip_address(query, headers=None):
         return ip_data
     attributes = data.get("attributes", {})
 
-    ip_data["Detection"] = attributes.get("last_analysis_stats", {})
-    ip_data["CIDR"] = attributes.get("network", "")
-    ip_data["AS Number"] = attributes.get("asn", "")
-    ip_data["AS Owner"] = attributes.get("as_owner", "")
-    ip_data["Country"] = attributes.get("country", "")
+    ip_data = dict(attributes)
+
+    # Flatten SSL certificate (deeply nested raw object → usable dict)
+    cert = ip_data.pop("last_https_certificate", None)
+    if isinstance(cert, dict):
+        ip_data["ssl_certificate"] = {
+            "issuer": cert.get("issuer", {}),
+            "subject": cert.get("subject", {}),
+            "valid_from": cert.get("validity", {}).get("not_before", ""),
+            "valid_to": cert.get("validity", {}).get("not_after", ""),
+        }
 
     return ip_data
 

@@ -1,44 +1,47 @@
 import { Badge } from "@/shared/components/ui/badge"
 import { Button } from "@/shared/components/ui/button"
 import { Checkbox } from "@/shared/components/ui/checkbox"
-import { Trash2, Globe, Mail, Link2, MapPin, Info } from "lucide-react"
+import { Trash2, Info } from "lucide-react"
 import { useMemo } from "react"
 import { LookupResults } from "./LookupResults"
 import type { IndicatorResult, IndicatorType, LookupType, LookupResult, Provider } from "@/shared/types/intelligence-harvester"
 
 interface IntelligenceHarvesterSidebarProps {
-  indicators?: string[]
-  indicatorTypes?: Map<string, IndicatorType>
-  selectedIndicators?: Set<string>
-  activeIndicator?: string | null
-  lookupResults?: IndicatorResult[]
-  isLoading?: boolean
-  onToggleIndicator?: (indicator: string) => void
-  onToggleAll?: (checked: boolean) => void
-  onRemoveSelected?: () => void
-  onRemoveIndicator?: (indicator: string) => void
-  onClearAll?: () => void
-  onIndicatorClick?: (indicator: string) => void
+  // Core list props — always provided by the parent page.
+  indicators: string[]
+  indicatorTypes: Map<string, IndicatorType>
+  selectedIndicators: Set<string>
+  activeIndicator: string | null
+  lookupResults: IndicatorResult[]
+  isLoading: boolean
+  onToggleIndicator: (indicator: string) => void
+  onToggleAll: (checked: boolean) => void
+  onRemoveSelected: () => void
+  onRemoveIndicator: (indicator: string) => void
+  onClearAll: () => void
+  onIndicatorClick: (indicator: string) => void
+  // Lookup-specific props — optional because the component renders fine
+  // without them (lookups are disabled but the indicator list still works).
   token?: string
   getProviderForType?: (type: LookupType) => string[]
   providersByType?: Record<string, Provider[]>
   onResultsUpdate?: (indicator: string, newResults: LookupResult[]) => void
 }
 
-const TYPE_LABELS: Record<string, { label: string; icon: typeof Globe }> = {
-  ip: { label: "IP Addresses", icon: MapPin },
-  domain: { label: "Domains", icon: Globe },
-  url: { label: "URLs", icon: Link2 },
-  email: { label: "Email Addresses", icon: Mail },
+const TYPE_LABELS: Record<string, { label: string }> = {
+  ip: { label: "IP Addresses" },
+  domain: { label: "Domains" },
+  url: { label: "URLs" },
+  email: { label: "Email Addresses" },
 }
 
 export function IntelligenceHarvesterSidebar({
-  indicators = [],
-  indicatorTypes = new Map(),
-  selectedIndicators = new Set(),
-  activeIndicator = null,
-  lookupResults = [],
-  isLoading = false,
+  indicators,
+  indicatorTypes,
+  selectedIndicators,
+  activeIndicator,
+  lookupResults,
+  isLoading,
   onToggleIndicator,
   onToggleAll,
   onRemoveSelected,
@@ -65,10 +68,10 @@ export function IntelligenceHarvesterSidebar({
     <div className="flex h-full w-full">
       {/* Left: Indicator List */}
       <div className="w-80 border-r flex flex-col flex-shrink-0">
-        <div className="flex items-center gap-3 border-b p-4 flex-shrink-0">
+        <div className="flex items-center gap-3 border-b p-3 flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="text-base font-medium text-foreground">
-              Indicators
+              Observables
             </div>
             {indicators.length > 0 && (
               <Badge variant="secondary" className="text-xs">
@@ -79,16 +82,16 @@ export function IntelligenceHarvesterSidebar({
         </div>
 
         {/* Indicator List */}
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-4">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
           {indicators.length > 0 && (
-            <div className="flex items-center justify-between py-2 border-b flex-shrink-0">
+            <div className="flex items-center justify-between px-3 py-1 border-b flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Checkbox
                   checked={
                     indicators.length > 0 &&
                     selectedIndicators.size === indicators.length
                   }
-                  onCheckedChange={(value) => onToggleAll?.(Boolean(value))}
+                  onCheckedChange={(value) => onToggleAll(Boolean(value))}
                 />
                 <span className="text-xs text-muted-foreground">Select all</span>
               </div>
@@ -109,7 +112,7 @@ export function IntelligenceHarvesterSidebar({
                     variant="ghost"
                     size="sm"
                     onClick={onClearAll}
-                    className="h-7 text-xs text-destructive hover:text-destructive"
+                    className="h-7 text-xs"
                   >
                     Clear All
                   </Button>
@@ -120,21 +123,19 @@ export function IntelligenceHarvesterSidebar({
 
           <div className="flex-1 min-h-0 overflow-y-auto">
             {indicators.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
+              <div className="py-6 text-center text-xs text-muted-foreground">
                 <Info className="h-4 w-4 mx-auto mb-2" />
-                <p className="font-medium">No indicators yet</p>
-                <p className="text-xs">Add indicators above to begin</p>
+                <p className="font-medium text-foreground">No observables yet</p>
+                <p>Add observables above to begin</p>
               </div>
             ) : (
-              <div className="space-y-3 py-2">
+              <div>
                 {Object.entries(groupedIndicators).map(([type, typeIndicators]) => {
-                  const typeInfo = TYPE_LABELS[type] || { label: type, icon: Info }
-                  const Icon = typeInfo.icon
+                  const typeInfo = TYPE_LABELS[type] || { label: type }
                   
                   return (
-                    <div key={type} className="space-y-1.5">
-                      <div className="flex items-center gap-2 px-2 py-1.5 bg-sidebar-accent/50 rounded-md">
-                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <div key={type} className="border-b last:border-b-0">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-sidebar-accent/30">
                         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                           {typeInfo.label}
                         </span>
@@ -150,33 +151,35 @@ export function IntelligenceHarvesterSidebar({
                         return (
                           <div
                             key={indicator}
-                            onClick={() => onIndicatorClick?.(indicator)}
-                            className={`group w-full text-left rounded-md px-2 py-2 text-sm transition-colors cursor-pointer
+                            onClick={() => onIndicatorClick(indicator)}
+                            className={`group w-full text-left border-t px-3 py-1 text-sm transition-colors cursor-pointer
                               ${isActive
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                : "hover:bg-sidebar-accent/50"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-sidebar-accent/30"
                               }`}
                           >
                             <div className="grid grid-cols-[16px_1fr_28px] items-center gap-2">
                               <div className="flex items-center justify-center">
                                 <Checkbox
                                   checked={isSelected}
-                                  onCheckedChange={() => onToggleIndicator?.(indicator)}
+                                  onCheckedChange={() => onToggleIndicator(indicator)}
                                   onClick={(e) => e.stopPropagation()}
-                                  className={isActive ? "bg-background border-background" : ""}
+                                  className={isActive ? "border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" : ""}
                                 />
                               </div>
-                              <span className="flex-1 truncate font-mono text-xs" title={indicator}>
+                              <span className="flex-1 truncate text-xs" title={indicator}>
                                 {indicator}
                               </span>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
+                                className={`h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 ${
+                                  isActive ? "text-primary-foreground hover:text-primary-foreground" : "hover:text-destructive"
+                                }`}
                                 onClick={(event) => {
                                   event.stopPropagation()
-                                  onRemoveIndicator?.(indicator)
+                                  onRemoveIndicator(indicator)
                                 }}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -197,6 +200,7 @@ export function IntelligenceHarvesterSidebar({
       {/* Right: Lookup Results */}
       <div className="flex-1 min-h-0 min-w-0">
         <LookupResults
+          key={activeIndicator ?? ""}
           results={lookupResults}
           activeIndicator={activeIndicator}
           indicatorTypes={indicatorTypes}

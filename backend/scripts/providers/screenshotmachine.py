@@ -28,7 +28,7 @@ def generate_api_url(api_key, query):
     return f"https://api.screenshotmachine.com/?key={api_key}&url={query}&device=desktop&dimension={dimension}&format=png&cacheLimit=0&delay=2000"
 
 
-def get_website_screenshot(value, value_type="domain"):
+def get_website_screenshot(value):
     if not API_KEYS:
         return {}
 

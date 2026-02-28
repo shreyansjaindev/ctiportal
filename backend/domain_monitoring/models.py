@@ -204,6 +204,7 @@ class LookalikeDomain(models.Model):
     )
     # modified_by = models.ForeignKey(User, on_delete=models.RESTRICT, blank=True, null=True)
 
+    @property
     def is_monitored(self):
         return (
             "active"

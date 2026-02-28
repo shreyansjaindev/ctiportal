@@ -3,34 +3,36 @@ import { useNavigate } from "react-router-dom"
 import { useState } from "react"
 
 import { LoginForm } from "@/shared/components/login-form"
-import { apiPost } from "@/shared/lib/api"
-import { useAuth } from "@/shared/lib/auth"
-
-type TokenResponse = {
-  access: string
-  refresh: string
-}
+import { API_BASE } from "@/shared/lib/api"
+import { useAuth, type UserMe } from "@/shared/lib/auth"
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { saveTokens } = useAuth()
+  const { setUser } = useAuth()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
 
   const loginMutation = useMutation({
     mutationFn: async (payload: { username: string; password: string }) => {
-      const body = new URLSearchParams()
-      body.set("username", payload.username)
-      body.set("password", payload.password)
-      return apiPost<TokenResponse>(
-        "/auth/token/",
-        body,
-        null,
-        "application/x-www-form-urlencoded"
-      )
+      // Step 1: Login — dj-rest-auth sets httpOnly access + refresh cookies
+      const loginRes = await fetch(`${API_BASE}/auth/login/`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: payload.username, password: payload.password }),
+      })
+      if (!loginRes.ok) {
+        throw new Error("Invalid credentials")
+      }
+
+      // Step 2: Fetch the full user object (with groups) using the new cookie
+      const userRes = await fetch(`${API_BASE}/users/me/`, { credentials: "include" })
+      if (!userRes.ok) throw new Error("Failed to load user profile")
+
+      return userRes.json() as Promise<UserMe>
     },
-    onSuccess: (data) => {
-      saveTokens(data.access, data.refresh)
+    onSuccess: (userData) => {
+      setUser(userData)
       navigate("/", { replace: true })
     },
   })

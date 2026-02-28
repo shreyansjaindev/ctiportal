@@ -15,17 +15,24 @@ import ThreatstreamPage from "@/features/threatstream"
 import UrlDecoderPage from "@/features/url-decoder"
 
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { token } = useAuth()
-  if (!token) {
-    return <Navigate to="/login" replace />
-  }
+  const { user, isLoading } = useAuth()
+  if (isLoading) return null
+  if (!user) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
+
+// Redirects already-authenticated users away from public-only routes (e.g. /login)
+function PublicOnly({ children }: { children: ReactNode }) {
+  const { user, isLoading } = useAuth()
+  if (isLoading) return null
+  if (user) return <Navigate to="/" replace />
   return <>{children}</>
 }
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
       <Route
         element={
           <RequireAuth>
@@ -34,7 +41,6 @@ export default function App() {
         }
       >
         <Route index element={<HomePage />} />
-        <Route path="/lookup" element={<IntelligenceHarvesterPage />} />
         <Route
           path="/intelligence-harvester"
           element={<IntelligenceHarvesterPage />}

@@ -9,6 +9,7 @@ from .models import (
     LookalikeDomain,
     SSLCertificate,
     MonitoredDomainAlertComment,
+    LookalikeDomainComment,
 )
 
 
@@ -100,3 +101,4 @@ admin.site.register(NewlyRegisteredDomain, NewlyRegisteredDomainAdmin)
 admin.site.register(LookalikeDomain, LookalikeAdmin)
 admin.site.register(SSLCertificate, SSLCertificateAdmin)
 admin.site.register(MonitoredDomainAlertComment, MonitoredDomainAlertCommentAdmin)
+admin.site.register(LookalikeDomainComment)

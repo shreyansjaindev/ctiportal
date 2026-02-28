@@ -66,9 +66,8 @@ def get_results(hash):
     return hash_data
 
 
-def hybridanalysis(value, value_type="md5"):
-    if value_type in ["md5", "sha1", "sha256", "sha512"]:
-        return get_results(value)
+def hybridanalysis(value):
+    return get_results(value)
 
 
 if __name__ == "__main__":

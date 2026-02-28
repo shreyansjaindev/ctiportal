@@ -95,7 +95,7 @@ def get_results(value):
     pud.analyze.results(q['qid']) """
 
 
-def pulse_dive(value, value_type):
+def pulse_dive(value):
     error = check_api_key(API_KEY, "PulseDive")
     if error:
         return error

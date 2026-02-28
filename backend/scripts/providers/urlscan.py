@@ -62,8 +62,8 @@ def _build_search_query(query: str, input_type: str) -> str:
     return f"task.domain:{key}"
 
 
-def search(query: str, input_type: str, size: int = 10) -> list:
-    """Search URLScan.io for existing scans."""
+def search(query: str, input_type: str, size: int = 10) -> tuple[list, int]:
+    """Search URLScan.io for existing scans. Returns (results, total)."""
     search_query = _build_search_query(query, input_type)
     url = f"https://urlscan.io/api/v1/search/?q={search_query}&size={size}"
 
@@ -71,10 +71,10 @@ def search(query: str, input_type: str, size: int = 10) -> list:
         response = requests.get(url, timeout=30)
         response.raise_for_status()
         data = response.json()
-        return data.get("results", [])
+        return data.get("results", []), data.get("total", 0)
     except requests.RequestException as e:
         logger.error(f"Error searching URLScan.io: {e}")
-        return []
+        return [], 0
 
 
 def _pick_best_result(results: list, query: str, input_type: str) -> dict:
@@ -248,12 +248,13 @@ def urlscan(query: str, input_type: str):
     if scan_input_type not in ["domain", "url", "ipv4"]:
         return {"error": f"Unsupported input type: {scan_input_type}"}
 
-    existing_results = search(query, scan_input_type)
+    existing_results, api_total = search(query, scan_input_type)
     unique_results = _get_unique_results(existing_results, query, scan_input_type)
     if unique_results:
         return {
             "results": unique_results,
-            "total_results": len(unique_results),
+            "total_results": api_total,
+            "fetched_results": len(unique_results),
             "scan_mode": "existing_scan",
         }
 

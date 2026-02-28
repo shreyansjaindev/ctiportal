@@ -7,7 +7,7 @@ from ..utils.api_helpers import check_api_key
 logger = logging.getLogger(__name__)
 
 
-def abuseipdb(ip, value_type):
+def abuseipdb(ip):
     api_key = os.getenv("ABUSEIPDB", "").split(",")[0]
     error = check_api_key(api_key, "AbuseIPDB")
     if error:

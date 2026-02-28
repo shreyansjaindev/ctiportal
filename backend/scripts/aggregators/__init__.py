@@ -3,7 +3,7 @@ Aggregators module - exports all lookup aggregators
 """
 from . import (
     whois,
-    geolocation,
+    ip_info,
     reputation,
     cve_details,
     email_validator,
@@ -13,11 +13,12 @@ from . import (
     dns,
     reverse_dns,
     screenshot,
+    subdomains,
 )
 
 __all__ = [
     'whois',
-    'geolocation',
+    'ip_info',
     'reputation',
     'cve_details',
     'email_validator',
@@ -27,4 +28,5 @@ __all__ = [
     'dns',
     'reverse_dns',
     'screenshot',
+    'subdomains',
 ]

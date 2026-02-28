@@ -1,56 +1,107 @@
 import type { ReactNode } from "react"
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
-import { clearTokens, getStoredTokens, setAuthContextRef, storeTokens } from "@/shared/lib/api"
+import { API_BASE, setAuthContextRef } from "@/shared/lib/api"
+
+export type UserMe = {
+  id: number
+  username: string
+  email: string
+  first_name: string
+  last_name: string
+  groups: { id: number; name: string }[]
+}
 
 type AuthContextValue = {
+  user: UserMe | null
+  isLoading: boolean
+  /**
+   * Backward-compatible token field.
+   * Returns `"authenticated"` when logged in, `null` when not.
+   * Use `user` for actual user data.
+   */
   token: string | null
-  setToken: (token: string | null) => void
-  saveTokens: (access: string, refresh?: string) => void
+  setUser: (user: UserMe | null) => void
   logout: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setTokenState] = useState<string | null>(
-    getStoredTokens().access
-  )
+  const [user, setUser] = useState<UserMe | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const setToken = (value: string | null) => {
-    setTokenState(value)
-    if (!value) {
-      clearTokens()
+  // On mount, verify session by fetching the current user.
+  // Handles three cases:
+  //   1. Access cookie valid          → set user, done
+  //   2. Access cookie expired, but refresh cookie valid → silent refresh, retry, set user
+  //   3. Both expired / no cookies   → user stays null, RequireAuth redirects to /login
+  useEffect(() => {
+    let cancelled = false
+
+    async function initSession() {
+      try {
+        let res = await fetch(`${API_BASE}/users/me/`, { credentials: "include" })
+
+        // Access token may be expired — try a silent refresh once
+        if (res.status === 401) {
+          const refreshRes = await fetch(`${API_BASE}/auth/token/refresh/`, {
+            method: "POST",
+            credentials: "include",
+          })
+          if (refreshRes.ok) {
+            // New access cookie issued — retry the user fetch
+            res = await fetch(`${API_BASE}/users/me/`, { credentials: "include" })
+          }
+        }
+
+        if (!cancelled) {
+          if (res.ok) {
+            const data: UserMe = await res.json()
+            setUser(data)
+          } else {
+            setUser(null)
+          }
+        }
+      } catch {
+        if (!cancelled) setUser(null)
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
     }
-  }
 
-  const saveTokens = (access: string, refresh?: string) => {
-    storeTokens(access, refresh)
-    setTokenState(access)
-  }
+    initSession()
 
-  const logout = () => {
-    clearTokens()
-    setTokenState(null)
-  }
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  const value = useMemo(
+  const logout = useCallback(() => {
+    setUser(null) // immediately clear — redirects to login
+    // Fire-and-forget: tell the server to blacklist the refresh token cookie
+    fetch(`${API_BASE}/auth/logout/`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {/* server-side cleanup failure is non-fatal */})
+  }, [])
+
+  // Register logout callback with the API client so it can trigger logout
+  // automatically when a 401 cannot be recovered via token refresh
+  useEffect(() => {
+    setAuthContextRef({ logout })
+  }, [logout])
+
+  const value = useMemo<AuthContextValue>(
     () => ({
-      token,
-      setToken,
-      saveTokens,
+      user,
+      isLoading,
+      token: user ? "authenticated" : null,
+      setUser,
       logout,
     }),
-    [token]
+    [user, isLoading, logout]
   )
-
-  // Register auth context with API client for token refresh
-  useEffect(() => {
-    setAuthContextRef({
-      saveTokens,
-      logout,
-    })
-  }, [saveTokens, logout])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

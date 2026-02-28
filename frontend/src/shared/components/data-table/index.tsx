@@ -199,12 +199,12 @@ export function DataTable<TData, TValue>({
         {filterFields && filterFields.length > 0 && (
         <div
           className={cn(
-            "hidden h-full w-full flex-col sm:sticky sm:top-0 sm:flex sm:min-h-screen sm:min-w-52 sm:max-w-52 sm:self-start md:min-w-64 md:max-w-64 sm:border-r sm:border-border",
+            "hidden h-full w-full flex-col sm:sticky sm:top-0 sm:flex sm:min-h-screen sm:min-w-52 sm:max-w-52 sm:self-start md:min-w-64 md:max-w-64 sm:border-r sm:border-border/80",
             "group-data-[expanded=false]/controls:hidden",
           )}
         >
-          <div className="border-b border-border bg-background p-2">
-            <div className="flex h-[46px] items-center justify-between gap-3">
+          <div className="border-y p-2">
+            <div className="flex items-center justify-between gap-3">
               <p className="px-2 font-medium text-foreground">Filters</p>
               <div>
                 {table.getState().columnFilters.length ? (
@@ -218,7 +218,7 @@ export function DataTable<TData, TValue>({
           </div>
         </div>
         )}
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden border-t">
           <div className="flex flex-col gap-4 bg-background p-2">
             {searchControl && <div className="w-full">{searchControl}</div>}
             <DataTableToolbar
@@ -231,7 +231,7 @@ export function DataTable<TData, TValue>({
               )}
             />
           </div>
-          <div className="z-0">
+          <div className="z-0 border-t border-border">
             <TableComponent
               className={cn(
                 "border-separate border-spacing-0 w-full",

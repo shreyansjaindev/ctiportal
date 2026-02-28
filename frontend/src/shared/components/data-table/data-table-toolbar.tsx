@@ -7,7 +7,6 @@ import { Button } from "@/shared/components/ui/button"
 import { useDataTable } from "./data-table-provider"
 import { useControls } from "@/shared/providers/controls"
 import { DataTableFilterControlsDrawer } from "./data-table-filter-controls-drawer"
-import { DataTableResetButton } from "./data-table-reset-button"
 import { DataTableViewOptions } from "./data-table-view-options"
 
 interface DataTableToolbarProps {
@@ -87,7 +86,6 @@ export function DataTableToolbar({ renderActions, hasFilters = true }: DataTable
         </div>
       </div>
       <div className="ml-auto flex items-center gap-2">
-        {filters.length ? <DataTableResetButton /> : null}
         {renderActions?.()}
         <DataTableViewOptions />
       </div>

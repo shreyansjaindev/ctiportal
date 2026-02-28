@@ -64,9 +64,8 @@ def get_results(cve):
     return data
 
 
-def nvd(value, value_type):
-    if value_type == "cve":
-        return get_results(value)
+def nvd(value):
+    return get_results(value)
 
 
 if __name__ == "__main__":

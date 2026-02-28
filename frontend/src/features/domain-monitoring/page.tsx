@@ -30,7 +30,7 @@ export default function DomainMonitoringPage() {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList variant="line">
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="lookalikes">Lookalike Domains</TabsTrigger>
           <TabsTrigger value="monitored-domains">Monitored Domains</TabsTrigger>

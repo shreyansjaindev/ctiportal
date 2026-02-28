@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
-from scripts.providers.anomali.threatstream import (
+from scripts.integrations.anomali.threatstream import (
     threatstream_import_domains_without_approval,
 )
 

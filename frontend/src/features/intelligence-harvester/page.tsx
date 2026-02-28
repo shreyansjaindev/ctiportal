@@ -5,6 +5,7 @@ import * as aggregators from "@/shared/lib/aggregators"
 import { IntelligenceHarvesterSidebar, LookupConfiguration } from "./components"
 import { parseIndicators } from "@/shared/lib/indicator-utils"
 import { useProviderSelection } from "@/shared/hooks"
+import { ALL_LOOKUP_TYPES } from "@/shared/lib/lookup-config"
 import { executeIndicatorLookups } from "@/shared/services"
 import type { IndicatorResult, IndicatorType, LookupResult, LookupType } from "@/shared/types/intelligence-harvester"
 import { Button } from "@/shared/components/ui/button"
@@ -12,29 +13,15 @@ import { Input } from "@/shared/components/ui/input"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/shared/components/ui/sheet"
 import { SearchIcon, SettingsIcon } from "lucide-react"
 
-const PROVIDER_KEY_TO_LOOKUP_TYPE = {
-  whois: "whois",
-  geoLocation: "ip_info",
-  reputation: "reputation",
-  dns: "dns",
-  passiveDns: "passive_dns",
-  whoisHistory: "whois_history",
-  reverseDns: "reverse_dns",
-  screenshot: "screenshot",
-  emailValidator: "email_validator",
-  cveDetails: "cve_details",
-  websiteStatus: "website_details",
-} as const
-
-function sameProviderSelection(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) return false
-  const aSorted = [...a].sort()
-  const bSorted = [...b].sort()
-  return aSorted.every((value, index) => value === bSorted[index])
-}
-
-function getLookupResultKey(result: LookupResult): string {
-  return `${result._lookup_type}::${result._provider || "unknown"}`
+/**
+ * Merges incoming results into an existing array.
+ * Results with the same type+provider key overwrite older ones.
+ */
+function mergeResults(existing: LookupResult[], incoming: LookupResult[]): LookupResult[] {
+  const byKey = new Map<string, LookupResult>()
+  existing.forEach(r => byKey.set(`${r._lookup_type}::${r._provider ?? "unknown"}`, r))
+  incoming.forEach(r => byKey.set(`${r._lookup_type}::${r._provider ?? "unknown"}`, r))
+  return Array.from(byKey.values())
 }
 
 export default function IntelligenceHarvesterPage() {
@@ -43,7 +30,7 @@ export default function IntelligenceHarvesterPage() {
   const [indicators, setIndicators] = useState<string[]>(() => {
     if (typeof window === "undefined") return []
     try {
-      const stored = window.localStorage.getItem("ih.indicators")
+      const stored = localStorage.getItem("ih.indicators")
       return stored ? (JSON.parse(stored) as string[]) : []
     } catch (error) {
       console.error("Failed to parse stored indicators from localStorage:", error)
@@ -54,17 +41,29 @@ export default function IntelligenceHarvesterPage() {
   const [selectedIndicators, setSelectedIndicators] = useState<Set<string>>(new Set())
   const [activeIndicator, setActiveIndicator] = useState<string | null>(null)
   const [configOpen, setConfigOpen] = useState(false)
-  const [manualResults, setManualResults] = useState<Map<string, LookupResult[]>>(new Map())
 
-  // Use custom hook for provider selection
-  const { selections, setters, enabledTypes, getProviderForType } = useProviderSelection()
+  // Single source of truth for all lookup results, keyed by indicator value.
+  // Both auto-load and manual tab loads write here via handleResultsUpdate.
+  const [allResults, setAllResults] = useState<Map<string, LookupResult[]>>(new Map())
+
+  const { selections, setProviderForType, enabledTypes, getProviderForType } = useProviderSelection()
+  const autoLoad = enabledTypes.size > 0
+  // Tracks which indicators have already been submitted to auto-load.
+  // Using a ref (not state) so updates don't trigger re-renders.
+  // Kept separate from allResults so that manually-loaded indicators
+  // (from tab clicks) are still picked up when auto-load is turned on.
+  const autoLoadedRef = useRef(new Set<string>())
+  // Stores the provider selections from the previous render so the effect below can
+  // diff them against the current selections. A ref is used instead of state because
+  // updating it should not trigger a re-render — it's purely bookkeeping.
+  const previousSelectionsRef = useRef(selections)
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    window.localStorage.setItem("ih.indicators", JSON.stringify(indicators))
+    localStorage.setItem("ih.indicators", JSON.stringify(indicators))
   }, [indicators])
 
-  // Auto-select first indicator for display when indicators list changes
+  // Auto-select the first indicator for display when the list changes.
   useEffect(() => {
     if (indicators.length > 0 && !activeIndicator) {
       setActiveIndicator(indicators[0])
@@ -73,466 +72,271 @@ export default function IntelligenceHarvesterPage() {
     }
   }, [indicators, activeIndicator])
 
-  // Identifier mutation - separate from the effect
-  const identifierMutation = useMutation({
-    mutationFn: async (indicatorsToIdentify: string[]) => {
-      if (!token) throw new Error("Not authenticated")
-      if (indicatorsToIdentify.length === 0) return []
-      
-      const results = await aggregators.identifyIndicators(indicatorsToIdentify, token)
-      
-      // Validate response structure
-      if (!Array.isArray(results)) {
-        console.error("Invalid identifier response structure. Expected array, got:", typeof results)
-        return []
-      }
-      
-      return results
-    },
-    onSuccess: (results) => {
-      setIndicatorTypes(() => {
-        const next = new Map<string, IndicatorType>()
-        results.forEach((result) => {
-          if (result?.value && result?.type) {
-            next.set(result.value, result.type)
-          }
-        })
-        return next
-      })
-    },
-    onError: (error) => {
-      console.error("Failed to identify indicators:", error)
-    },
-  })
+  // --- Backend queries ---
 
-  // Auto-identify indicators when the list changes
+  // Identify indicator types (IP, domain, hash, etc.) whenever the list changes.
   useEffect(() => {
-    if (!token || indicators.length === 0) {
-      setIndicatorTypes(new Map())
-      return
-    }
-    identifierMutation.mutate(indicators)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!token || indicators.length === 0) { setIndicatorTypes(new Map()); return }
+    aggregators.identifyIndicators(indicators, token)
+      .then(results => {
+        if (!Array.isArray(results)) return
+        const types = new Map<string, IndicatorType>()
+        results.forEach(r => { if (r?.value && r?.type) types.set(r.value, r.type) })
+        setIndicatorTypes(types)
+      })
+      .catch(err => console.error("Failed to identify indicators:", err))
   }, [token, indicators])
 
-  // Fetch all providers in a single call
+  // Fetch the available providers per lookup type.
   const allProvidersQuery = useQuery({
     queryKey: ["all-providers"],
     queryFn: () => aggregators.getAllProviders(token!),
     enabled: !!token,
   })
 
-  // Get current providers list
   const providersByType = useMemo(() => {
     return allProvidersQuery.data?.providers_by_type || {
-      whois: [],
-      ip_info: [],
-      reputation: [],
-      dns: [],
-      passive_dns: [],
-      whois_history: [],
-      reverse_dns: [],
-      screenshot: [],
-      email_validator: [],
-      cve_details: [],
-      website_details: [],
+      whois: [], ip_info: [], reputation: [], dns: [], passive_dns: [],
+      whois_history: [], reverse_dns: [], screenshot: [], email_validator: [],
+      cve_details: [], website_status: [], web_scan: [],
     }
   }, [allProvidersQuery.data?.providers_by_type])
 
-  const filteredIndicators = useMemo(() => {
-    return indicators
-  }, [indicators])
+  // --- Lookup execution ---
 
-  const addIndicators = (raw: string) => {
-    const indicatorSet = new Set(indicators)
-    const additions = parseIndicators(raw).filter(
-      (value) => !indicatorSet.has(value)
-    )
-    if (!additions.length) return []
-
-    setIndicators((prev) => [...prev, ...additions])
-    return additions
-  }
-
-  const toggleIndicator = (indicator: string) => {
-    setSelectedIndicators((prev) => {
-      const next = new Set(prev)
-      if (next.has(indicator)) {
-        next.delete(indicator)
-      } else {
-        next.add(indicator)
-      }
-      return next
-    })
-  }
-
-  const toggleAllIndicators = (checked: boolean) => {
-    if (checked) {
-      setSelectedIndicators(new Set(filteredIndicators))
-    } else {
-      setSelectedIndicators(new Set())
-    }
-  }
-
-  const removeIndicator = (indicator: string) => {
-    const updatedIndicators = indicators.filter((value) => value !== indicator)
-    setIndicators(updatedIndicators)
-    setIndicatorTypes((prev) => {
+  // Merges new results from any source (auto-load or tab click) into allResults.
+  const handleResultsUpdate = useCallback((indicator: string, newResults: LookupResult[]) => {
+    setAllResults(prev => {
       const next = new Map(prev)
-      next.delete(indicator)
+      next.set(indicator, mergeResults(next.get(indicator) ?? [], newResults))
       return next
     })
-    setSelectedIndicators((prev) => {
-      const next = new Set(prev)
-      next.delete(indicator)
-      return next
-    })
-    setLoadedIndicators((prev) => {
-      const next = new Set(prev)
-      next.delete(indicator)
-      return next
-    })
-    // Clear activeIndicator if we're removing it or if no indicators remain
-    if (activeIndicator === indicator || updatedIndicators.length === 0) {
-      setActiveIndicator(null)
-    }
-    // Reset lookup results if no indicators remain
-    if (updatedIndicators.length === 0) {
-      lookupMutation.reset()
-    }
-  }
+  }, [])
 
-  const removeSelectedIndicators = () => {
-    if (!selectedIndicators.size) return
-    const updatedIndicators = indicators.filter((value) => !selectedIndicators.has(value))
-    setIndicators(updatedIndicators)
-    setIndicatorTypes((prev) => {
-      const next = new Map(prev)
-      selectedIndicators.forEach((indicator) => next.delete(indicator))
-      return next
-    })
-    setLoadedIndicators((prev) => {
-      const next = new Set(prev)
-      selectedIndicators.forEach((indicator) => next.delete(indicator))
-      return next
-    })
-    setSelectedIndicators(new Set())
-    // Clear activeIndicator if it's being removed or if no indicators remain
-    if ((activeIndicator && selectedIndicators.has(activeIndicator)) || updatedIndicators.length === 0) {
-      setActiveIndicator(null)
-    }
-    // Reset lookup results if no indicators remain
-    if (updatedIndicators.length === 0) {
-      lookupMutation.reset()
-    }
-  }
-
-  const clearAllIndicators = () => {
-    setIndicators([])
-    setIndicatorTypes(new Map())
-    setSelectedIndicators(new Set())
-    setLoadedIndicators(new Set())
-    setActiveIndicator(null)
-    lookupMutation.reset()
-  }
-
-  // Perform lookup mutation
+  // lookupMutation runs all enabled lookups for a given set of indicators at once.
+  // Used only by auto-load; individual tab loads call handleResultsUpdate directly.
   const lookupMutation = useMutation({
     mutationFn: async (indicatorsToLookup: string[]) => {
       if (!token) throw new Error("Not authenticated")
-
-      if (!indicatorsToLookup.length) {
-        throw new Error("No indicators selected")
-      }
+      if (!indicatorsToLookup.length) throw new Error("No indicators to look up")
 
       const tasks = indicatorsToLookup.map(async (indicator) => {
         const indicatorType = indicatorTypes.get(indicator)
-        
         if (!indicatorType) {
-          console.warn(`No indicator type found for: "${indicator}"`)
+          console.warn(`No type found for "${indicator}"`)
           return { indicator, results: [] }
         }
-        
-        console.log(`[Page] Running lookup for ${indicator} (${indicatorType}), enabledTypes:`, Array.from(enabledTypes))
-        
         const results = await executeIndicatorLookups({
-          indicator,
-          indicatorType,
-          selectedTypes: enabledTypes,
-          providers_by_type: providersByType,
-          getProviderForType,
-          token,
+          indicator, indicatorType, selectedTypes: enabledTypes,
+          providers_by_type: providersByType, getProviderForType, token,
         })
-
         return { indicator, results }
       })
 
       return Promise.all(tasks)
     },
-    onSuccess: (data) => {
-      const results = data as IndicatorResult[]
-      const first = results[0]?.indicator ?? null
-      setActiveIndicator((prev) => {
-        if (prev && results.some((item) => item.indicator === prev)) {
-          return prev
-        }
-        return first
+    onSuccess: (data: IndicatorResult[]) => {
+      data.forEach(({ indicator, results }) => {
+        if (results.length > 0) handleResultsUpdate(indicator, results)
+      })
+      setActiveIndicator(prev => {
+        if (prev && data.some(d => d.indicator === prev)) return prev
+        return data[0]?.indicator ?? null
       })
     },
-    onError: (error) => {
-      console.error("Lookup failed:", error)
-    },
+    onError: (error) => { console.error("Lookup failed:", error) },
   })
 
+  // Flat array consumed by IntelligenceHarvesterSidebar.
   const lookupResults = useMemo<IndicatorResult[]>(() => {
-    const baseResults = Array.isArray(lookupMutation.data) 
-      ? lookupMutation.data.filter(item => item?.indicator && Array.isArray(item.results))
-      : []
-    
-    // Create a map of indicators from base results
-    const resultMap = new Map<string, IndicatorResult>()
-    
-    // Add base results first
-    baseResults.forEach(item => {
-      const baseFiltered = item.results
-      const additionalResults = manualResults.get(item.indicator) || []
+    return Array.from(allResults.entries()).map(([indicator, results]) => ({ indicator, results }))
+  }, [allResults])
 
-      if (additionalResults.length === 0) {
-        resultMap.set(item.indicator, { ...item, results: baseFiltered })
-        return
-      }
+  // --- Indicator management ---
 
-      // Merge by lookup type + provider to preserve all provider tabs
-      const mergedByTypeAndProvider = new Map<string, LookupResult>()
-      baseFiltered.forEach((result) => mergedByTypeAndProvider.set(getLookupResultKey(result), result))
-      additionalResults.forEach((result) => mergedByTypeAndProvider.set(getLookupResultKey(result), result))
+  const addIndicators = (raw: string) => {
+    const existing = new Set(indicators)
+    const additions = parseIndicators(raw).filter(v => !existing.has(v))
+    if (!additions.length) return []
+    setIndicators(prev => [...prev, ...additions])
+    return additions
+  }
 
-      resultMap.set(item.indicator, {
-        ...item,
-        results: Array.from(mergedByTypeAndProvider.values())
-      })
-    })
-    
-    // Add indicators that only have manual results (no auto-load data)
-    manualResults.forEach((results, indicator) => {
-      if (!resultMap.has(indicator)) {
-        resultMap.set(indicator, {
-          indicator,
-          results
-        })
-      }
-    })
-    
-    return Array.from(resultMap.values())
-  }, [lookupMutation.data, manualResults])
-
-  // Handle individual tab lookup results (merge with existing results)
-  const handleResultsUpdate = useCallback((indicator: string, newResults: LookupResult[]) => {
-    setManualResults(prev => {
-      const next = new Map(prev)
-      const existing = next.get(indicator) || []
-
-      // Merge by lookup type + provider so ad-hoc tabs keep all providers
-      const mergedByTypeAndProvider = new Map<string, LookupResult>()
-      existing.forEach((result) => mergedByTypeAndProvider.set(getLookupResultKey(result), result))
-      newResults.forEach((result) => mergedByTypeAndProvider.set(getLookupResultKey(result), result))
-
-      next.set(indicator, Array.from(mergedByTypeAndProvider.values()))
+  const toggleIndicator = (indicator: string) => {
+    setSelectedIndicators(prev => {
+      const next = new Set(prev)
+      if (next.has(indicator)) { next.delete(indicator) } else { next.add(indicator) }
       return next
     })
-  }, [])
+  }
 
-  // Auto-load lookups when indicators are identified (if enabled)
-  const [autoLoad, setAutoLoad] = useState(() => {
-    try {
-      const stored = localStorage.getItem("intelligenceHarvester_autoLoad")
-      return stored ? JSON.parse(stored) : false
-    } catch {
-      return false
+  const toggleAllIndicators = (checked: boolean) => {
+    setSelectedIndicators(checked ? new Set(indicators) : new Set())
+  }
+
+  /**
+   * Shared cleanup for removing indicators from all derived state.
+   * Called by removeIndicator, removeSelectedIndicators, and clearAllIndicators.
+   */
+  function removeIndicatorsFromState(toRemove: Set<string>, remaining: string[]) {
+    setIndicatorTypes(prev => { const m = new Map(prev); toRemove.forEach(i => m.delete(i)); return m })
+    setAllResults(prev => { const m = new Map(prev); toRemove.forEach(i => m.delete(i)); return m })
+    toRemove.forEach(i => autoLoadedRef.current.delete(i))
+    if (remaining.length === 0) {
+      setActiveIndicator(null)
+      lookupMutation.reset()
+    } else if (activeIndicator && toRemove.has(activeIndicator)) {
+      setActiveIndicator(remaining[0] ?? null)
     }
-  })
-  const [loadedIndicators, setLoadedIndicators] = useState<Set<string>>(new Set())
-  const previousSelectionsRef = useRef(selections)
-  
-  // Save autoLoad setting to localStorage
+  }
+
+  const removeIndicator = (indicator: string) => {
+    const remaining = indicators.filter(v => v !== indicator)
+    setIndicators(remaining)
+    setSelectedIndicators(prev => { const s = new Set(prev); s.delete(indicator); return s })
+    removeIndicatorsFromState(new Set([indicator]), remaining)
+  }
+
+  const removeSelectedIndicators = () => {
+    if (!selectedIndicators.size) return
+    const remaining = indicators.filter(v => !selectedIndicators.has(v))
+    setIndicators(remaining)
+    removeIndicatorsFromState(new Set(selectedIndicators), remaining)
+    setSelectedIndicators(new Set())
+  }
+
+  const clearAllIndicators = () => {
+    setIndicators([])
+    setIndicatorTypes(new Map())
+    setAllResults(new Map())
+    setSelectedIndicators(new Set())
+    setActiveIndicator(null)
+    autoLoadedRef.current = new Set()
+    lookupMutation.reset()
+  }
+
+  // --- Auto-load effects ---
+
+  // Trigger auto-load for newly added indicators once all indicator types are identified.
+  // Uses autoLoadedRef (not allResults) so indicators with partial manual results
+  // are still batch-loaded when auto-load is turned on later.
   useEffect(() => {
-    localStorage.setItem("intelligenceHarvester_autoLoad", JSON.stringify(autoLoad))
-  }, [autoLoad])
-  
-  useEffect(() => {
-    // Only trigger lookup for indicators that haven't been loaded yet
-    if (!autoLoad || indicators.length === 0 || indicatorTypes.size !== indicators.length) {
-      return
-    }
-    
-    const newIndicators = indicators.filter(ind => !loadedIndicators.has(ind))
-    if (newIndicators.length > 0) {
-      setLoadedIndicators(prev => new Set([...prev, ...newIndicators]))
-      lookupMutation.mutate(newIndicators)
-    }
+    if (!autoLoad || indicators.length === 0 || indicatorTypes.size !== indicators.length) return
+    const unloaded = indicators.filter(i => !autoLoadedRef.current.has(i))
+    if (unloaded.length === 0) return
+    // Mark synchronously before mutating so re-runs of this effect don't double-submit.
+    unloaded.forEach(i => autoLoadedRef.current.add(i))
+    lookupMutation.mutate(unloaded)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoLoad, indicators, indicatorTypes.size])
 
-  // Re-run only changed lookup types when provider configuration changes (auto-load mode)
+  // Re-run lookups for any lookup types whose provider selection changed.
   useEffect(() => {
     if (!autoLoad || indicators.length === 0 || indicatorTypes.size !== indicators.length) {
       previousSelectionsRef.current = selections
       return
     }
 
-    const previousSelections = previousSelectionsRef.current
-    const changedTypes = new Set<string>()
-
-    ;(Object.keys(PROVIDER_KEY_TO_LOOKUP_TYPE) as Array<keyof typeof PROVIDER_KEY_TO_LOOKUP_TYPE>).forEach((key) => {
-      const previousValue = previousSelections[key] || []
-      const currentValue = selections[key] || []
-      if (!sameProviderSelection(previousValue, currentValue)) {
-        changedTypes.add(PROVIDER_KEY_TO_LOOKUP_TYPE[key])
-      }
+    // Diff current vs previous selections to find changed types.
+    const changedTypes = ALL_LOOKUP_TYPES.filter(type => {
+      const prev = [...(previousSelectionsRef.current[type] ?? [])].sort().join(",")
+      const curr = [...(selections[type] ?? [])].sort().join(",")
+      return prev !== curr
     })
 
-    if (changedTypes.size === 0) {
-      return
-    }
-
     previousSelectionsRef.current = selections
+    if (changedTypes.length === 0) return
 
-    const enabledChangedTypes = new Set(
-      Array.from(changedTypes).filter((type) => enabledTypes.has(type as LookupType))
-    ) as Set<LookupType>
-    const disabledChangedTypes = new Set(
-      Array.from(changedTypes).filter((type) => !enabledTypes.has(type as LookupType))
-    ) as Set<LookupType>
+    const enabledChanged = changedTypes.filter(t => enabledTypes.has(t as LookupType)) as LookupType[]
+    const disabledChanged = changedTypes.filter(t => !enabledTypes.has(t as LookupType))
 
-    // Remove stale manual results for disabled lookup types
-    if (disabledChangedTypes.size > 0) {
-      setManualResults(prev => {
+    // Drop stale results for types that were just disabled.
+    if (disabledChanged.length > 0) {
+      const disabledSet = new Set(disabledChanged)
+      setAllResults(prev => {
         const next = new Map<string, LookupResult[]>()
         prev.forEach((results, indicator) => {
-          next.set(
-            indicator,
-            results.filter(result => result._lookup_type && !disabledChangedTypes.has(result._lookup_type))
-          )
+          next.set(indicator, results.filter(r => r._lookup_type && !disabledSet.has(r._lookup_type)))
         })
         return next
       })
     }
 
-    if (enabledChangedTypes.size === 0 || !token) {
-      return
-    }
+    if (enabledChanged.length === 0 || !token) return
+    // Capture token here - TypeScript can't narrow it inside an inner function.
+    const tok = token
 
-    void (async () => {
-      const tasks = indicators.map(async (indicator) => {
+    // Re-fetch only the changed types for every loaded indicator.
+    // Named inner function so the async logic reads clearly without an IIFE.
+    async function reloadChangedTypes() {
+      await Promise.all(indicators.map(async (indicator) => {
         const indicatorType = indicatorTypes.get(indicator)
         if (!indicatorType) return
-
         const results = await executeIndicatorLookups({
-          indicator,
-          indicatorType,
-          selectedTypes: enabledChangedTypes,
-          providers_by_type: providersByType,
-          getProviderForType,
-          token,
+          indicator, indicatorType, selectedTypes: new Set(enabledChanged),
+          providers_by_type: providersByType, getProviderForType, token: tok,
         })
-
-        if (results.length > 0) {
-          handleResultsUpdate(indicator, results)
-        }
-      })
-
-      await Promise.all(tasks)
-      setLoadedIndicators(new Set(indicators))
-    })()
+        handleResultsUpdate(indicator, results)
+      }))
+    }
+    void reloadChangedTypes()
   }, [autoLoad, indicators, indicatorTypes, selections, enabledTypes, token, providersByType, getProviderForType, handleResultsUpdate])
 
   return (
     <div className="w-full h-full min-h-0 flex flex-col bg-card overflow-hidden">
-      {/* Simple Search Bar */}
-      <div className="flex-shrink-0 border-b bg-background">
-        <div className="flex items-center gap-3 px-4 py-3">
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Enter indicators: IPs, domains, URLs, hashes..."
-              value={quickInput}
-              onChange={(e) => setQuickInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  if (quickInput.trim()) {
-                    addIndicators(quickInput)
-                    setQuickInput("")
-                  }
-                }
-              }}
-              className="pl-10"
-            />
-          </div>
+      {/* Search bar */}
+      <div className="flex-shrink-0 border-b bg-background flex items-center px-4 py-2">
+        <SearchIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <Input
+          placeholder="Enter observables: IPs, domains, URLs, hashes, CVEs..."
+          value={quickInput}
+          onChange={(e) => setQuickInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              if (quickInput.trim()) {
+                addIndicators(quickInput)
+                setQuickInput("")
+              }
+            }
+          }}
+          className="flex-1 border-none shadow-none focus-visible:ring-0 bg-transparent px-3"
+        />
 
-          {/* Advanced Settings Sheet */}
-          <Sheet open={configOpen} onOpenChange={setConfigOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="flex-shrink-0"
-                title="Advanced provider settings"
-              >
-                <SettingsIcon className="h-4 w-4" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[500px] overflow-y-auto">
-              <SheetHeader className="sr-only">
-                <SheetTitle>Provider Configuration</SheetTitle>
-                <SheetDescription>
-                  Configure lookup providers and auto-load behavior for intelligence harvesting.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mt-6">
-                <h2 className="text-lg font-semibold mb-4">Provider Configuration</h2>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Customize which providers to use for each lookup type. By default, all available providers are used.
-                </p>
-                <LookupConfiguration
-                  whoisProvider={selections.whois}
-                  setWhoisProvider={setters.setWhois}
-                  geoProvider={selections.geoLocation}
-                  setGeoProvider={setters.setGeoLocation}
-                  reputationProvider={selections.reputation}
-                  setReputationProvider={setters.setReputation}
-                  dnsProvider={selections.dns}
-                  setDnsProvider={setters.setDns}
-                  passiveDnsProvider={selections.passiveDns}
-                  setPassiveDnsProvider={setters.setPassiveDns}
-                  whoisHistoryProvider={selections.whoisHistory}
-                  setWhoisHistoryProvider={setters.setWhoisHistory}
-                  reverseDnsProvider={selections.reverseDns}
-                  setReverseDnsProvider={setters.setReverseDns}
-                  screenshotProvider={selections.screenshot}
-                  setScreenshotProvider={setters.setScreenshot}
-                  emailValidationProvider={selections.emailValidator}
-                  setEmailValidationProvider={setters.setEmailValidator}
-                  cveDetailsProvider={selections.cveDetails}
-                  setCveDetailsProvider={setters.setCveDetails}
-                  websiteStatusProvider={selections.websiteStatus}
-                  setWebsiteStatusProvider={setters.setWebsiteStatus}
-                  providersByType={providersByType}
-                  presets={allProvidersQuery.data?.presets}
-                  autoLoad={autoLoad}
-                  setAutoLoad={setAutoLoad}
-                  className="border-0 shadow-none"
-                />
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+        {/* Provider configuration panel */}
+        <Sheet open={configOpen} onOpenChange={setConfigOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex-shrink-0"
+              title="Provider configuration"
+            >
+              <SettingsIcon className="h-4 w-4" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right">
+            <SheetHeader>
+              <SheetTitle>Provider Auto-Load Setup</SheetTitle>
+              <SheetDescription>
+                Choose which lookup categories should auto-run and which providers should be used for each one.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="grid flex-1 auto-rows-min gap-6 px-4">
+              <LookupConfiguration
+                selections={selections}
+                setProviderForType={setProviderForType}
+                providersByType={providersByType}
+                presets={allProvidersQuery.data?.presets}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
-      {/* Results Panel - Full Width Below */}
+      {/* Results panel */}
       <div className="flex-1 min-h-0">
-        <IntelligenceHarvesterSidebar 
+        <IntelligenceHarvesterSidebar
           indicators={indicators}
           indicatorTypes={indicatorTypes}
           selectedIndicators={selectedIndicators}
@@ -554,4 +358,3 @@ export default function IntelligenceHarvesterPage() {
     </div>
   )
 }
-

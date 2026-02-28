@@ -34,9 +34,11 @@ INSTALLED_APPS = [
     "intelligence_harvester.apps.IntelligenceHarvesterConfig",
     "reverse_whois_monitoring.apps.ReverseWhoisMonitoringConfig",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
     "drf_spectacular",
+    "dj_rest_auth",
 ]
 
 MIDDLEWARE = [
@@ -107,10 +109,18 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Django 4.2+ unified storage config (replaces legacy STATICFILES_STORAGE)
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # WhiteNoise Configuration
-WHITENOISE_AUTOREFRESH = True if DEBUG else False
+WHITENOISE_AUTOREFRESH = DEBUG
 WHITENOISE_SKIP_STAT_ON_START = not DEBUG
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -180,7 +190,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
@@ -215,8 +225,20 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv("JWT_ACCESS_MINUTES", "60"))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv("JWT_ACCESS_MINUTES", "15"))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv("JWT_REFRESH_DAYS", "7"))),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+}
+
+REST_AUTH = {
+    "USE_JWT": True,
+    "TOKEN_MODEL": None,  # Disable DRF Token model — we use JWT only
+    "JWT_AUTH_COOKIE": "cti-access-token",
+    "JWT_AUTH_REFRESH_COOKIE": "cti-refresh-token",
+    "JWT_AUTH_HTTPONLY": True,
+    "JWT_AUTH_SECURE": not DEBUG,
+    "JWT_AUTH_SAMESITE": "Lax",
 }
 
 # DRF Spectacular Settings for API Documentation
@@ -227,5 +249,8 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": "/api/",
-    "SECURITY": [{"bearerAuth": []}],
+    # Auth uses httpOnly cookies set by dj-rest-auth — no Authorization header.
+    # Swagger UI cannot inject cookies, so interactive auth testing requires
+    # logging in via /api/v1/auth/login/ first (cookies are set automatically).
+    "SECURITY": [],
 }
