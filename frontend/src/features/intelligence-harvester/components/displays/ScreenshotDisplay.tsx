@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
 
 import { FieldTable } from "./FieldTable"
-import { isBase64Image } from "./utils"
+import { formatFieldKey, isBase64Image } from "./display-utils"
 
 interface ScreenshotDisplayProps {
   result: LookupResult
@@ -124,7 +124,7 @@ export function ScreenshotDisplay({ result, isOverview = false }: ScreenshotDisp
       {regularFields.length > 0 && (
         <FieldTable
           rows={regularFields.map(([key, value]) => ({
-            label: key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+            label: formatFieldKey(key),
             value: <span className="break-all whitespace-pre-wrap">{formatValue(key, value)}</span>,
           }))}
         />

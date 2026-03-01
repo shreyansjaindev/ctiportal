@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useLocalStorage } from "@/shared/hooks";
 import { createContext, useContext } from "react";
 

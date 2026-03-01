@@ -265,6 +265,31 @@ export default function IntelligenceHarvesterPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoLoad, indicators, indicatorTypes.size])
 
+  // If the user opens an indicator that has not been auto-loaded yet, fetch its
+  // selected lookup categories on demand so the detail view fills immediately.
+  useEffect(() => {
+    if (!autoLoad || !activeIndicator || indicatorTypes.size !== indicators.length) return
+    if (autoLoadedRef.current.has(activeIndicator) || lookupMutation.isPending) return
+
+    const providersForLookup = getProvidersPayloadForTypes(enabledTypes)
+    if (Object.keys(providersForLookup).length === 0) return
+
+    autoLoadedRef.current.add(activeIndicator)
+    lookupMutation.mutate([activeIndicator], {
+      onError: () => {
+        autoLoadedRef.current.delete(activeIndicator)
+      },
+    })
+  }, [
+    activeIndicator,
+    autoLoad,
+    enabledTypes,
+    getProvidersPayloadForTypes,
+    indicatorTypes.size,
+    indicators.length,
+    lookupMutation,
+  ])
+
   // Re-run lookups for any lookup types whose provider selection changed.
   useEffect(() => {
     if (!autoLoad || indicators.length === 0 || indicatorTypes.size !== indicators.length) {
@@ -297,9 +322,9 @@ export default function IntelligenceHarvesterPage() {
   }, [autoLoad, indicators, indicatorTypes, selections, enabledTypes, getProvidersPayloadForTypes, handleResultsUpdate])
 
   return (
-    <div className="w-full h-full min-h-0 flex flex-col bg-card overflow-hidden">
+    <div className="w-full h-full min-h-0 flex flex-col overflow-hidden">
       {/* Search bar */}
-      <div className="flex-shrink-0 border-b bg-background flex items-center px-4 py-2">
+      <div className="flex-shrink-0 border-b flex items-center gap-2.5 px-4 py-3">
         <SearchIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <Input
           placeholder="Enter observables: IPs, domains, URLs, hashes, CVEs..."
@@ -314,14 +339,14 @@ export default function IntelligenceHarvesterPage() {
               }
             }
           }}
-          className="flex-1 border-none shadow-none focus-visible:ring-0 bg-transparent px-3"
+          className="min-w-0 flex-1 border-none bg-secondary px-3 shadow-none focus-visible:ring-0"
         />
 
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="sm"
-          className="mr-2 flex-shrink-0"
+          className="flex-shrink-0"
           onClick={() => exportMutation.mutate()}
           disabled={exportMutation.isPending || indicators.length === 0}
           title="Export current observables to Excel"
@@ -334,8 +359,8 @@ export default function IntelligenceHarvesterPage() {
         <Sheet open={configOpen} onOpenChange={setConfigOpen}>
           <SheetTrigger asChild>
             <Button
-              variant="default"
-              size="icon"
+              variant="secondary"
+              size="sm"
               className="flex-shrink-0"
               title="Provider auto-load setup"
             >

@@ -11,8 +11,10 @@ import { Skeleton } from "@/shared/components/ui/skeleton"
 import type { useWatchedResources } from "../../hooks"
 import { getColumns } from "../../watched-resources/columns"
 import { LIMIT_OPTIONS, watchedResourcesFilterFields } from "../../watched-resources/constants"
+import type { WatchedResourceListItem } from "../../types"
 import { watchedResourcesQueryOptions } from "../../watched-resources/query-options"
 
+const EMPTY_ITEMS: WatchedResourceListItem[] = []
 
 interface WatchedResourcesTabProps {
   watched: ReturnType<typeof useWatchedResources>
@@ -20,7 +22,7 @@ interface WatchedResourcesTabProps {
 
 export function WatchedResourcesTab({ watched }: WatchedResourcesTabProps) {
   const query = useQuery(watchedResourcesQueryOptions(watched.params))
-  const items = query.data?.items ?? []
+  const items = query.data?.items ?? EMPTY_ITEMS
   const total = query.data?.count ?? 0
   const selectedCount = watched.selectedIds.size
 
@@ -71,7 +73,7 @@ export function WatchedResourcesTab({ watched }: WatchedResourcesTabProps) {
         <DataTable
           columns={columns}
           data={items}
-          filterFields={watchedResourcesFilterFields as any}
+          filterFields={watchedResourcesFilterFields}
           isLoading={query.isFetching}
           totalCount={total}
           sorting={watched.sorting}

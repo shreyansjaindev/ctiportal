@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -7,7 +8,7 @@ import type {
   Table,
   VisibilityState,
 } from "@tanstack/react-table"
-import { createContext, useContext, useMemo } from "react"
+import { createContext, useContext } from "react"
 import type { DataTableFilterField } from "./types"
 import { ControlsProvider } from "@/shared/providers/controls"
 
@@ -46,34 +47,17 @@ export function DataTableProvider<TData, TValue>({
   DataTableBaseContextType<TData, TValue> & {
     children: React.ReactNode
   }) {
-  const value = useMemo(
-    () => ({
-      ...props,
-      columnFilters: props.columnFilters ?? [],
-      sorting: props.sorting ?? [],
-      rowSelection: props.rowSelection ?? {},
-      columnOrder: props.columnOrder ?? [],
-      columnVisibility: props.columnVisibility ?? {},
-      pagination: props.pagination ?? { pageIndex: 0, pageSize: 10 },
-      enableColumnOrdering: props.enableColumnOrdering ?? false,
-      filterFields: props.filterFields ?? [],
-    }),
-    [
-      props.columnFilters,
-      props.sorting,
-      props.rowSelection,
-      props.columnOrder,
-      props.columnVisibility,
-      props.pagination,
-      props.table,
-      props.columns,
-      props.enableColumnOrdering,
-      props.isLoading,
-      props.totalCount,
-      props.filterFields,
-      props.getFacetedUniqueValues,
-    ]
-  )
+  const value = {
+    ...props,
+    columnFilters: props.columnFilters ?? [],
+    sorting: props.sorting ?? [],
+    rowSelection: props.rowSelection ?? {},
+    columnOrder: props.columnOrder ?? [],
+    columnVisibility: props.columnVisibility ?? {},
+    pagination: props.pagination ?? { pageIndex: 0, pageSize: 10 },
+    enableColumnOrdering: props.enableColumnOrdering ?? false,
+    filterFields: props.filterFields ?? [],
+  }
 
   return (
     <DataTableContext.Provider value={value}>

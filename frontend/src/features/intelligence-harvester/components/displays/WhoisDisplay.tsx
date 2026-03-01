@@ -1,7 +1,7 @@
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
-import { formatValue } from "./utils"
+import { formatFieldKey, formatValue } from "./display-utils"
 import { FieldTable } from "./FieldTable"
 
 interface WhoisDisplayProps {
@@ -40,9 +40,9 @@ export function WhoisDisplay({ result, isOverview = false }: WhoisDisplayProps) 
   }
 
   return (
-    <FieldTable
+      <FieldTable
       rows={allFields.map(([key, value]) => ({
-        label: key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+        label: formatFieldKey(key),
         value: formatValue(value),
       }))}
     />

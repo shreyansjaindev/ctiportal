@@ -23,6 +23,29 @@ export function isLookupApplicable(type: LookupType, indicatorType: IndicatorTyp
   return APPLICABLE_INDICATORS[type]?.includes(indicatorType) ?? false
 }
 
+function normalizeIndicatorTypeForProvider(indicatorType: IndicatorType | undefined): string | null {
+  if (!indicatorType) return null
+  if (indicatorType === "md5" || indicatorType === "sha1" || indicatorType === "sha256") {
+    return "hash"
+  }
+  return indicatorType
+}
+
+export function isProviderApplicable(
+  provider: Provider | undefined,
+  indicatorType: IndicatorType | undefined
+): boolean {
+  if (!provider) return false
+  if (!provider.supported_indicators || provider.supported_indicators.length === 0) {
+    return true
+  }
+
+  const normalizedIndicatorType = normalizeIndicatorTypeForProvider(indicatorType)
+  if (!normalizedIndicatorType) return false
+
+  return provider.supported_indicators.includes(normalizedIndicatorType)
+}
+
 /**
  * Resolve provider IDs for a lookup type
  * Returns empty array if no providers selected

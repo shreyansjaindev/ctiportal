@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 
 import { Button } from "@/shared/components/ui/button"
@@ -69,35 +69,11 @@ export function WatchedResourceFormSheet({
   onSubmit,
   isSubmitting,
 }: WatchedResourceFormSheetProps) {
-  const [value, setValue] = useState("")
-  const [resourceType, setResourceType] = useState("domain")
-  const [company, setCompany] = useState("")
-  const [status, setStatus] = useState("active")
-  const [properties, setProperties] = useState<string[]>([])
-  const [excludeKeywords, setExcludeKeywords] = useState("")
-
   const companiesQuery = useQuery({
     queryKey: ["companies"],
     queryFn: () => listCompanies(),
     enabled: open,
   })
-
-  useEffect(() => {
-    if (open) {
-      setValue(initial?.value ?? "")
-      setResourceType(initial?.resource_type ?? "domain")
-      setCompany(initial?.company ?? "")
-      setStatus(initial?.status ?? "active")
-      setProperties(
-        Array.isArray(initial?.properties) ? (initial.properties as string[]) : []
-      )
-      setExcludeKeywords(
-        initial?.exclude_keywords && initial.exclude_keywords.length
-          ? JSON.stringify(initial.exclude_keywords, null, 2)
-          : ""
-      )
-    }
-  }, [open, initial])
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -106,126 +82,167 @@ export function WatchedResourceFormSheet({
           <SheetTitle>{initial ? "Edit watched resource" : "Add watched resource"}</SheetTitle>
         </SheetHeader>
 
-        <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
-          <Field>
-            <FieldLabel>Value</FieldLabel>
-            <FieldContent>
-              <Input value={value} onChange={(event) => setValue(event.target.value)} />
-            </FieldContent>
-          </Field>
-          <Field>
-            <FieldLabel>Type</FieldLabel>
-            <FieldContent>
-              <Select value={resourceType} onValueChange={setResourceType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {RESOURCE_TYPES.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FieldContent>
-          </Field>
-          <Field>
-            <FieldLabel>Company</FieldLabel>
-            <FieldContent>
-              <Select value={company} onValueChange={setCompany}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select company" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companiesQuery.data?.map((comp: { id: number; name: string }) => (
-                    <SelectItem key={comp.id} value={comp.name}>
-                      {comp.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FieldContent>
-          </Field>
-          <Field>
-            <FieldLabel>Status</FieldLabel>
-            <FieldContent>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FieldContent>
-          </Field>
-          <Field>
-            <FieldLabel>Properties</FieldLabel>
-            <FieldContent>
-              <div className="flex flex-col gap-3">
-                {PROPERTY_OPTIONS.map((option) => (
-                  <div key={option.value} className="flex items-start gap-2">
-                    <Checkbox
-                      id={option.value}
-                      checked={properties.includes(option.value)}
-                      onCheckedChange={(checked) => {
-                        setProperties(
-                          checked
-                            ? [...properties, option.value]
-                            : properties.filter((p) => p !== option.value)
-                        )
-                      }}
-                    />
-                    <div className="grid gap-0.5">
-                      <label
-                        htmlFor={option.value}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {option.label}
-                      </label>
-                      <p className="text-xs text-muted-foreground">{option.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </FieldContent>
-          </Field>
-          <Field>
-            <FieldLabel>Exclude keywords</FieldLabel>
-            <FieldContent>
-              <Textarea
-                value={excludeKeywords}
-                onChange={(event) => setExcludeKeywords(event.target.value)}
-                placeholder='JSON array or comma-separated values'
-                rows={4}
-              />
-            </FieldContent>
-          </Field>
-        </div>
-
-        <SheetFooter>
-          <Button
-            onClick={() =>
-              onSubmit({
-                value,
-                resource_type: resourceType,
-                company,
-                status,
-                properties: properties,
-                exclude_keywords: parseListInput(excludeKeywords),
-              })
-            }
-            disabled={!value || !company || isSubmitting}
-          >
-            {initial ? "Save changes" : "Create resource"}
-          </Button>
-        </SheetFooter>
+        {open ? (
+          <WatchedResourceFormContent
+            key={initial?.id ?? "new"}
+            initial={initial}
+            companies={companiesQuery.data}
+            onSubmit={onSubmit}
+            isSubmitting={isSubmitting}
+          />
+        ) : null}
       </SheetContent>
     </Sheet>
+  )
+}
+
+type WatchedResourceFormContentProps = {
+  initial?: WatchedResource | null
+  companies?: Array<{ id: number; name: string }>
+  onSubmit: (payload: WatchedResourcePayload) => void
+  isSubmitting?: boolean
+}
+
+function WatchedResourceFormContent({
+  initial,
+  companies,
+  onSubmit,
+  isSubmitting,
+}: WatchedResourceFormContentProps) {
+  const [value, setValue] = useState(initial?.value ?? "")
+  const [resourceType, setResourceType] = useState(initial?.resource_type ?? "domain")
+  const [company, setCompany] = useState(initial?.company ?? "")
+  const [status, setStatus] = useState(initial?.status ?? "active")
+  const [properties, setProperties] = useState<string[]>(
+    Array.isArray(initial?.properties) ? (initial.properties as string[]) : []
+  )
+  const [excludeKeywords, setExcludeKeywords] = useState(
+    initial?.exclude_keywords && initial.exclude_keywords.length
+      ? JSON.stringify(initial.exclude_keywords, null, 2)
+      : ""
+  )
+
+  return (
+    <>
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
+        <Field>
+          <FieldLabel>Value</FieldLabel>
+          <FieldContent>
+            <Input value={value} onChange={(event) => setValue(event.target.value)} />
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel>Type</FieldLabel>
+          <FieldContent>
+            <Select value={resourceType} onValueChange={setResourceType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                {RESOURCE_TYPES.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel>Company</FieldLabel>
+          <FieldContent>
+            <Select value={company} onValueChange={setCompany}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select company" />
+              </SelectTrigger>
+              <SelectContent>
+                {companies?.map((comp) => (
+                  <SelectItem key={comp.id} value={comp.name}>
+                    {comp.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel>Status</FieldLabel>
+          <FieldContent>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel>Properties</FieldLabel>
+          <FieldContent>
+            <div className="flex flex-col gap-3">
+              {PROPERTY_OPTIONS.map((option) => (
+                <div key={option.value} className="flex items-start gap-2">
+                  <Checkbox
+                    id={option.value}
+                    checked={properties.includes(option.value)}
+                    onCheckedChange={(checked) => {
+                      setProperties(
+                        checked
+                          ? [...properties, option.value]
+                          : properties.filter((p) => p !== option.value)
+                      )
+                    }}
+                  />
+                  <div className="grid gap-0.5">
+                    <label
+                      htmlFor={option.value}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {option.label}
+                    </label>
+                    <p className="text-xs text-muted-foreground">{option.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel>Exclude keywords</FieldLabel>
+          <FieldContent>
+            <Textarea
+              value={excludeKeywords}
+              onChange={(event) => setExcludeKeywords(event.target.value)}
+              placeholder='JSON array or comma-separated values'
+              rows={4}
+            />
+          </FieldContent>
+        </Field>
+      </div>
+
+      <SheetFooter>
+        <Button
+          onClick={() =>
+            onSubmit({
+              value,
+              resource_type: resourceType,
+              company,
+              status,
+              properties: properties,
+              exclude_keywords: parseListInput(excludeKeywords),
+            })
+          }
+          disabled={!value || !company || isSubmitting}
+        >
+          {initial ? "Save changes" : "Create resource"}
+        </Button>
+      </SheetFooter>
+    </>
   )
 }

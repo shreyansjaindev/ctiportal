@@ -1,7 +1,6 @@
 "use client"
 
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
-import { useMemo } from "react"
 
 import { Button } from "@/shared/components/ui/button"
 import { useDataTable } from "./data-table-provider"
@@ -15,19 +14,16 @@ interface DataTableToolbarProps {
 }
 
 export function DataTableToolbar({ renderActions, hasFilters = true }: DataTableToolbarProps) {
-  const { table, isLoading, columnFilters, totalCount } = useDataTable()
+  const { table, totalCount } = useDataTable()
   const { open, setOpen } = useControls()
   const filters = table.getState().columnFilters
 
-  const rows = useMemo(
-    () => ({
-      // In server-side mode, totalCount is the authoritative server total.
-      // In client-side mode, derive from the table models.
-      total: totalCount ?? table.getCoreRowModel().rows.length,
-      filtered: totalCount ?? table.getFilteredRowModel().rows.length,
-    }),
-    [isLoading, columnFilters, table, totalCount],
-  )
+  const rows = {
+    // In server-side mode, totalCount is the authoritative server total.
+    // In client-side mode, derive from the table models.
+    total: totalCount ?? table.getCoreRowModel().rows.length,
+    filtered: totalCount ?? table.getFilteredRowModel().rows.length,
+  }
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">

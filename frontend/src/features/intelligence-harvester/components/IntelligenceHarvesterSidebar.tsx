@@ -1,7 +1,7 @@
 import { Badge } from "@/shared/components/ui/badge"
 import { Button } from "@/shared/components/ui/button"
 import { Checkbox } from "@/shared/components/ui/checkbox"
-import { Trash2, Info } from "lucide-react"
+import { Trash2, Info, Loader2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { LookupResults } from "./LookupResults"
 import type { IndicatorResult, IndicatorType, LookupType, LookupResult, Provider } from "@/shared/types/intelligence-harvester"
@@ -59,6 +59,7 @@ export function IntelligenceHarvesterSidebar({
   onResultsUpdate,
 }: IntelligenceHarvesterSidebarProps) {
   const [activeIndicatorType, setActiveIndicatorType] = useState<IndicatorType | null>(null)
+  const [resultsLoading, setResultsLoading] = useState(false)
 
   // Group indicators by type
   const groupedIndicators = useMemo(() => {
@@ -148,15 +149,23 @@ export function IntelligenceHarvesterSidebar({
                         }}
                         className={cn(
                           "flex w-full items-center gap-2 px-3 py-2 text-left transition-colors",
-                          isTypeActive ? "bg-primary text-primary-foreground" : "bg-sidebar-accent/30 hover:bg-sidebar-accent/50"
+                          isTypeActive ? "bg-sidebar-accent/50 text-foreground" : "bg-sidebar-accent/30 hover:bg-sidebar-accent/50"
                         )}
                       >
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        <span className={cn(
+                          "text-xs font-medium uppercase tracking-wide",
+                          isTypeActive ? "text-foreground" : "text-muted-foreground"
+                        )}>
                           {typeInfo.label}
                         </span>
-                        <Badge variant="secondary" className="ml-auto text-xs">
-                          {typeIndicators.length}
-                        </Badge>
+                        <div className="ml-auto flex items-center gap-2">
+                          {isTypeActive && resultsLoading ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                          ) : null}
+                          <Badge variant="secondary" className="text-xs">
+                            {typeIndicators.length}
+                          </Badge>
+                        </div>
                       </button>
                       
                       {typeIndicators.map((indicator) => {
@@ -172,28 +181,32 @@ export function IntelligenceHarvesterSidebar({
                             }}
                             className={`group w-full text-left border-t px-3 py-1 text-sm transition-colors cursor-pointer
                               ${isActive
-                                ? "bg-primary text-primary-foreground"
+                                ? "bg-muted text-foreground"
                                 : "hover:bg-sidebar-accent/30"
                               }`}
                           >
-                            <div className="grid grid-cols-[16px_1fr_28px] items-center gap-2">
+                            <div className="grid grid-cols-[16px_1fr_16px_28px] items-center gap-2">
                               <div className="flex items-center justify-center">
                                 <Checkbox
                                   checked={isSelected}
                                   onCheckedChange={() => onToggleIndicator(indicator)}
                                   onClick={(e) => e.stopPropagation()}
-                                  className={isActive ? "border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" : ""}
                                 />
                               </div>
                               <span className="flex-1 truncate text-xs" title={indicator}>
                                 {indicator}
                               </span>
+                              <div className="flex items-center justify-center">
+                                {isActive && resultsLoading ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                                ) : null}
+                              </div>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 className={`h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 ${
-                                  isActive ? "text-primary-foreground hover:text-primary-foreground" : "hover:text-destructive"
+                                  isActive ? "text-foreground hover:text-foreground" : "hover:text-destructive"
                                 }`}
                                 onClick={(event) => {
                                   event.stopPropagation()
@@ -229,6 +242,7 @@ export function IntelligenceHarvesterSidebar({
           getProviderForType={getProviderForType}
           providersByType={providersByType}
           onResultsUpdate={onResultsUpdate}
+          onActiveLoadingChange={setResultsLoading}
         />
       </div>
     </div>

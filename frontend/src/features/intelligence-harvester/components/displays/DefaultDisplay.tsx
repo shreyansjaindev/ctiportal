@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
 
 import { FieldTable } from "./FieldTable"
-import { isBase64Image } from "./utils"
+import { formatFieldKey, isBase64Image } from "./display-utils"
 
 interface DefaultDisplayProps {
   result: LookupResult
@@ -61,7 +61,7 @@ function renderFields(fields: [string, unknown][]) {
       {imageFields.map(([key, value]) => (
         <div key={key} className="space-y-2">
           <div className="text-xs font-medium text-muted-foreground">
-            {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+            {formatFieldKey(key)}
           </div>
           {formatValue(key, value)}
         </div>

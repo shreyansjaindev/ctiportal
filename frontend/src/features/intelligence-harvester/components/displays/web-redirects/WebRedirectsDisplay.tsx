@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
 
 import { FieldTable } from "../FieldTable"
-import { formatValue } from "../utils"
+import { formatFieldKey, formatValue } from "../display-utils"
 import { HttpStatusBadge } from "./HttpStatusBadge"
 import { RedirectChain } from "./RedirectChain"
 
@@ -51,7 +51,7 @@ export function WebRedirectsDisplay({ result, isOverview = false }: WebRedirects
   return (
     <FieldTable
       rows={allFields.map(([key, value]) => ({
-        label: key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+        label: formatFieldKey(key),
         value: renderValue(key, value),
       }))}
     />

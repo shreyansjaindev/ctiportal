@@ -1,10 +1,13 @@
+import type { DataTableFilterField } from "@/shared/components/data-table/types"
+import type { WatchedResourceListItem } from "../types"
+
 export const LIMIT_OPTIONS = [25, 50, 100]
 
 export const WATCHED_TYPES = ["domain", "keyword"]
 
 export const WATCHED_STATUS = ["active", "inactive"]
 
-export const watchedResourcesFilterFields = [
+export const watchedResourcesFilterFields: DataTableFilterField<WatchedResourceListItem>[] = [
   {
     label: "Type",
     value: "resource_type",

@@ -58,6 +58,8 @@ export type WatchedResource = {
   status: string
 }
 
+export type WatchedResourceListItem = WatchedResource
+
 export type WatchedResourcePayload = {
   value: string
   resource_type: string

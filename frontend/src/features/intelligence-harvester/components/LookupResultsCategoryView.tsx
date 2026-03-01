@@ -7,16 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
 import { ProviderLogo } from "@/shared/components/ProviderLogo"
 import { ALL_LOOKUP_TYPES } from "@/shared/lib/lookup-config"
-import { isLookupApplicable } from "@/shared/services/lookup.service"
+import { isLookupApplicable, isProviderApplicable } from "@/shared/services/lookup.service"
 import { cn } from "@/shared/lib/utils"
 import type { IndicatorType, LookupResult, LookupType, Provider } from "@/shared/types/intelligence-harvester"
 import { DataTable } from "@/shared/components/data-table"
 import { DataTableColumnHeader } from "@/shared/components/data-table/data-table-column-header"
 import type { DataTableFilterField } from "@/shared/components/data-table/types"
 import { Input } from "@/shared/components/ui/input"
-import { LayoutGrid, Loader2, Rows3 } from "lucide-react"
+import { ArrowLeft, ArrowRight, LayoutGrid, Loader2, Rows3 } from "lucide-react"
 
 import { renderLookupDisplay } from "./LookupResultDisplay"
+import { formatFieldKey, getLookupErrorMessage } from "./displays/display-utils"
 
 type CategoryEntry = {
   indicator: string
@@ -34,6 +35,12 @@ type CategoryTableRow = Record<string, unknown> & {
   observable: string
 }
 
+type CategoryResultsTableProps = {
+  tableRows: CategoryTableRow[]
+  tableColumns: ColumnDef<CategoryTableRow>[]
+  filterFields: DataTableFilterField<CategoryTableRow>[]
+}
+
 interface LookupResultsCategoryViewProps {
   results: Array<{ indicator: string; results: LookupResult[] }>
   indicatorTypes?: Map<string, IndicatorType>
@@ -45,10 +52,6 @@ interface LookupResultsCategoryViewProps {
   isLoadingCategory?: boolean
   loadingProviderId?: string | null
   onLoadProvider?: (type: LookupType, providerId: string) => void
-}
-
-function toColumnLabel(key: string) {
-  return key.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
 function summarizeStructuredValue(value: unknown): string {
@@ -67,7 +70,7 @@ function summarizeStructuredValue(value: unknown): string {
     return Object.entries(record)
       .filter(([, candidate]) => candidate !== null && candidate !== undefined && candidate !== "")
       .slice(0, 3)
-      .map(([key, candidate]) => `${toColumnLabel(key)}: ${summarizeStructuredValue(candidate)}`)
+      .map(([key, candidate]) => `${formatFieldKey(key)}: ${summarizeStructuredValue(candidate)}`)
       .join(" | ")
   }
   return ""
@@ -108,36 +111,6 @@ function toCategoryTableCell(key: string, value: unknown): React.ReactNode {
   return String(value)
 }
 
-function getLookupErrorMessage(result: LookupResult | null | undefined): string | null {
-  const rawError = result?.error
-
-  if (typeof rawError === "string" && rawError.trim()) {
-    return rawError
-  }
-
-  if (typeof rawError === "number" || typeof rawError === "boolean") {
-    return String(rawError)
-  }
-
-  if (Array.isArray(rawError)) {
-    const joined = rawError
-      .map((item) => (typeof item === "string" ? item : JSON.stringify(item)))
-      .filter(Boolean)
-      .join(" ")
-      .trim()
-    return joined || "Lookup failed"
-  }
-
-  if (rawError && typeof rawError === "object") {
-    const details = rawError as Record<string, unknown>
-    if (typeof details.error === "string" && details.error.trim()) return details.error
-    if (typeof details.detail === "string" && details.detail.trim()) return details.detail
-    return JSON.stringify(details)
-  }
-
-  return null
-}
-
 export function LookupResultsCategoryView({
   results,
   indicatorTypes,
@@ -155,10 +128,10 @@ export function LookupResultsCategoryView({
     const stored = window.localStorage.getItem("ih.categoryLayout")
     return stored === "table" ? "table" : "grid"
   })
-  const [categoryProviderId, setCategoryProviderId] = useState<string | null>(null)
-  const [providerTouched, setProviderTouched] = useState(false)
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [selectedCategoryProviderIds, setSelectedCategoryProviderIds] = useState<
+    Partial<Record<LookupType, string>>
+  >({})
+  const [expandedEntryKey, setExpandedEntryKey] = useState<string | null>(null)
 
   const categoryEntries = useMemo(() => {
     const grouped = new Map<LookupType, CategoryEntry[]>()
@@ -188,7 +161,9 @@ export function LookupResultsCategoryView({
 
   const categoryProviders = useMemo(() => {
     if (!resolvedCategory) return [] as CategoryProvider[]
-    const providerMetadata = providersByType?.[resolvedCategory] ?? []
+    const providerMetadata = (providersByType?.[resolvedCategory] ?? []).filter((provider) =>
+      isProviderApplicable(provider, activeIndicatorTypeFilter ?? undefined)
+    )
     const selectedProviderIds = new Set(getProviderForType?.(resolvedCategory) ?? [])
     const resultProviderIds = new Set(
       (categoryEntries.get(resolvedCategory) ?? [])
@@ -206,43 +181,44 @@ export function LookupResultsCategoryView({
       name: providerMetadata.find((provider) => provider.id === providerId)?.name ?? providerId,
       isSelected: selectedProviderIds.has(providerId),
     }))
-  }, [categoryEntries, getProviderForType, providersByType, resolvedCategory])
+  }, [activeIndicatorTypeFilter, categoryEntries, getProviderForType, providersByType, resolvedCategory])
 
   useEffect(() => {
     if (typeof window === "undefined") return
     window.localStorage.setItem("ih.categoryLayout", categoryLayout)
   }, [categoryLayout])
 
-  useEffect(() => {
-    setSorting([])
-    setColumnFilters([])
-  }, [resolvedCategory, categoryProviderId])
+  const activeCategoryProviderId = useMemo(() => {
+    const selectedCategoryProviderId = resolvedCategory
+      ? selectedCategoryProviderIds[resolvedCategory] ?? null
+      : null
 
-  useEffect(() => {
-    setProviderTouched(false)
-  }, [resolvedCategory])
-
-  const activeCategoryEntries = useMemo(() => {
-    if (!resolvedCategory) return []
-    const entries = categoryEntries.get(resolvedCategory) ?? []
-    if (!categoryProviderId) return []
-    return entries.filter(({ result }) => result._provider === categoryProviderId)
-  }, [categoryEntries, categoryProviderId, resolvedCategory])
-
-  useEffect(() => {
-    if (categoryProviderId && categoryProviders.some((provider) => provider.id === categoryProviderId)) {
-      const hasVisibleResults = activeCategoryEntries.some((entry) => entry.result._provider === categoryProviderId)
-      if (hasVisibleResults || providerTouched) return
+    if (
+      selectedCategoryProviderId &&
+      categoryProviders.some((provider) => provider.id === selectedCategoryProviderId)
+    ) {
+      return selectedCategoryProviderId
     }
 
     const providerWithResults = categoryProviders.find((provider) =>
-      (categoryEntries.get(resolvedCategory ?? "" as LookupType) ?? []).some(
+      (categoryEntries.get(resolvedCategory ?? ("" as LookupType)) ?? []).some(
         (entry) => entry.result._provider === provider.id
       )
     )
 
-    setCategoryProviderId(providerWithResults?.id ?? null)
-  }, [categoryEntries, resolvedCategory, activeCategoryEntries, categoryProviderId, categoryProviders, providerTouched])
+    return providerWithResults?.id ?? null
+  }, [categoryEntries, categoryProviders, resolvedCategory, selectedCategoryProviderIds])
+
+  useEffect(() => {
+    setExpandedEntryKey(null)
+  }, [activeCategoryProviderId, categoryLayout, resolvedCategory])
+
+  const activeCategoryEntries = useMemo(() => {
+    if (!resolvedCategory) return []
+    const entries = categoryEntries.get(resolvedCategory) ?? []
+    if (!activeCategoryProviderId) return []
+    return entries.filter(({ result }) => result._provider === activeCategoryProviderId)
+  }, [activeCategoryProviderId, categoryEntries, resolvedCategory])
 
   const categoryTableColumns = useMemo(() => {
     const keys: string[] = []
@@ -254,7 +230,7 @@ export function LookupResultsCategoryView({
         if (!keys.includes(key)) keys.push(key)
       })
 
-      if (getLookupErrorMessage(result) && !keys.includes("error")) {
+      if (getLookupErrorMessage(result.error) && !keys.includes("error")) {
         keys.push("error")
       }
     })
@@ -263,7 +239,7 @@ export function LookupResultsCategoryView({
 
   const tableRows = useMemo<CategoryTableRow[]>(() => {
     return activeCategoryEntries.map(({ indicator, result }) => {
-      const errorMessage = getLookupErrorMessage(result)
+      const errorMessage = getLookupErrorMessage(result.error)
       return {
         observable: indicator,
         ...(result.essential ?? {}),
@@ -286,7 +262,7 @@ export function LookupResultsCategoryView({
 
     const dynamicColumns = categoryTableColumns.map<ColumnDef<CategoryTableRow>>((columnKey) => ({
       accessorKey: columnKey,
-      header: ({ column }) => <DataTableColumnHeader column={column} title={toColumnLabel(columnKey)} className="whitespace-nowrap" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={formatFieldKey(columnKey)} className="whitespace-nowrap" />,
       cell: ({ row }) => toCategoryTableCell(columnKey, row.original[columnKey]),
     }))
 
@@ -333,7 +309,7 @@ export function LookupResultsCategoryView({
       if (uniqueValues.length === 0 || uniqueValues.length > 15) return
 
       fields.push({
-        label: toColumnLabel(key),
+        label: formatFieldKey(key),
         value: key as keyof CategoryTableRow,
         type: "checkbox",
         options: uniqueValues.map((value) => ({ label: value, value })),
@@ -342,11 +318,6 @@ export function LookupResultsCategoryView({
 
     return fields
   }, [categoryTableColumns, tableRows])
-
-  const observableFilterValue = useMemo(() => {
-    const filter = columnFilters.find((item) => item.id === "observable")
-    return typeof filter?.value === "string" ? filter.value : ""
-  }, [columnFilters])
 
   return (
     <div className="space-y-4">
@@ -364,7 +335,7 @@ export function LookupResultsCategoryView({
               <TabsList variant="line" className="h-auto max-w-full justify-start flex-wrap rounded-none px-0">
                 {availableCategoryTypes.map((type) => (
                   <TabsTrigger key={type} value={type} className="flex-none px-3 text-xs data-[state=active]:shadow-none">
-                    {type.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())}
+                    {formatFieldKey(type)}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -377,11 +348,15 @@ export function LookupResultsCategoryView({
 
           {resolvedCategory && categoryProviders.length > 0 ? (
             <Tabs
-              value={categoryProviderId ?? "__none__"}
+              value={activeCategoryProviderId ?? "__none__"}
               onValueChange={(value) => {
                 if (value === "__none__") return
-                setProviderTouched(true)
-                setCategoryProviderId(value)
+                if (resolvedCategory) {
+                  setSelectedCategoryProviderIds((prev) => ({
+                    ...prev,
+                    [resolvedCategory]: value,
+                  }))
+                }
                 if (resolvedCategory && onLoadProvider) {
                   onLoadProvider(resolvedCategory, value)
                 }
@@ -402,8 +377,6 @@ export function LookupResultsCategoryView({
                     <span>{provider.name}</span>
                     {loadingProviderId === provider.id ? (
                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                    ) : provider.isSelected ? (
-                      <span className="text-[10px] text-muted-foreground">Auto</span>
                     ) : null}
                   </TabsTrigger>
                 ))}
@@ -417,9 +390,6 @@ export function LookupResultsCategoryView({
         </div>
 
         <div className="flex items-center gap-2">
-          {isLoadingCategory ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : null}
           <Button type="button" variant={categoryLayout === "grid" ? "secondary" : "ghost"} size="sm" className="gap-2" onClick={() => setCategoryLayout("grid")}>
             <LayoutGrid className="h-4 w-4" />
             Grid
@@ -448,27 +418,85 @@ export function LookupResultsCategoryView({
           <CardContent className="px-4 py-6 text-sm text-muted-foreground">
             {isLoadingCategory
               ? "Fetching results..."
-              : categoryProviderId
+              : activeCategoryProviderId
                 ? "No results loaded for this provider yet. Select a provider tab to fetch data."
                 : "Select a provider tab to fetch data."}
           </CardContent>
         </Card>
       ) : categoryLayout === "grid" ? (
-        <div className={cn("grid items-start gap-3", resolvedCategory === "screenshot" ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 lg:grid-cols-2")}>
-          {activeCategoryEntries.map(({ indicator, result }, index) => {
+        (() => {
+          const expandedEntry = expandedEntryKey
+            ? activeCategoryEntries.find(({ indicator, result }, index) =>
+                `${resolvedCategory}-${indicator}-${result._provider ?? index}` === expandedEntryKey
+              )
+            : null
+
+          if (expandedEntry) {
+            const expandedProviderName = (providersByType?.[resolvedCategory ?? ""] ?? []).find(
+              (provider) => provider.id === expandedEntry.result._provider
+            )?.name ?? expandedEntry.result._provider ?? "Provider"
+
+            return (
+              <Card className="gap-0 py-4 shadow-none">
+                <CardHeader className="px-4 pb-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <CardTitle className="truncate text-sm" title={expandedEntry.indicator}>
+                        {expandedEntry.indicator}
+                      </CardTitle>
+                      <CardDescription className="pt-1">{expandedProviderName}</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {expandedEntry.result.error ? <Badge variant="destructive" className="shrink-0">Error</Badge> : null}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto px-0 py-0"
+                        onClick={() => setExpandedEntryKey(null)}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pt-0">
+                  {renderLookupDisplay(resolvedCategory ?? "unknown", expandedEntry.result, false)}
+                </CardContent>
+              </Card>
+            )
+          }
+
+          return (
+            <div className={cn("grid items-start gap-3", resolvedCategory === "screenshot" ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 lg:grid-cols-2")}>
+              {activeCategoryEntries.map(({ indicator, result }, index) => {
             const providerName = (providersByType?.[resolvedCategory ?? ""] ?? []).find(
               (provider) => provider.id === result._provider
             )?.name ?? result._provider ?? "Provider"
+            const entryKey = `${resolvedCategory}-${indicator}-${result._provider ?? index}`
 
             return (
-              <Card key={`${resolvedCategory}-${indicator}-${result._provider ?? index}`} className="gap-0 py-4 shadow-none">
+              <Card key={entryKey} className="gap-0 py-4 shadow-none">
                 <CardHeader className="px-4 pb-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <CardTitle className="truncate text-sm" title={indicator}>{indicator}</CardTitle>
                       <CardDescription className="pt-1">{providerName}</CardDescription>
                     </div>
-                    {result.error ? <Badge variant="destructive" className="shrink-0">Error</Badge> : null}
+                    <div className="flex items-center gap-3">
+                      {result.error ? <Badge variant="destructive" className="shrink-0">Error</Badge> : null}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto px-0 py-0"
+                        onClick={() => setExpandedEntryKey(entryKey)}
+                      >
+                        View more
+                        <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="px-4 pt-0">
@@ -476,34 +504,59 @@ export function LookupResultsCategoryView({
                 </CardContent>
               </Card>
             )
-          })}
-        </div>
+              })}
+            </div>
+          )
+        })()
       ) : (
-        <DataTable
-          columns={tableColumns}
-          data={tableRows}
-          sorting={sorting}
-          onSortingChange={setSorting}
-          columnFilters={columnFilters}
-          onColumnFiltersChange={setColumnFilters}
-          searchControl={(
-            <Input
-              placeholder="Search observable..."
-              value={observableFilterValue}
-              onChange={(event) => {
-                const value = event.target.value
-                setColumnFilters((prev) => {
-                  const rest = prev.filter((item) => item.id !== "observable")
-                  return value ? [...rest, { id: "observable", value }] : rest
-                })
-              }}
-            />
-          )}
+        <CategoryResultsTable
+          key={`${resolvedCategory}-${activeCategoryProviderId ?? "none"}`}
+          tableRows={tableRows}
+          tableColumns={tableColumns}
           filterFields={filterFields}
-          pageSizeOptions={[10, 20, 50]}
-          tableClassName="w-max min-w-full"
         />
       )}
     </div>
+  )
+}
+
+function CategoryResultsTable({
+  tableRows,
+  tableColumns,
+  filterFields,
+}: CategoryResultsTableProps) {
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+
+  const observableFilterValue = useMemo(() => {
+    const filter = columnFilters.find((item) => item.id === "observable")
+    return typeof filter?.value === "string" ? filter.value : ""
+  }, [columnFilters])
+
+  return (
+    <DataTable
+      columns={tableColumns}
+      data={tableRows}
+      sorting={sorting}
+      onSortingChange={setSorting}
+      columnFilters={columnFilters}
+      onColumnFiltersChange={setColumnFilters}
+      searchControl={(
+        <Input
+          placeholder="Search observable..."
+          value={observableFilterValue}
+          onChange={(event) => {
+            const value = event.target.value
+            setColumnFilters((prev) => {
+              const rest = prev.filter((item) => item.id !== "observable")
+              return value ? [...rest, { id: "observable", value }] : rest
+            })
+          }}
+        />
+      )}
+      filterFields={filterFields}
+      pageSizeOptions={[10, 20, 50]}
+      tableClassName="w-max min-w-full"
+    />
   )
 }

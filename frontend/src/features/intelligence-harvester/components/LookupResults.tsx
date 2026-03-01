@@ -22,6 +22,7 @@ interface LookupResultsProps {
   getProviderForType?: (type: LookupType) => string[]
   providersByType?: Record<string, Provider[]>
   onResultsUpdate?: (indicator: string, newResults: LookupResult[]) => void
+  onActiveLoadingChange?: (loading: boolean) => void
 }
 
 function mergeBulkLookupResponse(
@@ -40,6 +41,7 @@ export function LookupResults({
   activeIndicatorTypeFilter = null,
   isLoading = false, className,
   getProviderForType, providersByType, onResultsUpdate,
+  onActiveLoadingChange,
 }: LookupResultsProps) {
   const [activeCategory, setActiveCategory] = useState<LookupType | null>(null)
   const [loadingTypes, setLoadingTypes] = useState<Set<LookupType>>(new Set())
@@ -77,6 +79,14 @@ export function LookupResults({
     return ALL_LOOKUP_TYPES.filter((type) => isLookupApplicable(type, activeIndicatorTypeFilter))
   }, [activeIndicatorTypeFilter])
 
+  const isActiveResultsLoading = useMemo(() => {
+    if (activeIndicatorTypeFilter) {
+      return activeCategory ? loadingTypes.has(activeCategory) : false
+    }
+    if (!activeIndicator) return false
+    return isLoading || loadingTypes.size > 0
+  }, [activeCategory, activeIndicator, activeIndicatorTypeFilter, isLoading, loadingTypes])
+
   useEffect(() => {
     if (!activeIndicatorTypeFilter) {
       setActiveCategory(null)
@@ -88,6 +98,10 @@ export function LookupResults({
   useEffect(() => {
     setDetailType(null)
   }, [activeIndicator])
+
+  useEffect(() => {
+    onActiveLoadingChange?.(isActiveResultsLoading)
+  }, [isActiveResultsLoading, onActiveLoadingChange])
 
   useEffect(() => {
     if (
@@ -105,12 +119,32 @@ export function LookupResults({
     const providerLookup = getProviderForType
     const providerMap = providersByType
     const resultUpdater = onResultsUpdate
+    const clearCategoryLoadingState = () => {
+      setLoadingTypes((prev) => {
+        if (!prev.has(lookupType)) return prev
+        const next = new Set(prev)
+        next.delete(lookupType)
+        return next
+      })
+      setLoadingTargets((prev) => {
+        if (!prev.has(lookupType)) return prev
+        const next = new Map(prev)
+        next.delete(lookupType)
+        return next
+      })
+    }
     const selectedProviders = providerLookup(lookupType)
-    if (selectedProviders.length === 0) return
+    if (selectedProviders.length === 0) {
+      clearCategoryLoadingState()
+      return
+    }
 
     const availableProviderIds = new Set((providerMap[lookupType] ?? []).map((provider) => provider.id))
     const resolvedProviders = selectedProviders.filter((providerId) => availableProviderIds.has(providerId))
-    if (resolvedProviders.length === 0) return
+    if (resolvedProviders.length === 0) {
+      clearCategoryLoadingState()
+      return
+    }
 
     const indicatorResultsMap = new Map(results.map((item) => [item.indicator, item.results]))
     const indicatorsToLoad = indicators.filter((indicator) => {
@@ -132,7 +166,10 @@ export function LookupResults({
       return true
     })
 
-    if (indicatorsToLoad.length === 0) return
+    if (indicatorsToLoad.length === 0) {
+      clearCategoryLoadingState()
+      return
+    }
 
     setLoadingTypes((prev) => new Set(prev).add(lookupType))
     setLoadingTargets((prev) => {
@@ -167,16 +204,7 @@ export function LookupResults({
         }
       } finally {
         if (!cancelled) {
-          setLoadingTypes((prev) => {
-            const next = new Set(prev)
-            next.delete(lookupType)
-            return next
-          })
-          setLoadingTargets((prev) => {
-            const next = new Map(prev)
-            next.delete(lookupType)
-            return next
-          })
+          clearCategoryLoadingState()
         }
       }
     }
@@ -342,6 +370,7 @@ export function LookupResults({
           ) : detailType ? (
             <LookupTypeCard
               type={detailType}
+              indicatorType={activeIndicatorType}
               typeResults={resultsByType[detailType] ?? []}
               isLoading={loadingTypes.has(detailType)}
               loadingTarget={loadingTargets.get(detailType) ?? null}
@@ -354,7 +383,6 @@ export function LookupResults({
               onExpand={() => setDetailType(detailType)}
               expanded
               onCollapse={() => setDetailType(null)}
-              showLoadAll={false}
             />
           ) : isLoading && lookupTypes.length === 0 ? (
             <div className="flex h-full items-center justify-center">
@@ -366,9 +394,10 @@ export function LookupResults({
                 <LookupTypeCard
                   key={type}
                   type={type}
+                  indicatorType={activeIndicatorType}
                   typeResults={resultsByType[type] ?? []}
-                  isLoading={loadingTypes.has(type)}
-                  loadingTarget={loadingTargets.get(type) ?? null}
+                  isLoading={loadingTypes.has(type) || (isLoading && (getProviderForType?.(type)?.length ?? 0) > 0)}
+                  loadingTarget={loadingTargets.get(type) ?? (isLoading ? "__selected__" : null)}
                   isFetched={fetchedKeys.has(`${type}:`) || (resultsByType[type]?.length ?? 0) > 0}
                   error={typeErrors.get(type)}
                   providersByType={providersByType ?? {}}

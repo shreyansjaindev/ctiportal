@@ -11,10 +11,12 @@ import { Skeleton } from "@/shared/components/ui/skeleton"
 import { BulkActionsBar } from "../BulkActionsBar"
 import { LOOKALIKE_STATUS_OPTIONS } from "../../constants"
 import type { useLookalikeDomains } from "../../hooks"
+import type { LookalikeDomain } from "../../types"
 import { getColumns } from "../../lookalikes/columns"
 import { LIMIT_OPTIONS, lookalikesFilterFields } from "../../lookalikes/constants"
 import { lookalikesQueryOptions } from "../../lookalikes/query-options"
 
+const EMPTY_ITEMS: LookalikeDomain[] = []
 
 interface LookalikesTabProps {
   lookalikes: ReturnType<typeof useLookalikeDomains>
@@ -23,7 +25,7 @@ interface LookalikesTabProps {
 
 export function LookalikesTab({ lookalikes, onOpenImport }: LookalikesTabProps) {
   const query = useQuery(lookalikesQueryOptions(lookalikes.params))
-  const items = query.data?.items ?? []
+  const items = query.data?.items ?? EMPTY_ITEMS
   const total = query.data?.count ?? 0
   const selectedCount = lookalikes.selectedIds.size
 
