@@ -17,6 +17,10 @@ def _split_csv_env(name, default=""):
     return [v.strip() for v in os.getenv(name, default).split(",") if v.strip()]
 
 
+def _env_bool(name, default=False):
+    return os.getenv(name, str(default)).lower() in ("true", "1", "yes")
+
+
 ALLOWED_HOSTS = _split_csv_env("ALLOWED_HOSTS")
 render_external_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
 if render_external_hostname and render_external_hostname not in ALLOWED_HOSTS:
@@ -173,6 +177,12 @@ CORS_ALLOWED_ORIGINS = _split_csv_env("CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = _split_csv_env("CSRF_TRUSTED_ORIGINS")
 
+AUTH_COOKIE_SECURE = _env_bool("AUTH_COOKIE_SECURE", not DEBUG)
+AUTH_COOKIE_SAMESITE = os.getenv(
+    "AUTH_COOKIE_SAMESITE",
+    "None" if AUTH_COOKIE_SECURE else "Lax",
+)
+
 # Security Settings
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -187,6 +197,11 @@ if not DEBUG:
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+SESSION_COOKIE_SECURE = AUTH_COOKIE_SECURE
+SESSION_COOKIE_SAMESITE = AUTH_COOKIE_SAMESITE
+CSRF_COOKIE_SECURE = AUTH_COOKIE_SECURE
+CSRF_COOKIE_SAMESITE = AUTH_COOKIE_SAMESITE
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -237,8 +252,8 @@ REST_AUTH = {
     "JWT_AUTH_COOKIE": "cti-access-token",
     "JWT_AUTH_REFRESH_COOKIE": "cti-refresh-token",
     "JWT_AUTH_HTTPONLY": True,
-    "JWT_AUTH_SECURE": True,
-    "JWT_AUTH_SAMESITE": "None",
+    "JWT_AUTH_SECURE": AUTH_COOKIE_SECURE,
+    "JWT_AUTH_SAMESITE": AUTH_COOKIE_SAMESITE,
 }
 
 # DRF Spectacular Settings for API Documentation

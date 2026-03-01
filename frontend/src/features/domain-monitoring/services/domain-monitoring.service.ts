@@ -43,19 +43,13 @@ function buildQuery(params?: QueryParams): string {
 // COMPANY OPERATIONS
 // ============================================================================
 
-export async function listCompanies(token: string): Promise<Company[]> {
-  const response = await apiGet<PaginatedResponse<Company>>(
-    `${BASE_PATH}/companies/?limit=1000`,
-    token
-  )
+export async function listCompanies(): Promise<Company[]> {
+  const response = await apiGet<PaginatedResponse<Company>>(`${BASE_PATH}/companies/?limit=1000`)
   return response.items
 }
 
-export async function listWatchedResourcesSimple(token: string): Promise<WatchedResource[]> {
-  const response = await apiGet<PaginatedResponse<WatchedResource>>(
-    `${BASE_PATH}/watched-resources/?limit=1000`,
-    token
-  )
+export async function listWatchedResourcesSimple(): Promise<WatchedResource[]> {
+  const response = await apiGet<PaginatedResponse<WatchedResource>>(`${BASE_PATH}/watched-resources/?limit=1000`)
   return response.items
 }
 
@@ -65,104 +59,56 @@ export async function listWatchedResourcesSimple(token: string): Promise<Watched
 
 // Watched Resources
 export async function listWatchedResources(
-  params: QueryParams | undefined,
-  token: string
+  params: QueryParams | undefined
 ): Promise<PaginatedResponse<WatchedResource>> {
-  return apiGet<PaginatedResponse<WatchedResource>>(
-    `${BASE_PATH}/watched-resources/${buildQuery(params)}`,
-    token
-  )
+  return apiGet<PaginatedResponse<WatchedResource>>(`${BASE_PATH}/watched-resources/${buildQuery(params)}`)
 }
 
-export async function getWatchedResource(
-  id: number,
-  token: string
-): Promise<WatchedResource> {
-  return apiGet<WatchedResource>(`${BASE_PATH}/watched-resources/${id}/`, token)
+export async function getWatchedResource(id: number): Promise<WatchedResource> {
+  return apiGet<WatchedResource>(`${BASE_PATH}/watched-resources/${id}/`)
 }
 
-export async function createWatchedResource(
-  payload: WatchedResourcePayload,
-  token: string
-): Promise<WatchedResource> {
-  return apiPost<WatchedResource>(
-    `${BASE_PATH}/watched-resources/`,
-    JSON.stringify(payload),
-    token
-  )
+export async function createWatchedResource(payload: WatchedResourcePayload): Promise<WatchedResource> {
+  return apiPost<WatchedResource>(`${BASE_PATH}/watched-resources/`, JSON.stringify(payload))
 }
 
 export async function updateWatchedResource(
   id: number,
-  payload: Partial<WatchedResourcePayload>,
-  token: string
+  payload: Partial<WatchedResourcePayload>
 ): Promise<WatchedResource> {
-  return apiPatch<WatchedResource>(
-    `${BASE_PATH}/watched-resources/${id}/`,
-    JSON.stringify(payload),
-    token
-  )
+  return apiPatch<WatchedResource>(`${BASE_PATH}/watched-resources/${id}/`, JSON.stringify(payload))
 }
 
-export async function deleteWatchedResource(
-  id: number,
-  token: string
-): Promise<null> {
-  return apiDelete<null>(`${BASE_PATH}/watched-resources/${id}/`, token)
+export async function deleteWatchedResource(id: number): Promise<null> {
+  return apiDelete<null>(`${BASE_PATH}/watched-resources/${id}/`)
 }
 
 // Lookalike Domains
 export async function listLookalikeDomains(
-  params: QueryParams | undefined,
-  token: string
+  params: QueryParams | undefined
 ): Promise<PaginatedResponse<LookalikeDomain>> {
-  return apiGet<PaginatedResponse<LookalikeDomain>>(
-    `${BASE_PATH}/lookalike-domains/${buildQuery(params)}`,
-    token
-  )
+  return apiGet<PaginatedResponse<LookalikeDomain>>(`${BASE_PATH}/lookalike-domains/${buildQuery(params)}`)
 }
 
-export async function getLookalikeDomain(
-  id: number,
-  token: string
-): Promise<LookalikeDomain> {
-  return apiGet<LookalikeDomain>(`${BASE_PATH}/lookalike-domains/${id}/`, token)
+export async function getLookalikeDomain(id: number): Promise<LookalikeDomain> {
+  return apiGet<LookalikeDomain>(`${BASE_PATH}/lookalike-domains/${id}/`)
 }
 
-export async function createLookalikeDomain(
-  payload: LookalikeDomainPayload,
-  token: string
-): Promise<LookalikeDomain> {
-  return apiPost<LookalikeDomain>(
-    `${BASE_PATH}/lookalike-domains/`,
-    JSON.stringify(payload),
-    token
-  )
+export async function createLookalikeDomain(payload: LookalikeDomainPayload): Promise<LookalikeDomain> {
+  return apiPost<LookalikeDomain>(`${BASE_PATH}/lookalike-domains/`, JSON.stringify(payload))
 }
 
-export async function bulkCreateLookalikeDomains(
-  payload: LookalikeDomainPayload[],
-  token: string
-): Promise<BulkCreateResult> {
-  return apiPost<BulkCreateResult>(
-    `${BASE_PATH}/lookalike-domains/`,
-    JSON.stringify(payload),
-    token
-  )
+export async function bulkCreateLookalikeDomains(payload: LookalikeDomainPayload[]): Promise<BulkCreateResult> {
+  return apiPost<BulkCreateResult>(`${BASE_PATH}/lookalike-domains/`, JSON.stringify(payload))
 }
 
-export async function importLookalikeDomainsCSV(
-  file: File,
-  token: string
-): Promise<BulkCreateResult> {
+export async function importLookalikeDomainsCSV(file: File): Promise<BulkCreateResult> {
   const formData = new FormData()
   formData.append('file', file)
   
   const response = await fetch(`${API_BASE}${BASE_PATH}/lookalike-domains/import-csv/`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
+    credentials: 'include',
     body: formData,
   })
   
@@ -176,106 +122,54 @@ export async function importLookalikeDomainsCSV(
 
 export async function updateLookalikeDomain(
   id: number,
-  payload: Partial<LookalikeDomainPayload>,
-  token: string
+  payload: Partial<LookalikeDomainPayload>
 ): Promise<LookalikeDomain> {
-  return apiPatch<LookalikeDomain>(
-    `${BASE_PATH}/lookalike-domains/${id}/`,
-    JSON.stringify(payload),
-    token
-  )
+  return apiPatch<LookalikeDomain>(`${BASE_PATH}/lookalike-domains/${id}/`, JSON.stringify(payload))
 }
 
-export async function deleteLookalikeDomain(
-  id: number,
-  token: string
-): Promise<null> {
-  return apiDelete<null>(`${BASE_PATH}/lookalike-domains/${id}/`, token)
+export async function deleteLookalikeDomain(id: number): Promise<null> {
+  return apiDelete<null>(`${BASE_PATH}/lookalike-domains/${id}/`)
 }
 
-export async function bulkDeleteLookalikeDomains(
-  ids: number[],
-  token: string
-): Promise<BulkDeleteResult> {
-  return apiPost<BulkDeleteResult>(
-    `${BASE_PATH}/lookalike-domains/bulk-delete/`,
-    JSON.stringify({ ids }),
-    token
-  )
+export async function bulkDeleteLookalikeDomains(ids: number[]): Promise<BulkDeleteResult> {
+  return apiPost<BulkDeleteResult>(`${BASE_PATH}/lookalike-domains/bulk-delete/`, JSON.stringify({ ids }))
 }
 
 export async function bulkUpdateLookalikeDomains(
   ids: number[],
-  status: string,
-  token: string
+  status: string
 ): Promise<BulkUpdateResult> {
-  return apiPatch<BulkUpdateResult>(
-    `${BASE_PATH}/lookalike-domains/bulk-patch/`,
-    JSON.stringify({ ids, status }),
-    token
-  )
+  return apiPatch<BulkUpdateResult>(`${BASE_PATH}/lookalike-domains/bulk-patch/`, JSON.stringify({ ids, status }))
 }
 
 // Newly Registered Domains (read-only)
 export async function listNewlyRegisteredDomains(
-  params: QueryParams | undefined,
-  token: string
+  params: QueryParams | undefined
 ): Promise<PaginatedResponse<NewlyRegisteredDomain>> {
-  return apiGet<PaginatedResponse<NewlyRegisteredDomain>>(
-    `${BASE_PATH}/newly-registered-domains/${buildQuery(params)}`,
-    token
-  )
+  return apiGet<PaginatedResponse<NewlyRegisteredDomain>>(`${BASE_PATH}/newly-registered-domains/${buildQuery(params)}`)
 }
 
-export async function getNewlyRegisteredDomain(
-  id: number,
-  token: string
-): Promise<NewlyRegisteredDomain> {
-  return apiGet<NewlyRegisteredDomain>(
-    `${BASE_PATH}/newly-registered-domains/${id}/`,
-    token
-  )
+export async function getNewlyRegisteredDomain(id: number): Promise<NewlyRegisteredDomain> {
+  return apiGet<NewlyRegisteredDomain>(`${BASE_PATH}/newly-registered-domains/${id}/`)
 }
 
 // External integrations
-export async function addDomainsToTrellix(
-  domains: string[],
-  token: string
-): Promise<IntegrationQueueResult> {
-  return apiPost<IntegrationQueueResult>(
-    `${BASE_PATH}/integrations/trellix-etp/add-domains/`,
-    JSON.stringify({ domains }),
-    token
-  )
+export async function addDomainsToTrellix(domains: string[]): Promise<IntegrationQueueResult> {
+  return apiPost<IntegrationQueueResult>(`${BASE_PATH}/integrations/trellix-etp/add-domains/`, JSON.stringify({ domains }))
 }
 
-export async function addDomainsToProofpoint(
-  domains: string[],
-  token: string
-): Promise<IntegrationResult> {
-  return apiPost<IntegrationResult>(
-    `${BASE_PATH}/integrations/proofpoint/add-domains/`,
-    JSON.stringify({ domains }),
-    token
-  )
+export async function addDomainsToProofpoint(domains: string[]): Promise<IntegrationResult> {
+  return apiPost<IntegrationResult>(`${BASE_PATH}/integrations/proofpoint/add-domains/`, JSON.stringify({ domains }))
 }
 
 export async function listMonitoredDomains(
-  params: QueryParams | undefined,
-  token: string
+  params: QueryParams | undefined
 ): Promise<PaginatedResponse<MonitoredDomain>> {
-  return apiGet<PaginatedResponse<MonitoredDomain>>(
-    `${BASE_PATH}/monitored-domains/${buildQuery(params)}`,
-    token
-  )
+  return apiGet<PaginatedResponse<MonitoredDomain>>(`${BASE_PATH}/monitored-domains/${buildQuery(params)}`)
 }
 
 export async function listMonitoredDomainAlerts(
-  params: QueryParams | undefined,
-  token: string
+  params: QueryParams | undefined
 ): Promise<PaginatedResponse<MonitoredDomainAlert>> {
-  return apiGet<PaginatedResponse<MonitoredDomainAlert>>(
-    `${BASE_PATH}/monitored-domain-alerts/${buildQuery(params)}`,
-    token
-  )
+  return apiGet<PaginatedResponse<MonitoredDomainAlert>>(`${BASE_PATH}/monitored-domain-alerts/${buildQuery(params)}`)
 }

@@ -7,7 +7,6 @@ import { Button } from "@/shared/components/ui/button"
 import { DataTable } from "@/shared/components/data-table"
 import { Input } from "@/shared/components/ui/input"
 import { Skeleton } from "@/shared/components/ui/skeleton"
-import { useAuth } from "@/shared/lib/auth"
 
 import type { useWatchedResources } from "../../hooks"
 import { getColumns } from "../../watched-resources/columns"
@@ -20,8 +19,7 @@ interface WatchedResourcesTabProps {
 }
 
 export function WatchedResourcesTab({ watched }: WatchedResourcesTabProps) {
-  const { token } = useAuth()
-  const query = useQuery(watchedResourcesQueryOptions(watched.params, token!))
+  const query = useQuery(watchedResourcesQueryOptions(watched.params))
   const items = query.data?.items ?? []
   const total = query.data?.count ?? 0
   const selectedCount = watched.selectedIds.size

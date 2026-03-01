@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/shared/components/ui/card"
 import { apiGet } from "@/shared/lib/api"
-import { useAuth } from "@/shared/lib/auth"
 
 type AppItem = {
   name: string
@@ -25,10 +24,9 @@ type PaginatedResponse<T> = {
 }
 
 export default function HomePage() {
-  const { token } = useAuth()
   const appsQuery = useQuery({
     queryKey: ["apps"],
-    queryFn: () => apiGet<PaginatedResponse<AppItem>>("/applications/", token),
+    queryFn: () => apiGet<PaginatedResponse<AppItem>>("/applications/"),
   })
   const appsData = appsQuery.data?.items ?? []
 

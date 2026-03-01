@@ -4,7 +4,6 @@ import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import { DataTable } from "@/shared/components/data-table"
 import { Input } from "@/shared/components/ui/input"
 import { Skeleton } from "@/shared/components/ui/skeleton"
-import { useAuth } from "@/shared/lib/auth"
 
 import type { useMonitoredDomains } from "../../hooks"
 import { columns } from "../../monitored-domains/columns"
@@ -16,8 +15,7 @@ interface MonitoredDomainsTabProps {
 }
 
 export function MonitoredDomainsTab({ monitoredDomains }: MonitoredDomainsTabProps) {
-  const { token } = useAuth()
-  const query = useQuery(monitoredDomainsQueryOptions(monitoredDomains.params, token!))
+  const query = useQuery(monitoredDomainsQueryOptions(monitoredDomains.params))
   const items = query.data?.items ?? []
   const total = query.data?.count ?? 0
 

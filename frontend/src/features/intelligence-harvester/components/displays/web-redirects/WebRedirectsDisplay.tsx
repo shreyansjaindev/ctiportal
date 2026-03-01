@@ -1,10 +1,12 @@
 import { AlertCircle } from "lucide-react"
+
 import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
-import { HttpStatusDisplay } from "../HttpStatusDisplay"
-import { RedirectChain } from "../RedirectChain"
-import { formatValue } from "./utils"
-import { FieldTable } from "./FieldTable"
+
+import { FieldTable } from "../FieldTable"
+import { formatValue } from "../utils"
+import { HttpStatusBadge } from "./HttpStatusBadge"
+import { RedirectChain } from "./RedirectChain"
 
 interface WebRedirectsDisplayProps {
   result: LookupResult
@@ -22,7 +24,7 @@ export function WebRedirectsDisplay({ result, isOverview = false }: WebRedirects
   }
 
   const renderValue = (key: string, value: unknown) => {
-    if (key === "status_code") return <HttpStatusDisplay code={value as number | string} showText={true} />
+    if (key === "status_code") return <HttpStatusBadge code={value as number | string} showText={true} />
     if (key === "redirects") return <RedirectChain redirects={value as Array<{ url?: string; code?: string | number }>} />
     return <span className="break-all">{formatValue(value)}</span>
   }

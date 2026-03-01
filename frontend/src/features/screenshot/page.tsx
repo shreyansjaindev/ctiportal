@@ -11,18 +11,15 @@ import {
 } from "@/shared/components/ui/card"
 import { Textarea } from "@/shared/components/ui/textarea"
 import { apiPost } from "@/shared/lib/api"
-import { useAuth } from "@/shared/lib/auth"
 
 export default function ScreenshotPage() {
-  const { token } = useAuth()
   const [query, setQuery] = useState("")
 
   const screenshotMutation = useMutation({
     mutationFn: () =>
       apiPost<unknown>(
         "/tools/screenshots/",
-        JSON.stringify({ query }),
-        token
+        JSON.stringify({ query })
       ),
   })
   const responseData = screenshotMutation.data ?? null

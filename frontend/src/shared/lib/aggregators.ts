@@ -46,21 +46,18 @@ export interface IndicatorLookupResponse {
  * Identify indicator types using backend classification
  * 
  * @param {string[]} indicators - Array of indicator values to classify
- * @param {string} token - Authentication token
  * @returns {Promise<Array<{value: string, type: IndicatorType}>>} Array of indicators with detected types
  * 
  * @example
- * const results = await identifyIndicators(['8.8.8.8', 'google.com'], token)
+ * const results = await identifyIndicators(['8.8.8.8', 'google.com'])
  * // returns [{ value: '8.8.8.8', type: 'ipv4' }, { value: 'google.com', type: 'domain' }]
  */
 export async function identifyIndicators(
-  indicators: string[],
-  token: string
+  indicators: string[]
 ): Promise<Array<{ value: string; type: IndicatorType }>> {
   return apiPost<Array<{ value: string; type: IndicatorType }>>(
     "/intelligence-harvester/identifier/", 
-    JSON.stringify({ indicators }), 
-    token
+    JSON.stringify({ indicators })
   )
 }
 
@@ -72,7 +69,6 @@ export async function identifyIndicators(
  * 
  * @param indicators - Array of indicator values to lookup
  * @param providers_by_type - Mapping of lookup type to selected provider IDs
- * @param token - Authentication token
  * @returns Structured results organized by indicator
  * 
  * @throws {ApiError} If request fails or is invalid
@@ -80,14 +76,12 @@ export async function identifyIndicators(
  * @example
  * const response = await performIndicatorLookups(
  *   ['example.com'],
- *   { whois: ['whoisxmlapi'], reputation: ['abuseipdb'] },
- *   token
+ *   { whois: ['whoisxmlapi'], reputation: ['abuseipdb'] }
  * )
  */
 export async function performIndicatorLookups(
   indicators: string[],
-  providers_by_type: Record<string, string[]>,
-  token: string
+  providers_by_type: Record<string, string[]>
 ): Promise<IndicatorLookupResponse> {
   const request: IndicatorLookupRequest = {
     indicators,
@@ -97,7 +91,6 @@ export async function performIndicatorLookups(
   return apiPost<IndicatorLookupResponse>(
     "/intelligence-harvester/search/",
     JSON.stringify(request),
-    token,
     "application/json",
     { timeout: HARVESTER_BULK_TIMEOUT_MS }
   )
@@ -105,8 +98,7 @@ export async function performIndicatorLookups(
 
 export async function exportIndicatorLookupsExcel(
   indicators: string[],
-  providers_by_type: Record<string, string[]>,
-  token: string
+  providers_by_type: Record<string, string[]>
 ): Promise<Blob> {
   const request: IndicatorLookupRequest = {
     indicators,
@@ -116,7 +108,6 @@ export async function exportIndicatorLookupsExcel(
   return apiPostBlob(
     "/intelligence-harvester/search/?format=xlsx",
     JSON.stringify(request),
-    token,
     "application/json",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     { timeout: HARVESTER_BULK_TIMEOUT_MS }
@@ -126,8 +117,6 @@ export async function exportIndicatorLookupsExcel(
 /**
  * Provider Management
  */
-export async function getAllProviders(
-  token: string
-): Promise<ProvidersMetadata> {
-  return apiGet<ProvidersMetadata>("/intelligence-harvester/providers/", token)
+export async function getAllProviders(): Promise<ProvidersMetadata> {
+  return apiGet<ProvidersMetadata>("/intelligence-harvester/providers/")
 }

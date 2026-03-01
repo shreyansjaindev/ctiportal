@@ -11,11 +11,9 @@ import {
 } from "@/shared/components/ui/card"
 import { Input } from "@/shared/components/ui/input"
 import { Textarea } from "@/shared/components/ui/textarea"
-import { useAuth } from "@/shared/lib/auth"
 import { API_BASE } from "@/shared/lib"
 
 export default function ThreatstreamPage() {
-  const { token } = useAuth()
   const [filters, setFilters] = useState("")
   const [file, setFile] = useState<File | null>(null)
 
@@ -39,11 +37,7 @@ export default function ThreatstreamPage() {
       }
       const response = await fetch(`${API_BASE}/tools/threatstream-exports/`, {
         method: "POST",
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
+        credentials: "include",
         body: formData,
       })
       if (!response.ok) {

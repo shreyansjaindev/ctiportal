@@ -1,6 +1,6 @@
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
 
-import { WebRedirectsDisplay } from "./displays/WebRedirectsDisplay"
+import { WebRedirectsDisplay } from "./displays/web-redirects/WebRedirectsDisplay"
 import { WebScanDisplay } from "./displays/WebScanDisplay"
 import { DnsDisplay } from "./displays/DnsDisplay"
 import { WhoisDisplay } from "./displays/WhoisDisplay"

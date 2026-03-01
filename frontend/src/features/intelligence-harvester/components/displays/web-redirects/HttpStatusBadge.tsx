@@ -1,18 +1,15 @@
 import { Badge } from "@/shared/components/ui/badge"
 
-interface HttpStatusDisplayProps {
+interface HttpStatusBadgeProps {
   code: number | string
   showText?: boolean
 }
 
 const HTTP_STATUS_TEXT: Record<number, string> = {
-  // 1xx Informational
   100: "Continue",
   101: "Switching Protocols",
   102: "Processing",
   103: "Early Hints",
-
-  // 2xx Success
   200: "OK",
   201: "Created",
   202: "Accepted",
@@ -23,8 +20,6 @@ const HTTP_STATUS_TEXT: Record<number, string> = {
   207: "Multi-Status",
   208: "Already Reported",
   226: "IM Used",
-
-  // 3xx Redirection
   300: "Multiple Choices",
   301: "Moved Permanently",
   302: "Found",
@@ -33,8 +28,6 @@ const HTTP_STATUS_TEXT: Record<number, string> = {
   305: "Use Proxy",
   307: "Temporary Redirect",
   308: "Permanent Redirect",
-
-  // 4xx Client Error
   400: "Bad Request",
   401: "Unauthorized",
   402: "Payment Required",
@@ -64,8 +57,6 @@ const HTTP_STATUS_TEXT: Record<number, string> = {
   429: "Too Many Requests",
   431: "Request Header Fields Too Large",
   451: "Unavailable For Legal Reasons",
-
-  // 5xx Server Error
   500: "Internal Server Error",
   501: "Not Implemented",
   502: "Bad Gateway",
@@ -88,13 +79,12 @@ function getStatusBackground(code: number): string {
   return "bg-gray-100 text-gray-900 dark:bg-gray-950 dark:text-gray-100 border-gray-300 dark:border-gray-700"
 }
 
-export function HttpStatusDisplay({
+export function HttpStatusBadge({
   code,
   showText = true,
-}: HttpStatusDisplayProps) {
+}: HttpStatusBadgeProps) {
   const statusCode = typeof code === "string" ? parseInt(code, 10) : code
 
-  // Handle invalid codes
   if (isNaN(statusCode)) {
     return (
       <div className="flex items-center gap-2">
@@ -108,7 +98,6 @@ export function HttpStatusDisplay({
   const backgroundClasses = getStatusBackground(statusCode)
 
   if (!showText) {
-    // Just the badge, no text
     return (
       <Badge variant="outline" className={backgroundClasses}>
         {statusCode}
@@ -116,7 +105,6 @@ export function HttpStatusDisplay({
     )
   }
 
-  // Badge with text description
   return (
     <div className="flex items-center gap-2">
       <Badge variant="outline" className={backgroundClasses}>
@@ -127,4 +115,4 @@ export function HttpStatusDisplay({
   )
 }
 
-export default HttpStatusDisplay
+export default HttpStatusBadge

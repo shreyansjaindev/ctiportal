@@ -10,7 +10,7 @@ import { LOOKUP_LABELS } from "@/shared/lib/lookup-config"
 import { cn } from "@/shared/lib/utils"
 import type { LookupResult, LookupType, Provider } from "@/shared/types/intelligence-harvester"
 
-import { renderLookupDisplay } from "./lookup-result-display"
+import { renderLookupDisplay } from "./LookupResultDisplay"
 
 function getLookupErrorMessage(result: LookupResult | null | undefined): string | null {
   const rawError = result?.error

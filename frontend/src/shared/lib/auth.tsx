@@ -15,12 +15,6 @@ export type UserMe = {
 type AuthContextValue = {
   user: UserMe | null
   isLoading: boolean
-  /**
-   * Backward-compatible token field.
-   * Returns `"authenticated"` when logged in, `null` when not.
-   * Use `user` for actual user data.
-   */
-  token: string | null
   setUser: (user: UserMe | null) => void
   logout: () => void
 }
@@ -96,7 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       isLoading,
-      token: user ? "authenticated" : null,
       setUser,
       logout,
     }),

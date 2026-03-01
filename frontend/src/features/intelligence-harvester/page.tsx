@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { useAuth } from "@/shared/lib/auth"
 import * as aggregators from "@/shared/lib/aggregators"
-import { IntelligenceHarvesterSidebar, LookupConfiguration } from "./components"
+import { IntelligenceHarvesterSidebar } from "./components/IntelligenceHarvesterSidebar"
+import { LookupConfiguration } from "./components/LookupConfiguration"
 import { parseIndicators } from "@/shared/lib/indicator-utils"
 import { useProviderSelection } from "@/shared/hooks"
 import { ALL_LOOKUP_TYPES } from "@/shared/lib/lookup-config"
@@ -35,7 +35,6 @@ function mergeIndicatorResults(
 }
 
 export default function IntelligenceHarvesterPage() {
-  const { token } = useAuth()
   const [quickInput, setQuickInput] = useState("")
   const [indicators, setIndicators] = useState<string[]>(() => {
     if (typeof window === "undefined") return []
@@ -83,8 +82,8 @@ export default function IntelligenceHarvesterPage() {
 
   // Identify indicator types (IP, domain, hash, etc.) whenever the list changes.
   useEffect(() => {
-    if (!token || indicators.length === 0) { setIndicatorTypes(new Map()); return }
-    aggregators.identifyIndicators(indicators, token)
+    if (indicators.length === 0) { setIndicatorTypes(new Map()); return }
+    aggregators.identifyIndicators(indicators)
       .then(results => {
         if (!Array.isArray(results)) return
         const types = new Map<string, IndicatorType>()
@@ -92,13 +91,12 @@ export default function IntelligenceHarvesterPage() {
         setIndicatorTypes(types)
       })
       .catch(err => console.error("Failed to identify indicators:", err))
-  }, [token, indicators])
+  }, [indicators])
 
   // Fetch the available providers per lookup type.
   const allProvidersQuery = useQuery({
     queryKey: ["all-providers"],
-    queryFn: () => aggregators.getAllProviders(token!),
-    enabled: !!token,
+    queryFn: () => aggregators.getAllProviders(),
   })
 
   const providersByType = useMemo(() => {
@@ -140,14 +138,13 @@ export default function IntelligenceHarvesterPage() {
   // Used only by auto-load; individual tab loads call handleResultsUpdate directly.
   const lookupMutation = useMutation({
     mutationFn: async (indicatorsToLookup: string[]) => {
-      if (!token) throw new Error("Not authenticated")
       if (!indicatorsToLookup.length) throw new Error("No indicators to look up")
       const providersForLookup = getProvidersPayloadForTypes(enabledTypes)
       if (Object.keys(providersForLookup).length === 0) {
         throw new Error("No providers available for the requested lookup types")
       }
 
-      return aggregators.performIndicatorLookups(indicatorsToLookup, providersForLookup, token)
+      return aggregators.performIndicatorLookups(indicatorsToLookup, providersForLookup)
     },
     onSuccess: (response) => {
       mergeIndicatorResults(response, handleResultsUpdate)
@@ -161,7 +158,6 @@ export default function IntelligenceHarvesterPage() {
 
   const exportMutation = useMutation({
     mutationFn: async () => {
-      if (!token) throw new Error("Not authenticated")
       if (indicators.length === 0) throw new Error("No observables to export")
 
       const providersForExport = getProvidersPayloadForTypes(enabledTypes)
@@ -169,7 +165,7 @@ export default function IntelligenceHarvesterPage() {
         throw new Error("No provider categories enabled for export")
       }
 
-      return aggregators.exportIndicatorLookupsExcel(indicators, providersForExport, token)
+      return aggregators.exportIndicatorLookupsExcel(indicators, providersForExport)
     },
     onSuccess: (blob) => {
       const url = window.URL.createObjectURL(blob)
@@ -288,19 +284,17 @@ export default function IntelligenceHarvesterPage() {
 
     const enabledChanged = changedTypes.filter(t => enabledTypes.has(t as LookupType)) as LookupType[]
 
-    if (enabledChanged.length === 0 || !token) return
-    // Capture token here - TypeScript can't narrow it inside an inner function.
-    const tok = token
+    if (enabledChanged.length === 0) return
 
     const providersForLookup = getProvidersPayloadForTypes(enabledChanged)
     if (Object.keys(providersForLookup).length === 0) return
 
     async function reloadChangedTypes() {
-      const response = await aggregators.performIndicatorLookups(indicators, providersForLookup, tok)
+      const response = await aggregators.performIndicatorLookups(indicators, providersForLookup)
       mergeIndicatorResults(response, handleResultsUpdate)
     }
     void reloadChangedTypes()
-  }, [autoLoad, indicators, indicatorTypes, selections, enabledTypes, token, getProvidersPayloadForTypes, handleResultsUpdate])
+  }, [autoLoad, indicators, indicatorTypes, selections, enabledTypes, getProvidersPayloadForTypes, handleResultsUpdate])
 
   return (
     <div className="w-full h-full min-h-0 flex flex-col bg-card overflow-hidden">
@@ -382,7 +376,6 @@ export default function IntelligenceHarvesterPage() {
           onRemoveIndicator={removeIndicator}
           onClearAll={clearAllIndicators}
           onIndicatorClick={setActiveIndicator}
-          token={token ?? undefined}
           getProviderForType={getProviderForType}
           providersByType={providersByType}
           onResultsUpdate={handleResultsUpdate}

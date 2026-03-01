@@ -4,7 +4,6 @@ import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import { DataTable } from "@/shared/components/data-table"
 import { Input } from "@/shared/components/ui/input"
 import { Skeleton } from "@/shared/components/ui/skeleton"
-import { useAuth } from "@/shared/lib/auth"
 
 import type { useAlerts } from "../../hooks"
 import { columns } from "../../alerts/columns"
@@ -16,8 +15,7 @@ interface AlertsTabProps {
 }
 
 export function AlertsTab({ alerts }: AlertsTabProps) {
-  const { token } = useAuth()
-  const query = useQuery(alertsQueryOptions(alerts.params, token!))
+  const query = useQuery(alertsQueryOptions(alerts.params))
   const items = query.data?.items ?? []
   const total = query.data?.count ?? 0
 

@@ -16,7 +16,7 @@ import type { DataTableFilterField } from "@/shared/components/data-table/types"
 import { Input } from "@/shared/components/ui/input"
 import { LayoutGrid, Loader2, Rows3 } from "lucide-react"
 
-import { renderLookupDisplay } from "./lookup-result-display"
+import { renderLookupDisplay } from "./LookupResultDisplay"
 
 type CategoryEntry = {
   indicator: string

@@ -1,5 +1,6 @@
-import { HttpStatusDisplay } from "./HttpStatusDisplay"
 import { ArrowRight } from "lucide-react"
+
+import { HttpStatusBadge } from "./HttpStatusBadge"
 
 interface Redirect {
   url?: string
@@ -19,20 +20,20 @@ export function RedirectChain({ redirects }: RedirectChainProps) {
     <div className="space-y-2">
       {redirects.map((redirect, idx) => (
         <div key={idx} className="flex items-center gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
               {redirect.code && (
-                <HttpStatusDisplay code={redirect.code} showText={false} />
+                <HttpStatusBadge code={redirect.code} showText={false} />
               )}
               {redirect.url && (
-                <span className="text-sm text-muted-foreground truncate">
+                <span className="truncate text-sm text-muted-foreground">
                   {redirect.url}
                 </span>
               )}
             </div>
           </div>
           {idx < redirects.length - 1 && (
-            <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
         </div>
       ))}

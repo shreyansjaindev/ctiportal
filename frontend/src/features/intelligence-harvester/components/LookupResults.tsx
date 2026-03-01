@@ -19,7 +19,6 @@ interface LookupResultsProps {
   indicatorTypes?: Map<string, IndicatorType>
   isLoading?: boolean
   className?: string
-  token?: string
   getProviderForType?: (type: LookupType) => string[]
   providersByType?: Record<string, Provider[]>
   onResultsUpdate?: (indicator: string, newResults: LookupResult[]) => void
@@ -39,7 +38,7 @@ function mergeBulkLookupResponse(
 export function LookupResults({
   indicators = [], results, activeIndicator, indicatorTypes,
   activeIndicatorTypeFilter = null,
-  isLoading = false, className, token,
+  isLoading = false, className,
   getProviderForType, providersByType, onResultsUpdate,
 }: LookupResultsProps) {
   const [activeCategory, setActiveCategory] = useState<LookupType | null>(null)
@@ -94,7 +93,6 @@ export function LookupResults({
     if (
       !activeIndicatorTypeFilter ||
       !activeCategory ||
-      !token ||
       !getProviderForType ||
       !providersByType ||
       !onResultsUpdate ||
@@ -107,8 +105,6 @@ export function LookupResults({
     const providerLookup = getProviderForType
     const providerMap = providersByType
     const resultUpdater = onResultsUpdate
-    const authToken = token
-
     const selectedProviders = providerLookup(lookupType)
     if (selectedProviders.length === 0) return
 
@@ -156,8 +152,7 @@ export function LookupResults({
       try {
         const response = await aggregators.performIndicatorLookups(
           indicatorsToLoad,
-          { [lookupType]: resolvedProviders },
-          authToken
+          { [lookupType]: resolvedProviders }
         )
 
         if (!cancelled) {
@@ -200,7 +195,6 @@ export function LookupResults({
     onResultsUpdate,
     providersByType,
     results,
-    token,
   ])
 
   const handleLookupType = useCallback(async (
@@ -208,7 +202,7 @@ export function LookupResults({
     isRetry = false,
     providerOverride?: string,
   ) => {
-    if (!activeIndicator || !activeIndicatorType || !token || !getProviderForType || !providersByType) return
+    if (!activeIndicator || !activeIndicatorType || !getProviderForType || !providersByType) return
 
     const providerLookup = getProviderForType
     const providerMap = providersByType
@@ -240,7 +234,6 @@ export function LookupResults({
         selectedTypes: new Set([type]),
         providers_by_type: providerMap,
         getProviderForType: (t) => t === type ? resolveProviders() : providerLookup(t),
-        token,
       })
       if (onResultsUpdate && fetched.length > 0) onResultsUpdate(activeIndicator, fetched)
     } catch (err) {
@@ -258,10 +251,10 @@ export function LookupResults({
         return next
       })
     }
-  }, [activeIndicator, activeIndicatorType, token, getProviderForType, providersByType, onResultsUpdate, loadingTypes, fetchedKeys])
+  }, [activeIndicator, activeIndicatorType, getProviderForType, providersByType, onResultsUpdate, loadingTypes, fetchedKeys])
 
   const handleCategoryProviderLoad = useCallback(async (type: LookupType, providerId: string) => {
-    if (!token || !providersByType || !onResultsUpdate || indicators.length === 0) return
+    if (!providersByType || !onResultsUpdate || indicators.length === 0) return
 
     const availableProviderIds = new Set((providersByType[type] ?? []).map((provider) => provider.id))
     if (!availableProviderIds.has(providerId)) return
@@ -294,8 +287,7 @@ export function LookupResults({
     try {
       const response = await aggregators.performIndicatorLookups(
         indicatorsToLoad,
-        { [type]: [providerId] },
-        token
+        { [type]: [providerId] }
       )
 
       mergeBulkLookupResponse(response, onResultsUpdate)
@@ -316,7 +308,7 @@ export function LookupResults({
         return next
       })
     }
-  }, [indicators, indicatorTypes, loadingTypes, onResultsUpdate, providersByType, results, token])
+  }, [indicators, indicatorTypes, loadingTypes, onResultsUpdate, providersByType, results])
 
   if (!activeIndicatorTypeFilter && !activeIndicator) {
     return (

@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query"
 
 import { Button } from "@/shared/components/ui/button"
 import { Checkbox } from "@/shared/components/ui/checkbox"
-import { useAuth } from "@/shared/lib/auth"
 import { Field, FieldContent, FieldLabel } from "@/shared/components/ui/field"
 import { Input } from "@/shared/components/ui/input"
 import {
@@ -70,7 +69,6 @@ export function WatchedResourceFormSheet({
   onSubmit,
   isSubmitting,
 }: WatchedResourceFormSheetProps) {
-  const { token } = useAuth()
   const [value, setValue] = useState("")
   const [resourceType, setResourceType] = useState("domain")
   const [company, setCompany] = useState("")
@@ -80,8 +78,8 @@ export function WatchedResourceFormSheet({
 
   const companiesQuery = useQuery({
     queryKey: ["companies"],
-    queryFn: () => listCompanies(token!),
-    enabled: !!token && open,
+    queryFn: () => listCompanies(),
+    enabled: open,
   })
 
   useEffect(() => {

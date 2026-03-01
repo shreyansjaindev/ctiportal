@@ -11,18 +11,15 @@ import {
 } from "@/shared/components/ui/card"
 import { Input } from "@/shared/components/ui/input"
 import { apiPost } from "@/shared/lib/api"
-import { useAuth } from "@/shared/lib/auth"
 
 export default function ActiveDirectoryPage() {
-  const { token } = useAuth()
   const [query, setQuery] = useState("")
 
   const lookupMutation = useMutation({
     mutationFn: () =>
       apiPost<unknown>(
         "/tools/active-directory/",
-        JSON.stringify({ query }),
-        token
+        JSON.stringify({ query })
       ),
   })
   const responseData = lookupMutation.data as unknown

@@ -11,18 +11,15 @@ import {
 } from "@/shared/components/ui/card"
 import { Textarea } from "@/shared/components/ui/textarea"
 import { apiPost } from "@/shared/lib/api"
-import { useAuth } from "@/shared/lib/auth"
 
 export default function TextFormatterPage() {
-  const { token } = useAuth()
   const [query, setQuery] = useState("")
 
   const formatMutation = useMutation({
     mutationFn: () =>
       apiPost<unknown>(
         "/tools/text-formatting/",
-        JSON.stringify({ query, checklist: [] }),
-        token
+        JSON.stringify({ query, checklist: [] })
       ),
   })
   const responseData = formatMutation.data ?? null

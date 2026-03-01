@@ -2,8 +2,6 @@ import { useMemo, useState } from "react"
 import type { ColumnFiltersState, OnChangeFn, SortingState } from "@tanstack/react-table"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { useAuth } from "@/shared/lib/auth"
-
 import {
   addDomainsToProofpoint,
   addDomainsToTrellix,
@@ -19,7 +17,6 @@ import type { BulkCreateResult, LookalikeDomain, QueryParams } from "../types"
 const DEFAULT_LIMIT = 25
 
 export function useLookalikeDomains() {
-  const { token } = useAuth()
   const queryClient = useQueryClient()
 
   // State
@@ -158,11 +155,10 @@ export function useLookalikeDomains() {
   // Mutations
   const saveMutation = useMutation({
     mutationFn: (payload: Parameters<typeof createLookalikeDomain>[0]) => {
-      if (!token) throw new Error("Not authenticated")
       if (editing) {
-        return updateLookalikeDomain(editing.id, payload, token)
+        return updateLookalikeDomain(editing.id, payload)
       }
-      return createLookalikeDomain(payload, token)
+      return createLookalikeDomain(payload)
     },
     onSuccess: () => {
       setError(null)
@@ -177,10 +173,7 @@ export function useLookalikeDomains() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => {
-      if (!token) throw new Error("Not authenticated")
-      return deleteLookalikeDomain(id, token)
-    },
+    mutationFn: (id: number) => deleteLookalikeDomain(id),
     onSuccess: () => {
       setError(null)
       queryClient.invalidateQueries({ queryKey: ["lookalike-domains"] })
@@ -189,10 +182,7 @@ export function useLookalikeDomains() {
   })
 
   const bulkDeleteMutation = useMutation({
-    mutationFn: (ids: number[]) => {
-      if (!token) throw new Error("Not authenticated")
-      return bulkDeleteLookalikeDomains(ids, token)
-    },
+    mutationFn: (ids: number[]) => bulkDeleteLookalikeDomains(ids),
     onSuccess: () => {
       setError(null)
       setSelectedIds(new Set())
@@ -202,10 +192,7 @@ export function useLookalikeDomains() {
   })
 
   const bulkStatusMutation = useMutation({
-    mutationFn: ({ ids, status }: { ids: number[]; status: string }) => {
-      if (!token) throw new Error("Not authenticated")
-      return bulkUpdateLookalikeDomains(ids, status, token)
-    },
+    mutationFn: ({ ids, status }: { ids: number[]; status: string }) => bulkUpdateLookalikeDomains(ids, status),
     onSuccess: () => {
       setError(null)
       setSelectedIds(new Set())
@@ -215,28 +202,19 @@ export function useLookalikeDomains() {
   })
 
   const exportTrellixMutation = useMutation({
-    mutationFn: (domains: string[]) => {
-      if (!token) throw new Error("Not authenticated")
-      return addDomainsToTrellix(domains, token)
-    },
+    mutationFn: (domains: string[]) => addDomainsToTrellix(domains),
     onSuccess: () => setError(null),
     onError: () => setError("Unable to export to Trellix."),
   })
 
   const exportProofpointMutation = useMutation({
-    mutationFn: (domains: string[]) => {
-      if (!token) throw new Error("Not authenticated")
-      return addDomainsToProofpoint(domains, token)
-    },
+    mutationFn: (domains: string[]) => addDomainsToProofpoint(domains),
     onSuccess: () => setError(null),
     onError: () => setError("Unable to export to Proofpoint."),
   })
 
   const importCSVMutation = useMutation({
-    mutationFn: (file: File) => {
-      if (!token) throw new Error("Not authenticated")
-      return importLookalikeDomainsCSV(file, token)
-    },
+    mutationFn: (file: File) => importLookalikeDomainsCSV(file),
     onSuccess: (result) => {
       setImportResult(result)
       setError(null)

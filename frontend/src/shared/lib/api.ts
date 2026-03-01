@@ -145,7 +145,7 @@ async function handleBlobResponse(response: Response): Promise<Blob> {
 // Token parameters are kept for backward compatibility with existing service layer
 // calls but are intentionally ignored — auth is handled via httpOnly cookies.
 
-export async function apiGet<T>(path: string, _token?: string | null): Promise<T> {
+export async function apiGet<T>(path: string): Promise<T> {
   const response = await fetchWithTimeout(`${API_BASE}${path}`)
   try {
     return await handleResponse<T>(response)
@@ -161,7 +161,6 @@ export async function apiGet<T>(path: string, _token?: string | null): Promise<T
 export async function apiPost<T>(
   path: string,
   body: BodyInit,
-  _token?: string | null,
   contentType = "application/json",
   options: ApiRequestOptions = {}
 ): Promise<T> {
@@ -190,7 +189,6 @@ export async function apiPost<T>(
 export async function apiPostBlob(
   path: string,
   body: BodyInit,
-  _token?: string | null,
   contentType = "application/json",
   accept = "application/octet-stream",
   options: ApiRequestOptions = {}
@@ -220,7 +218,6 @@ export async function apiPostBlob(
 export async function apiPatch<T>(
   path: string,
   body: BodyInit,
-  _token?: string | null,
   contentType = "application/json"
 ): Promise<T> {
   const response = await fetchWithTimeout(`${API_BASE}${path}`, {
@@ -245,7 +242,6 @@ export async function apiPatch<T>(
 
 export async function apiDelete<T>(
   path: string,
-  _token?: string | null,
   body?: BodyInit,
   contentType = "application/json"
 ): Promise<T> {

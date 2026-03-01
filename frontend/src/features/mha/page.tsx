@@ -21,7 +21,6 @@ import {
 } from "@/shared/components/ui/table"
 import { Textarea } from "@/shared/components/ui/textarea"
 import { apiPost } from "@/shared/lib/api"
-import { useAuth } from "@/shared/lib/auth"
 
 type MhaHop = {
   by?: string
@@ -56,15 +55,13 @@ type MhaResponse = {
 }
 
 export default function MhaPage() {
-  const { token } = useAuth()
   const [header, setHeader] = useState("")
 
   const analyzeMutation = useMutation({
     mutationFn: () =>
       apiPost<MhaResponse>(
         "/tools/mail-header-analysis/",
-        JSON.stringify({ header }),
-        token
+        JSON.stringify({ header })
       ),
   })
 

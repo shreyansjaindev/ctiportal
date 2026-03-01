@@ -2,8 +2,6 @@ import { useMemo, useState } from "react"
 import type { ColumnFiltersState, OnChangeFn, SortingState } from "@tanstack/react-table"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { useAuth } from "@/shared/lib/auth"
-
 import {
   createWatchedResource,
   deleteWatchedResource,
@@ -14,7 +12,6 @@ import type { QueryParams, WatchedResource } from "../types"
 const DEFAULT_LIMIT = 25
 
 export function useWatchedResources() {
-  const { token } = useAuth()
   const queryClient = useQueryClient()
 
   // State
@@ -92,11 +89,10 @@ export function useWatchedResources() {
   // Mutations
   const saveMutation = useMutation({
     mutationFn: (payload: Parameters<typeof createWatchedResource>[0]) => {
-      if (!token) throw new Error("Not authenticated")
       if (editing) {
-        return updateWatchedResource(editing.id, payload, token)
+        return updateWatchedResource(editing.id, payload)
       }
-      return createWatchedResource(payload, token)
+      return createWatchedResource(payload)
     },
     onSuccess: () => {
       setError(null)
@@ -108,10 +104,7 @@ export function useWatchedResources() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => {
-      if (!token) throw new Error("Not authenticated")
-      return deleteWatchedResource(id, token)
-    },
+    mutationFn: (id: number) => deleteWatchedResource(id),
     onSuccess: () => {
       setError(null)
       queryClient.invalidateQueries({ queryKey: ["watched-resources"] })

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 
 import { Button } from "@/shared/components/ui/button"
-import { useAuth } from "@/shared/lib/auth"
 import { Field, FieldContent, FieldLabel } from "@/shared/components/ui/field"
 import { Input } from "@/shared/components/ui/input"
 import {
@@ -54,7 +53,6 @@ export function LookalikeFormSheet({
   onSubmit,
   isSubmitting,
 }: LookalikeFormSheetProps) {
-  const { token } = useAuth()
   const [value, setValue] = useState("")
   const [source, setSource] = useState("")
   const [watchedResource, setWatchedResource] = useState("")
@@ -65,14 +63,14 @@ export function LookalikeFormSheet({
 
   const companiesQuery = useQuery({
     queryKey: ["companies"],
-    queryFn: () => listCompanies(token!),
-    enabled: !!token && open,
+    queryFn: () => listCompanies(),
+    enabled: open,
   })
 
   const watchedResourcesQuery = useQuery({
     queryKey: ["watched-resources-simple"],
-    queryFn: () => listWatchedResourcesSimple(token!),
-    enabled: !!token && open,
+    queryFn: () => listWatchedResourcesSimple(),
+    enabled: open,
   })
 
   useEffect(() => {

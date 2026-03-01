@@ -7,7 +7,6 @@ import { Button } from "@/shared/components/ui/button"
 import { DataTable } from "@/shared/components/data-table"
 import { Input } from "@/shared/components/ui/input"
 import { Skeleton } from "@/shared/components/ui/skeleton"
-import { useAuth } from "@/shared/lib/auth"
 
 import { BulkActionsBar } from "../BulkActionsBar"
 import { LOOKALIKE_STATUS_OPTIONS } from "../../constants"
@@ -23,8 +22,7 @@ interface LookalikesTabProps {
 }
 
 export function LookalikesTab({ lookalikes, onOpenImport }: LookalikesTabProps) {
-  const { token } = useAuth()
-  const query = useQuery(lookalikesQueryOptions(lookalikes.params, token!))
+  const query = useQuery(lookalikesQueryOptions(lookalikes.params))
   const items = query.data?.items ?? []
   const total = query.data?.count ?? 0
   const selectedCount = lookalikes.selectedIds.size

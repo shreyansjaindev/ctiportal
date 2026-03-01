@@ -23,7 +23,6 @@ interface IntelligenceHarvesterSidebarProps {
   onIndicatorClick: (indicator: string) => void
   // Lookup-specific props — optional because the component renders fine
   // without them (lookups are disabled but the indicator list still works).
-  token?: string
   getProviderForType?: (type: LookupType) => string[]
   providersByType?: Record<string, Provider[]>
   onResultsUpdate?: (indicator: string, newResults: LookupResult[]) => void
@@ -55,7 +54,6 @@ export function IntelligenceHarvesterSidebar({
   onRemoveIndicator,
   onClearAll,
   onIndicatorClick,
-  token,
   getProviderForType,
   providersByType,
   onResultsUpdate,
@@ -228,7 +226,6 @@ export function IntelligenceHarvesterSidebar({
           indicatorTypes={indicatorTypes}
           isLoading={isLoading}
           className="border-0 rounded-none shadow-none h-full"
-          token={token}
           getProviderForType={getProviderForType}
           providersByType={providersByType}
           onResultsUpdate={onResultsUpdate}
