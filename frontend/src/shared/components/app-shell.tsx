@@ -17,7 +17,7 @@ export function AppShell() {
       <AppSidebar />
 
       <SidebarInset>
-        <div className="h-screen bg-background flex flex-col">
+        <div className="flex h-screen flex-col bg-background">
           <header className="sticky top-0 z-20 h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
             <div className="flex h-full w-full flex-wrap items-center justify-between gap-3 px-4">
               <div className="flex flex-1 items-center gap-3">
@@ -44,7 +44,7 @@ export function AppShell() {
             </div>
           </header>
 
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <Outlet />
           </div>
         </div>

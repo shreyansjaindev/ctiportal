@@ -11,7 +11,7 @@ interface ControlsContextType {
 export const ControlsContext = createContext<ControlsContextType | null>(null);
 
 export function ControlsProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useLocalStorage(CONTROLS_KEY, true);
+  const [open, setOpen] = useLocalStorage(CONTROLS_KEY, false);
 
   return (
     <ControlsContext.Provider value={{ open, setOpen }}>

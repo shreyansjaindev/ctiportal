@@ -25,7 +25,13 @@ type LookupTypeUIConfig = {
   providers?: Provider[]
 }
 
-function ProviderPopover({ type }: { type: LookupTypeUIConfig }) {
+function ProviderPopover({
+  type,
+  children,
+}: {
+  type: LookupTypeUIConfig
+  children: React.ReactNode
+}) {
   const [open, setOpen] = useState(false)
   
   // Always use arrays for provider selection
@@ -54,10 +60,7 @@ function ProviderPopover({ type }: { type: LookupTypeUIConfig }) {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer" aria-label={`Select ${type.label} providers`}>
-        </button>
-      </PopoverTrigger>
+      <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent 
         className="w-96" 
         align="end"
@@ -216,45 +219,51 @@ export function LookupConfiguration({
             const selectedCount = type.value.length
             
             return (
-              <Button
-                key={type.id}
-                type="button"
-                variant={isEnabled ? "secondary" : "outline"}
-                className={cn(
-                  "relative h-auto min-h-20 w-full justify-center px-3 py-3 text-center whitespace-normal",
-                  isEnabled && "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
-                  isDisabled && "cursor-not-allowed opacity-50"
-                )}
-                disabled={isDisabled}
-              >
-                {/* Settings popover - show when has providers */}
-                {hasProviders && (
-                  <ProviderPopover type={type} />
-                )}
-                
-                {/* Main card content */}
-                <div
-                  className="flex h-full items-center justify-center"
-                >
-                  <div className="flex flex-col items-center gap-1.5 text-center">
-                    <span className={cn(
-                      "text-xs font-medium leading-tight",
-                      isDisabled
-                        ? "text-muted-foreground/70"
-                        : isEnabled
-                          ? "text-primary-foreground"
-                          : "text-foreground"
-                    )}>
-                      {type.label}
-                    </span>
-                    {isEnabled && (
-                      <span className="text-[11px] text-primary-foreground/80">
-                        {selectedCount} provider{selectedCount === 1 ? "" : "s"} selected
-                      </span>
+              (() => {
+                const tile = (
+                  <Button
+                    key={type.id}
+                    type="button"
+                    variant={isEnabled ? "secondary" : "outline"}
+                    className={cn(
+                      "h-auto min-h-20 w-full justify-center px-3 py-3 text-center whitespace-normal",
+                      isEnabled && "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+                      isDisabled && "cursor-not-allowed opacity-50"
                     )}
-                  </div>
-                </div>
-              </Button>
+                    disabled={isDisabled}
+                  >
+                    <div className="flex h-full items-center justify-center">
+                      <div className="flex flex-col items-center gap-1.5 text-center">
+                        <span className={cn(
+                          "text-xs font-medium leading-tight",
+                          isDisabled
+                            ? "text-muted-foreground/70"
+                            : isEnabled
+                              ? "text-primary-foreground"
+                              : "text-foreground"
+                        )}>
+                          {type.label}
+                        </span>
+                        {isEnabled && (
+                          <span className="text-[11px] text-primary-foreground/80">
+                            {selectedCount} provider{selectedCount === 1 ? "" : "s"} selected
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Button>
+                )
+
+                if (!hasProviders) {
+                  return tile
+                }
+
+                return (
+                  <ProviderPopover key={type.id} type={type}>
+                    {tile}
+                  </ProviderPopover>
+                )
+              })()
             )
           })}
         </div>

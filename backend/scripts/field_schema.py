@@ -99,6 +99,7 @@ ESSENTIAL_FIELDS: Dict[str, List[str]] = {
         "is_valid",
         "email",
         "is_disposable",
+        "smtp_check"
     ],
     "cve_details": [
         "cve_id",

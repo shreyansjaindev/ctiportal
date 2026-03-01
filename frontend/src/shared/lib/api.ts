@@ -2,6 +2,9 @@ export type ApiError = Error & { status?: number }
 
 export const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(/\/$/, "")
 const REQUEST_TIMEOUT_MS = 30000 // 30 seconds - prevents hanging requests
+export type ApiRequestOptions = {
+  timeout?: number
+}
 
 // Store for auth context to trigger logout on unrecoverable 401
 let authContextRef: { logout: () => void } | null = null
@@ -105,6 +108,40 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>
 }
 
+async function handleBlobResponse(response: Response): Promise<Blob> {
+  const contentType = response.headers.get("content-type") ?? ""
+
+  if (response.status === 401) {
+    const refreshed = await refreshAccessToken()
+    if (refreshed) {
+      throw new Error("TOKEN_REFRESHED")
+    }
+    const error: ApiError = new Error("Authentication failed - please log in again")
+    error.status = 401
+    throw error
+  }
+
+  if (!response.ok) {
+    let errorMessage = "Request failed"
+    try {
+      if (contentType.includes("application/json")) {
+        const errorData = await response.json()
+        errorMessage = errorData.message || errorData.error || errorData.detail || errorMessage
+      } else {
+        const text = await response.text()
+        if (text) errorMessage = text
+      }
+    } catch {
+      // Use default message if parsing fails
+    }
+    const error: ApiError = new Error(`${errorMessage} (${response.status})`)
+    error.status = response.status
+    throw error
+  }
+
+  return response.blob()
+}
+
 // Token parameters are kept for backward compatibility with existing service layer
 // calls but are intentionally ignored — auth is handled via httpOnly cookies.
 
@@ -125,12 +162,14 @@ export async function apiPost<T>(
   path: string,
   body: BodyInit,
   _token?: string | null,
-  contentType = "application/json"
+  contentType = "application/json",
+  options: ApiRequestOptions = {}
 ): Promise<T> {
   const response = await fetchWithTimeout(`${API_BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": contentType },
     body,
+    timeout: options.timeout,
   })
   try {
     return await handleResponse<T>(response)
@@ -140,8 +179,39 @@ export async function apiPost<T>(
         method: "POST",
         headers: { "Content-Type": contentType },
         body,
+        timeout: options.timeout,
       })
       return handleResponse<T>(retryResponse)
+    }
+    throw error
+  }
+}
+
+export async function apiPostBlob(
+  path: string,
+  body: BodyInit,
+  _token?: string | null,
+  contentType = "application/json",
+  accept = "application/octet-stream",
+  options: ApiRequestOptions = {}
+): Promise<Blob> {
+  const response = await fetchWithTimeout(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": contentType, Accept: accept },
+    body,
+    timeout: options.timeout,
+  })
+  try {
+    return await handleBlobResponse(response)
+  } catch (error) {
+    if ((error as Error).message === "TOKEN_REFRESHED") {
+      const retryResponse = await fetchWithTimeout(`${API_BASE}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": contentType, Accept: accept },
+        body,
+        timeout: options.timeout,
+      })
+      return handleBlobResponse(retryResponse)
     }
     throw error
   }

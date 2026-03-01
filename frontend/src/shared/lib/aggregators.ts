@@ -3,8 +3,10 @@
  * @module lib/aggregators
  */
 
-import { apiGet, apiPost } from "./api"
+import { apiGet, apiPost, apiPostBlob } from "./api"
 import type { IndicatorType, ProvidersMetadata } from "@/shared/types/intelligence-harvester"
+
+const HARVESTER_BULK_TIMEOUT_MS = 90000
 
 /**
  * Request for performing indicator lookups
@@ -95,7 +97,29 @@ export async function performIndicatorLookups(
   return apiPost<IndicatorLookupResponse>(
     "/intelligence-harvester/search/",
     JSON.stringify(request),
-    token
+    token,
+    "application/json",
+    { timeout: HARVESTER_BULK_TIMEOUT_MS }
+  )
+}
+
+export async function exportIndicatorLookupsExcel(
+  indicators: string[],
+  providers_by_type: Record<string, string[]>,
+  token: string
+): Promise<Blob> {
+  const request: IndicatorLookupRequest = {
+    indicators,
+    providers_by_type,
+  }
+
+  return apiPostBlob(
+    "/intelligence-harvester/search/?format=xlsx",
+    JSON.stringify(request),
+    token,
+    "application/json",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    { timeout: HARVESTER_BULK_TIMEOUT_MS }
   )
 }
 

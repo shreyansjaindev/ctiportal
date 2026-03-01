@@ -10,6 +10,7 @@ from scripts.utils.identifier import get_indicator_type
 from scripts.core.engine import generate_excel, generate_sha256_hash
 from scripts.field_schema import categorize_fields
 from scripts.provider_config import (
+    get_provider_info,
     get_category_providers,
     get_presets,
     LOOKUP_MODULES,
@@ -31,6 +32,32 @@ def is_lookup_applicable(lookup_type: str, indicator_type: str) -> bool:
     """Check if a lookup type is applicable for an indicator type"""
     applicable_lookups = INDICATOR_LOOKUPS.get(indicator_type, [])
     return lookup_type in applicable_lookups
+
+
+def _normalize_indicator_type_for_provider(indicator_type: str) -> str:
+    if indicator_type in {"md5", "sha1", "sha256", "sha512"}:
+        return "hash"
+    return indicator_type
+
+
+def is_provider_applicable(lookup_type: str, provider_id: str | None, indicator_type: str) -> bool:
+    """Check if a provider supports the given indicator type inside a lookup category."""
+    if provider_id is None:
+        return True
+
+    provider_info = get_provider_info(lookup_type, provider_id)
+    supported_indicators = provider_info.get("supported_indicators") or []
+    if not supported_indicators:
+        return True
+
+    normalized_indicator_type = _normalize_indicator_type_for_provider(indicator_type)
+    return normalized_indicator_type in supported_indicators
+
+
+def is_cacheable_lookup_error(error_message: str | None) -> bool:
+    if not error_message:
+        return False
+    return error_message.endswith(" returned no data")
 
 
 def execute_lookup(lookup_type: str, indicator_value: str, indicator_type: str, provider=None) -> dict:
@@ -99,14 +126,38 @@ def execute_lookup(lookup_type: str, indicator_value: str, indicator_type: str, 
         if not isinstance(result, dict):
             result = {}
         
-        # If there's an error, return it with metadata (don't cache errors)
+        # Cache negative "no data" results so we don't keep re-querying providers.
         if result.get("error"):
-            logger.warning(f"Lookup error for {lookup_type}/{provider}: {result.get('error')}")
-            return {
+            error_message = result.get("error")
+            if isinstance(error_message, str) and error_message.startswith("Provider ") and error_message.endswith(" not available"):
+                logger.debug(f"Skipping unavailable provider for {lookup_type}/{provider}: {error_message}")
+            elif is_cacheable_lookup_error(error_message):
+                logger.debug(f"No data for {lookup_type}/{provider} on {indicator_value}: {error_message}")
+            else:
+                logger.warning(f"Lookup error for {lookup_type}/{provider}: {error_message}")
+
+            response = {
                 "error": result["error"],
                 "_lookup_type": lookup_type,
                 "_provider": provider or "auto",
             }
+
+            if is_cacheable_lookup_error(error_message):
+                try:
+                    Source.objects.update_or_create(
+                        hashed_value=hashed_value,
+                        source=cache_source,
+                        defaults={
+                            'value': normalized_value,
+                            'value_type': indicator_type,
+                            'data': response,
+                        }
+                    )
+                    logger.debug(f"Cached no-data result for {lookup_type}/{provider} on {indicator_value}")
+                except Exception as cache_error:
+                    logger.warning(f"Error storing cache: {cache_error}")
+
+            return response
         
         # Categorize into essential/additional based on field schema
         categorized = categorize_fields(lookup_type, result)
@@ -271,6 +322,8 @@ class IndicatorLookupViewSet(viewsets.ViewSet):
 
                     providers = providers_by_type.get(lookup_type) or [None]
                     for provider in providers:
+                        if not is_provider_applicable(lookup_type, provider, indicator_type):
+                            continue
                         result = execute_lookup(lookup_type, indicator_value, indicator_type, provider)
                         indicator_results.append(result)
 

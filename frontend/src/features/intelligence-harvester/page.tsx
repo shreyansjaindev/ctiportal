@@ -6,12 +6,11 @@ import { IntelligenceHarvesterSidebar, LookupConfiguration } from "./components"
 import { parseIndicators } from "@/shared/lib/indicator-utils"
 import { useProviderSelection } from "@/shared/hooks"
 import { ALL_LOOKUP_TYPES } from "@/shared/lib/lookup-config"
-import { executeIndicatorLookups } from "@/shared/services"
-import type { IndicatorResult, IndicatorType, LookupResult, LookupType } from "@/shared/types/intelligence-harvester"
+import type { IndicatorResult, IndicatorType, LookupResult, LookupType, Provider } from "@/shared/types/intelligence-harvester"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/shared/components/ui/sheet"
-import { SearchIcon, SettingsIcon } from "lucide-react"
+import { DownloadIcon, SearchIcon, SettingsIcon } from "lucide-react"
 
 /**
  * Merges incoming results into an existing array.
@@ -22,6 +21,17 @@ function mergeResults(existing: LookupResult[], incoming: LookupResult[]): Looku
   existing.forEach(r => byKey.set(`${r._lookup_type}::${r._provider ?? "unknown"}`, r))
   incoming.forEach(r => byKey.set(`${r._lookup_type}::${r._provider ?? "unknown"}`, r))
   return Array.from(byKey.values())
+}
+
+function mergeIndicatorResults(
+  response: aggregators.IndicatorLookupResponse,
+  updateResults: (indicator: string, newResults: LookupResult[]) => void
+) {
+  response.results.forEach(({ indicator, results }) => {
+    if (results.length > 0) {
+      updateResults(indicator, results as LookupResult[])
+    }
+  })
 }
 
 export default function IntelligenceHarvesterPage() {
@@ -63,14 +73,11 @@ export default function IntelligenceHarvesterPage() {
     localStorage.setItem("ih.indicators", JSON.stringify(indicators))
   }, [indicators])
 
-  // Auto-select the first indicator for display when the list changes.
   useEffect(() => {
-    if (indicators.length > 0 && !activeIndicator) {
-      setActiveIndicator(indicators[0])
-    } else if (indicators.length === 0) {
+    if (indicators.length === 0) {
       setActiveIndicator(null)
     }
-  }, [indicators, activeIndicator])
+  }, [indicators])
 
   // --- Backend queries ---
 
@@ -97,7 +104,7 @@ export default function IntelligenceHarvesterPage() {
   const providersByType = useMemo(() => {
     return allProvidersQuery.data?.providers_by_type || {
       whois: [], ip_info: [], reputation: [], dns: [], passive_dns: [],
-      whois_history: [], reverse_dns: [], screenshot: [], email_validator: [],
+      subdomains: [], whois_history: [], reverse_dns: [], screenshot: [], email_validator: [],
       cve_details: [], web_redirects: [], web_scan: [],
     }
   }, [allProvidersQuery.data?.providers_by_type])
@@ -113,38 +120,70 @@ export default function IntelligenceHarvesterPage() {
     })
   }, [])
 
+  const getProvidersPayloadForTypes = useCallback((types: Iterable<LookupType>) => {
+    const providersForLookup: Record<string, string[]> = {}
+
+    Array.from(types).forEach((type) => {
+      const availableProviders: Provider[] = providersByType[type] ?? []
+      const availableIds = new Set(availableProviders.map((provider) => provider.id))
+      const selectedProviders = getProviderForType(type).filter((providerId) => availableIds.has(providerId))
+
+      if (selectedProviders.length > 0) {
+        providersForLookup[type] = selectedProviders
+      }
+    })
+
+    return providersForLookup
+  }, [getProviderForType, providersByType])
+
   // lookupMutation runs all enabled lookups for a given set of indicators at once.
   // Used only by auto-load; individual tab loads call handleResultsUpdate directly.
   const lookupMutation = useMutation({
     mutationFn: async (indicatorsToLookup: string[]) => {
       if (!token) throw new Error("Not authenticated")
       if (!indicatorsToLookup.length) throw new Error("No indicators to look up")
+      const providersForLookup = getProvidersPayloadForTypes(enabledTypes)
+      if (Object.keys(providersForLookup).length === 0) {
+        throw new Error("No providers available for the requested lookup types")
+      }
 
-      const tasks = indicatorsToLookup.map(async (indicator) => {
-        const indicatorType = indicatorTypes.get(indicator)
-        if (!indicatorType) {
-          console.warn(`No type found for "${indicator}"`)
-          return { indicator, results: [] }
-        }
-        const results = await executeIndicatorLookups({
-          indicator, indicatorType, selectedTypes: enabledTypes,
-          providers_by_type: providersByType, getProviderForType, token,
-        })
-        return { indicator, results }
-      })
-
-      return Promise.all(tasks)
+      return aggregators.performIndicatorLookups(indicatorsToLookup, providersForLookup, token)
     },
-    onSuccess: (data: IndicatorResult[]) => {
-      data.forEach(({ indicator, results }) => {
-        if (results.length > 0) handleResultsUpdate(indicator, results)
-      })
+    onSuccess: (response) => {
+      mergeIndicatorResults(response, handleResultsUpdate)
       setActiveIndicator(prev => {
-        if (prev && data.some(d => d.indicator === prev)) return prev
-        return data[0]?.indicator ?? null
+        if (prev && response.results.some((item) => item.indicator === prev)) return prev
+        return response.results[0]?.indicator ?? null
       })
     },
     onError: (error) => { console.error("Lookup failed:", error) },
+  })
+
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      if (!token) throw new Error("Not authenticated")
+      if (indicators.length === 0) throw new Error("No observables to export")
+
+      const providersForExport = getProvidersPayloadForTypes(enabledTypes)
+      if (Object.keys(providersForExport).length === 0) {
+        throw new Error("No provider categories enabled for export")
+      }
+
+      return aggregators.exportIndicatorLookupsExcel(indicators, providersForExport, token)
+    },
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = "Intelligence_Harvester_Export.xlsx"
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    },
+    onError: (error) => {
+      console.error("Export failed:", error)
+    },
   })
 
   // Flat array consumed by IntelligenceHarvesterSidebar.
@@ -186,7 +225,7 @@ export default function IntelligenceHarvesterPage() {
       setActiveIndicator(null)
       lookupMutation.reset()
     } else if (activeIndicator && toRemove.has(activeIndicator)) {
-      setActiveIndicator(remaining[0] ?? null)
+      setActiveIndicator(null)
     }
   }
 
@@ -253,21 +292,15 @@ export default function IntelligenceHarvesterPage() {
     // Capture token here - TypeScript can't narrow it inside an inner function.
     const tok = token
 
-    // Re-fetch only the changed types for every loaded indicator.
-    // Named inner function so the async logic reads clearly without an IIFE.
+    const providersForLookup = getProvidersPayloadForTypes(enabledChanged)
+    if (Object.keys(providersForLookup).length === 0) return
+
     async function reloadChangedTypes() {
-      await Promise.all(indicators.map(async (indicator) => {
-        const indicatorType = indicatorTypes.get(indicator)
-        if (!indicatorType) return
-        const results = await executeIndicatorLookups({
-          indicator, indicatorType, selectedTypes: new Set(enabledChanged),
-          providers_by_type: providersByType, getProviderForType, token: tok,
-        })
-        handleResultsUpdate(indicator, results)
-      }))
+      const response = await aggregators.performIndicatorLookups(indicators, providersForLookup, tok)
+      mergeIndicatorResults(response, handleResultsUpdate)
     }
     void reloadChangedTypes()
-  }, [autoLoad, indicators, indicatorTypes, selections, enabledTypes, token, providersByType, getProviderForType, handleResultsUpdate])
+  }, [autoLoad, indicators, indicatorTypes, selections, enabledTypes, token, getProvidersPayloadForTypes, handleResultsUpdate])
 
   return (
     <div className="w-full h-full min-h-0 flex flex-col bg-card overflow-hidden">
@@ -289,6 +322,19 @@ export default function IntelligenceHarvesterPage() {
           }}
           className="flex-1 border-none shadow-none focus-visible:ring-0 bg-transparent px-3"
         />
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mr-2 flex-shrink-0"
+          onClick={() => exportMutation.mutate()}
+          disabled={exportMutation.isPending || indicators.length === 0}
+          title="Export current observables to Excel"
+        >
+          <DownloadIcon className="h-4 w-4" />
+          {exportMutation.isPending ? "Exporting..." : "Export"}
+        </Button>
 
         {/* Provider configuration panel */}
         <Sheet open={configOpen} onOpenChange={setConfigOpen}>

@@ -2,9 +2,10 @@ import { Badge } from "@/shared/components/ui/badge"
 import { Button } from "@/shared/components/ui/button"
 import { Checkbox } from "@/shared/components/ui/checkbox"
 import { Trash2, Info } from "lucide-react"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { LookupResults } from "./LookupResults"
 import type { IndicatorResult, IndicatorType, LookupType, LookupResult, Provider } from "@/shared/types/intelligence-harvester"
+import { cn } from "@/shared/lib/utils"
 
 interface IntelligenceHarvesterSidebarProps {
   // Core list props — always provided by the parent page.
@@ -29,10 +30,16 @@ interface IntelligenceHarvesterSidebarProps {
 }
 
 const TYPE_LABELS: Record<string, { label: string }> = {
-  ip: { label: "IP Addresses" },
+  ipv4: { label: "IPv4" },
+  ipv6: { label: "IPv6" },
   domain: { label: "Domains" },
   url: { label: "URLs" },
   email: { label: "Email Addresses" },
+  cve: { label: "CVE" },
+  sha256: { label: "SHA256" },
+  sha1: { label: "SHA1" },
+  md5: { label: "MD5" },
+  keyword: { label: "Keywords" },
 }
 
 export function IntelligenceHarvesterSidebar({
@@ -53,31 +60,30 @@ export function IntelligenceHarvesterSidebar({
   providersByType,
   onResultsUpdate,
 }: IntelligenceHarvesterSidebarProps) {
+  const [activeIndicatorType, setActiveIndicatorType] = useState<IndicatorType | null>(null)
+
   // Group indicators by type
   const groupedIndicators = useMemo(() => {
-    const groups: Record<string, string[]> = {}
+    const groups = new Map<IndicatorType | "unknown", string[]>()
     indicators.forEach(indicator => {
-      const type = indicatorTypes.get(indicator) || 'unknown'
-      if (!groups[type]) groups[type] = []
-      groups[type].push(indicator)
+      const type = indicatorTypes.get(indicator) || "unknown"
+      const existing = groups.get(type) ?? []
+      existing.push(indicator)
+      groups.set(type, existing)
     })
-    return groups
+    return Array.from(groups.entries())
   }, [indicators, indicatorTypes])
 
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-full w-full overflow-hidden">
       {/* Left: Indicator List */}
       <div className="w-80 border-r flex flex-col flex-shrink-0">
-        <div className="flex items-center gap-3 border-b p-3 flex-shrink-0">
+        <div className="border-b p-3 flex-shrink-0 space-y-3">
           <div className="flex items-center gap-2">
-            <div className="text-base font-medium text-foreground">
-              Observables
-            </div>
-            {indicators.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {indicators.length}
-              </Badge>
-            )}
+            <div className="text-base font-medium text-foreground">Observables</div>
+            <Badge variant="secondary" className="text-xs">
+              {indicators.length}
+            </Badge>
           </div>
         </div>
 
@@ -130,28 +136,42 @@ export function IntelligenceHarvesterSidebar({
               </div>
             ) : (
               <div>
-                {Object.entries(groupedIndicators).map(([type, typeIndicators]) => {
+                {groupedIndicators.map(([type, typeIndicators]) => {
                   const typeInfo = TYPE_LABELS[type] || { label: type }
+                  const isTypeActive = activeIndicatorType === type
                   
                   return (
                     <div key={type} className="border-b last:border-b-0">
-                      <div className="flex items-center gap-2 px-3 py-2 bg-sidebar-accent/30">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (type === "unknown") return
+                          setActiveIndicatorType(type)
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2 px-3 py-2 text-left transition-colors",
+                          isTypeActive ? "bg-primary text-primary-foreground" : "bg-sidebar-accent/30 hover:bg-sidebar-accent/50"
+                        )}
+                      >
                         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                           {typeInfo.label}
                         </span>
                         <Badge variant="secondary" className="ml-auto text-xs">
                           {typeIndicators.length}
                         </Badge>
-                      </div>
+                      </button>
                       
                       {typeIndicators.map((indicator) => {
-                        const isActive = activeIndicator === indicator
+                        const isActive = activeIndicatorType === null && activeIndicator === indicator
                         const isSelected = selectedIndicators.has(indicator)
                         
                         return (
                           <div
                             key={indicator}
-                            onClick={() => onIndicatorClick(indicator)}
+                            onClick={() => {
+                              setActiveIndicatorType(null)
+                              onIndicatorClick(indicator)
+                            }}
                             className={`group w-full text-left border-t px-3 py-1 text-sm transition-colors cursor-pointer
                               ${isActive
                                 ? "bg-primary text-primary-foreground"
@@ -198,11 +218,13 @@ export function IntelligenceHarvesterSidebar({
       </div>
 
       {/* Right: Lookup Results */}
-      <div className="flex-1 min-h-0 min-w-0">
+      <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
         <LookupResults
-          key={activeIndicator ?? ""}
+          key={activeIndicatorType ?? activeIndicator ?? "results"}
+          indicators={indicators}
           results={lookupResults}
           activeIndicator={activeIndicator}
+          activeIndicatorTypeFilter={activeIndicatorType}
           indicatorTypes={indicatorTypes}
           isLoading={isLoading}
           className="border-0 rounded-none shadow-none h-full"

@@ -79,20 +79,65 @@ def _serialize_cell_data(data):
     return str(data)
 
 
-def generate_excel(wb, data):
-    """Generate Excel workbook from collected indicator data."""
-    # Remove default sheet if it exists
-    try:
-        if wb.active:
-            wb.remove(wb.active)
-    except Exception as e:
-        logger.warning(f"Could not remove default sheet: {e}")
+def _append_headers(existing_headers, row):
+    for key in row.keys():
+        if key not in existing_headers:
+            existing_headers.append(key)
+    return existing_headers
+
+
+def _build_sheet_rows_from_lookup_results(data):
+    """Build export rows from the current harvester search response shape."""
+    sheets = {}
+
+    for indicator_entry in data.get("results", []):
+        indicator_value = indicator_entry.get("indicator")
+        indicator_type = indicator_entry.get("indicator_type")
+
+        if not indicator_value:
+            continue
+
+        for result in indicator_entry.get("results", []):
+            if not isinstance(result, dict):
+                continue
+
+            lookup_type = result.get("_lookup_type")
+            provider = result.get("_provider") or "auto"
+            if not lookup_type:
+                continue
+
+            sheet_name = f"{lookup_type} - {provider}"[:31]
+            sheet_data = sheets.setdefault(
+                sheet_name,
+                {"headers": ["indicator", "indicator_type"], "rows": []},
+            )
+
+            row = {
+                "indicator": indicator_value,
+                "indicator_type": indicator_type,
+            }
+
+            if result.get("error"):
+                row["error"] = result["error"]
+            else:
+                row.update(result.get("essential") or {})
+                row.update(result.get("additional") or {})
+
+            _append_headers(sheet_data["headers"], row)
+            sheet_data["rows"].append(row)
+
+    return sheets
+
+
+def _build_sheet_rows_from_legacy_data(data):
+    """Build export rows from the legacy collect_data() response shape."""
+    sheets = {}
 
     for value, indicator_data in data.get("data", {}).items():
         value_type = indicator_data.get("value_type")
         if not value_type:
             continue
-            
+
         for source, source_data in indicator_data.get("source_data", {}).items():
             if source == "screenshot" or not source_data.get("results"):
                 continue
@@ -101,29 +146,48 @@ def generate_excel(wb, data):
             if not results_data:
                 logger.warning(f"Missing results for {source} - {value}")
                 continue
-            
-            # Handle hostio special case
+
             if source == "hostio" and isinstance(results_data, dict) and "related" in results_data:
                 results_data = results_data["related"]
 
             if not isinstance(results_data, dict):
                 logger.warning(f"Skipping {source} for {value}: results not a dict")
                 continue
-            
-            # Excel sheet names limited to 31 chars
+
             sheet_name = f"{source} - {value_type}"[:31]
-            headers = list(results_data.keys())
+            sheet_data = sheets.setdefault(
+                sheet_name,
+                {"headers": ["value"], "rows": []},
+            )
 
-            # Get or create sheet
-            if sheet_name in wb.sheetnames:
-                sheet = wb[sheet_name]
-            else:
-                sheet = wb.create_sheet(sheet_name)
-                sheet.append(["value"] + headers)
+            row = {"value": value, **results_data}
+            _append_headers(sheet_data["headers"], row)
+            sheet_data["rows"].append(row)
 
-            # Build and append row
-            row_data = [value] + [_serialize_cell_data(results_data[h]) for h in headers]
-            sheet.append(row_data)
+    return sheets
+
+
+def generate_excel(wb, data):
+    """Generate Excel workbook from current or legacy harvester export data."""
+    # Remove default sheet if it exists
+    try:
+        if wb.active:
+            wb.remove(wb.active)
+    except Exception as e:
+        logger.warning(f"Could not remove default sheet: {e}")
+
+    if data.get("results"):
+        sheets = _build_sheet_rows_from_lookup_results(data)
+    else:
+        sheets = _build_sheet_rows_from_legacy_data(data)
+
+    for sheet_name, sheet_data in sheets.items():
+        headers = sheet_data["headers"]
+        sheet = wb.create_sheet(sheet_name)
+        sheet.append(headers)
+
+        for row in sheet_data["rows"]:
+            sheet.append([_serialize_cell_data(row.get(header)) for header in headers])
 
     return wb
 
