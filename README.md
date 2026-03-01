@@ -1,98 +1,119 @@
 # ctiportal
 
-**Live Demo:** https://ctiportal.vercel.app (frontend) + https://ctiportal.onrender.com (API)
+CTI workspace with:
 
-_Note: The backend may take a few minutes to start on the first request._
+- Intelligence Harvester
+- Domain Monitoring
+- Website Screenshot
+- Mail Header Analyzer
+- Text Formatter
+- URL Decoder
+- ThreatStream search
 
-## Quick Start
+Live demo:
 
-📚 **See [DEPLOY_NOW.md](DEPLOY_NOW.md)** for one-click deployment to Render + Vercel
+- Frontend: https://ctiportal.vercel.app
+- Backend: https://ctiportal-backend.onrender.com
 
-🔧 **See [ENV_SETUP.md](ENV_SETUP.md)** for local development and Docker setup
+## Stack
 
-## Overview
+- Frontend: React, Vite, TypeScript, shadcn/ui
+- Backend: Django, DRF, PostgreSQL
+- Auth: cookie-based JWT
 
-### Key Features
+## Backend env files
 
-1. **Intelligence Harvester:**
+Use these files:
 
-   - Collects and displays information on indicators (domains, URLs, IPs, hashes, emails, CVEs, etc) from 16+ intelligence sources.
-   - Supports bulk queries and the functionality to export the results to an Excel file.
+- `backend/.env.example`: committed template
+- `backend/.env.development`: local development template
+- `backend/.env.docker`: Docker Compose template
+- `backend/.env`: actual runtime file loaded by Django
 
-2. **URL Decoder:**
+Use these frontend files:
 
-   - Decodes URLs encoded with O365 Safelinks/Proofpoint TAP.
+- `frontend/.env.example`
+- `frontend/.env.docker`
 
-3. **Text Formatter:**
+## Local development
 
-   - Supports fang/defang of IoCs, domain and subdomain extraction, duplicate removal, and case conversion.
+Backend:
 
-4. **Website Screenshot:**
+```bash
+cp backend/.env.development backend/.env
+cd backend
+python -m venv .venv
+. .venv/Scripts/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+```
 
-   - Allows bulk querying for website screenshots, essential for analyzing malicious websites.
+Frontend:
 
-5. **Mail Header Analyzer:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-   - Facilitates the analysis of email headers for deeper insights.
+Default local auth cookie settings:
 
-6. **Domain Monitoring:**
+```env
+AUTH_COOKIE_SECURE=False
+AUTH_COOKIE_SAMESITE=Lax
+```
 
-   - Provides a list of newly registered domains matching specific keywords and monitors for domain changes.
+## Docker Compose
 
-7. **Anomali ThreatStream Search:**
-   - Enables the export of bulk IoCs information from Anomali Threatstream.
+```bash
+cp backend/.env.docker backend/.env
+docker-compose up
+```
 
-### Purpose
+Notes:
 
-The `ctiportal` addresses the limitations of existing Threat Intelligence Platforms (TIPs) by centralizing information on indicators. Analysts often rely on various external websites, leading to fragmented analysis. This platform aims to be a one-stop solution, preventing the need for multiple external sources and supporting bulk lookups.
+- local development uses `DB_HOST=localhost`
+- Docker uses `DB_HOST=postgres`
+- Docker Compose defines the Postgres container credentials in `docker-compose.yml`
 
-### Intelligence Harvester Sources
+Default Docker auth cookie settings:
 
-| Source                                | Domain | IP  | Email | Hash | URL | CVE |
-| ------------------------------------- | ------ | --- | ----- | ---- | --- | --- |
-| Standard Lookup                       | ✓      | ✓   | ✘     | ✘    | ✓   | ✘   |
-| IBM X-Force Exchange                  | ✓      | ✓   | ✘     | ✘    | ✓   | ✓   |
-| Website Screenshot                    | ✓      | ✓   | ✘     | ✘    | ✓   | ✘   |
-| VirusTotal                            | ✓      | ✓   | ✘     | ✓    | ✓   | ✘   |
-| Hybrid Analysis                       | ✘      | ✓   | ✘     | ✓    | ✘   | ✘   |
-| WHOIS                                 | ✓      | ✓   | ✘     | ✘    | ✓   | ✘   |
-| Blacklists                            | ✓      | ✓   | ✘     | ✘    | ✓   | ✘   |
-| urlscan.io                            | ✓      | ✓   | ✘     | ✘    | ✓   | ✘   |
-| host.io                               | ✓      | ✘   | ✘     | ✘    | ✘   | ✘   |
-| PhishTank                             | ✓      | ✓   | ✘     | ✘    | ✓   | ✘   |
-| HTTP Status                           | ✓      | ✓   | ✘     | ✘    | ✓   | ✘   |
-| AbuseIPDB                             | ✘      | ✓   | ✘     | ✘    | ✘   | ✘   |
-| Email Validator                       | ✘      | ✘   | ✓     | ✘    | ✘   | ✘   |
-| Pulsedive                             | ✓      | ✓   | ✘     | ✘    | ✓   | ✘   |
-| National Vulnerability Database (NVD) | ✘      | ✘   | ✘     | ✘    | ✘   | ✓   |
+```env
+AUTH_COOKIE_SECURE=False
+AUTH_COOKIE_SAMESITE=Lax
+```
 
-### Additional Features
+## Production: Render + Vercel
 
-- Defanged IOCs Supported
-- Multiple Input Formats (Comma, Space, Line Separated)
-- CSV Export Capability
+Do not deploy with local `.env` files. Set env vars in the hosting dashboards.
 
-### Website Screenshot
+Backend on Render must use:
 
-Analysis of malicious websites often requires an isolated environment, and `ctiportal` provides bulk website screenshot queries to address this need. This feature distinguishes it from other tools, as it allows for real-time analysis in an isolated environment.
+```env
+AUTH_COOKIE_SECURE=True
+AUTH_COOKIE_SAMESITE=None
+CORS_ALLOWED_ORIGINS=https://ctiportal.vercel.app
+CSRF_TRUSTED_ORIGINS=https://ctiportal.vercel.app
+ALLOWED_HOSTS=ctiportal-backend.onrender.com
+```
 
-### Pending Updates
+Frontend on Vercel must use:
 
-1. **Infographics for Intelligence Harvester:**
+```env
+VITE_API_BASE_URL=https://ctiportal-backend.onrender.com/api/v1
+```
 
-   - Data will be displayed using infographics for enhanced visualization.
+Why:
 
-2. **Historical Database:**
+- frontend and backend are on different domains
+- auth is cookie-based
+- cross-site cookies require `Secure=True` and `SameSite=None`
 
-   - Plans to maintain a historical database for analysis and extracting valuable information.
+## Important notes
 
-3. **Integration with Intel Feeds:**
-   - Collection of Intel Feeds, maintaining a database, and integration with applications like Anomali.
-
-### Notes
-
-- Premium API keys are required for heavy usage.
-
-Feel free to explore the `ctiportal` and contribute to its evolution!
-
-_Note: This README is subject to updates as the project progresses._
+- `AUTH_COOKIE_SAMESITE` must be one of `Lax`, `Strict`, `None`
+- `AUTH_COOKIE_SAMESITE=None` requires `AUTH_COOKIE_SECURE=True`
+- provider API keys are backend-only
+- keep real secrets out of the repo
+- rotate any secret that was ever committed

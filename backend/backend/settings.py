@@ -180,7 +180,15 @@ AUTH_COOKIE_SECURE = _env_bool("AUTH_COOKIE_SECURE", not DEBUG)
 AUTH_COOKIE_SAMESITE = os.getenv(
     "AUTH_COOKIE_SAMESITE",
     "None" if AUTH_COOKIE_SECURE else "Lax",
-)
+).strip().title()
+if AUTH_COOKIE_SAMESITE not in {"Lax", "Strict", "None"}:
+    raise ValueError(
+        "AUTH_COOKIE_SAMESITE must be one of: Lax, Strict, None"
+    )
+if AUTH_COOKIE_SAMESITE == "None" and not AUTH_COOKIE_SECURE:
+    raise ValueError(
+        "AUTH_COOKIE_SAMESITE=None requires AUTH_COOKIE_SECURE=true"
+    )
 
 # Security Settings
 SECURE_CONTENT_TYPE_NOSNIFF = True

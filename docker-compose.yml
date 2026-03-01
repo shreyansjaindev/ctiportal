@@ -3,6 +3,10 @@ services:
     image: postgres:16
     container_name: ctiportal_postgres
     restart: unless-stopped
+    environment:
+      POSTGRES_DB: ctiportal_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     env_file:
       - ./backend/.env.docker
     ports:

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom"
 
 import { NavUser } from "@/shared/components/nav-user"
 import { Logo } from "@/shared/components/logo"
+import { branding } from "@/shared/lib/branding"
 import {
   Sidebar,
   SidebarContent,
@@ -33,8 +34,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <Logo className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">CTI Portal</span>
-                  <span className="truncate text-xs">Intelligence Hub</span>
+                  <span className="truncate font-semibold">{branding.appName}</span>
+                  <span className="truncate text-xs">{branding.appTagline}</span>
                 </div>
               </a>
             </SidebarMenuButton>
