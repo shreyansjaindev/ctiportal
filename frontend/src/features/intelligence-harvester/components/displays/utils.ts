@@ -7,7 +7,7 @@
  * Used by display components that render plain text (not JSX).
  */
 export function formatValue(value: unknown): string {
-  if (value === null || value === undefined) return "—"
+  if (value === null || value === undefined) return "-"
   if (value === "") return "Not Found"
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return String(value)

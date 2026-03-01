@@ -142,9 +142,6 @@ async function handleBlobResponse(response: Response): Promise<Blob> {
   return response.blob()
 }
 
-// Token parameters are kept for backward compatibility with existing service layer
-// calls but are intentionally ignored — auth is handled via httpOnly cookies.
-
 export async function apiGet<T>(path: string): Promise<T> {
   const response = await fetchWithTimeout(`${API_BASE}${path}`)
   try {

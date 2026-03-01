@@ -37,9 +37,3 @@ export type DataTableFilterField<TData> =
   | DataTableCheckboxFilterField<TData>
   | DataTableTimerangeFilterField<TData>;
 
-/** Legacy type for backwards compatibility */
-export type FilterOption = {
-  label: string
-  value: string
-}
-

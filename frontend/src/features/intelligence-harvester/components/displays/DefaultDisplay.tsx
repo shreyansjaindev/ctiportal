@@ -1,8 +1,10 @@
 import { AlertCircle } from "lucide-react"
+
 import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
-import { isBase64Image } from "./utils"
+
 import { FieldTable } from "./FieldTable"
+import { isBase64Image } from "./utils"
 
 interface DefaultDisplayProps {
   result: LookupResult
@@ -14,15 +16,29 @@ function isImageKey(key: string) {
 }
 
 function formatValue(key: string, value: unknown): React.ReactNode {
-  if (value === null || value === undefined) return "—"
+  if (value === null || value === undefined) return "-"
   if (value === "") return "Not Found"
 
   if (isImageKey(key) && typeof value === "string") {
     if (value.startsWith("data:image/")) {
-      return <img src={value} alt={key} className="max-w-full h-auto rounded-md border shadow-sm" style={{ maxHeight: "300px" }} />
+      return (
+        <img
+          src={value}
+          alt={key}
+          className="max-w-full h-auto rounded-md border shadow-sm"
+          style={{ maxHeight: "300px" }}
+        />
+      )
     }
     if (isBase64Image(value)) {
-      return <img src={`data:image/png;base64,${value}`} alt={key} className="max-w-full h-auto rounded-md border shadow-sm" style={{ maxHeight: "300px" }} />
+      return (
+        <img
+          src={`data:image/png;base64,${value}`}
+          alt={key}
+          className="max-w-full h-auto rounded-md border shadow-sm"
+          style={{ maxHeight: "300px" }}
+        />
+      )
     }
   }
 
@@ -45,7 +61,7 @@ function renderFields(fields: [string, unknown][]) {
       {imageFields.map(([key, value]) => (
         <div key={key} className="space-y-2">
           <div className="text-xs font-medium text-muted-foreground">
-            {key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+            {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
           </div>
           {formatValue(key, value)}
         </div>
@@ -82,4 +98,3 @@ export function DefaultDisplay({ result, isOverview = false }: DefaultDisplayPro
 
   return renderFields(fields)
 }
-

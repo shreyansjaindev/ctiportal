@@ -296,9 +296,3 @@ def threatstream_import_indicators_stix(file_path, classification, confidence, t
 
 if __name__ == "__main__":
     pass
-    # print(
-    #     threatstream_import_domains_without_approval(
-    #         ["ibankingservice.com"],
-    #         ["FIS Domain Monitoring", "GLOBAL_BLOCK", "XSOAR_TIM"],
-    #     )
-    # )

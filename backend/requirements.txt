@@ -6,7 +6,6 @@ django-filter==25.2
 djangorestframework==3.16.1
 djangorestframework-simplejwt==5.5.1
 dnspython==2.7.0
-drf-spectacular==0.29.0
 gunicorn==25.1.0
 whitenoise==6.11.0
 ioc-finder==7.3.0
@@ -15,7 +14,7 @@ Levenshtein==0.27.3
 opencv-python==4.13.0.92
 openpyxl==3.1.5
 pandas==3.0.1
-psycopg2-binary==2.9.10
+psycopg==3.2.10
 pulsedive==0.1.0
 python-dotenv==1.2.1
 python-whois==0.9.6

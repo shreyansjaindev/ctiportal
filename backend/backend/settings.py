@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
-    "drf_spectacular",
     "dj_rest_auth",
 ]
 
@@ -184,7 +183,6 @@ AUTH_COOKIE_SAMESITE = os.getenv(
 )
 
 # Security Settings
-SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
@@ -236,7 +234,6 @@ REST_FRAMEWORK = {
         "anon": "1000/hour",  # Increased for development
         "user": "5000/hour",
     },
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SIMPLE_JWT = {
@@ -256,16 +253,3 @@ REST_AUTH = {
     "JWT_AUTH_SAMESITE": AUTH_COOKIE_SAMESITE,
 }
 
-# DRF Spectacular Settings for API Documentation
-SPECTACULAR_SETTINGS = {
-    "TITLE": "CTI Portal API",
-    "DESCRIPTION": "Cyber Threat Intelligence Portal REST API",
-    "VERSION": "1.0.0",
-    "SERVE_INCLUDE_SCHEMA": False,
-    "COMPONENT_SPLIT_REQUEST": True,
-    "SCHEMA_PATH_PREFIX": "/api/",
-    # Auth uses httpOnly cookies set by dj-rest-auth — no Authorization header.
-    # Swagger UI cannot inject cookies, so interactive auth testing requires
-    # logging in via /api/v1/auth/login/ first (cookies are set automatically).
-    "SECURITY": [],
-}

@@ -47,7 +47,6 @@ class IdentifierViewSet(viewsets.ViewSet):
             )
 
 
-# FileResponse is no longer used — Excel bytes are returned directly from ExcelRenderer.
 class ExcelRenderer(BaseRenderer):
     """Render lookup results as Excel spreadsheet"""
     media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

@@ -1,25 +1,8 @@
 """
-Unified provider metadata and function registry
-Includes: provider info, presets, supported indicators, and function references
+Unified provider metadata and lookup configuration.
 
 Frontend derives logo paths from provider IDs (convention: /assets/logos/{provider_id}.svg|png)
 """
-
-# Import provider functions for registry
-from .providers.ibm import ibm
-from .providers.securitytrails import get_whois as whois
-from .providers.nvd import nvd
-from .providers.hybrid_analysis import hybridanalysis
-from .providers.screenshotmachine import get_website_screenshot
-from .providers.pulse_dive import pulse_dive
-from .providers.virustotal import virustotal
-from .providers.abuseipdb import abuseipdb
-from .providers.apilayer import emailvalidator
-from .providers.urlscan import urlscan
-from .providers.redirect_checker import redirect_checker
-from .providers.geekflare import geekflare_redirect_checker
-from .providers.hostio import hostio
-from .providers.phishtank import phishtank
 
 # Import aggregator modules for lookup orchestration
 from .aggregators import (
@@ -71,81 +54,6 @@ INDICATOR_LOOKUPS = {
     'sha256': ['reputation'],
     'sha512': ['reputation'],
     'keyword': [],
-}
-
-# Function registry for engine.py (bulk collection)
-# Maps source IDs to their functions and supported types
-SOURCE_REGISTRY = {
-    "ibm": {
-        "title": "IBM X-Force",
-        "function": ibm,
-        "supported_types": ["domain", "url", "ipv4", "md5", "sha1", "sha256", "sha512", "cve"],
-    },
-    "whois": {
-        "title": "WHOIS",
-        "function": whois,
-        "supported_types": ["domain", "url"],
-    },
-    "nvd": {
-        "title": "NVD",
-        "function": nvd,
-        "supported_types": ["cve"],
-    },
-    "hybridanalysis": {
-        "title": "Hybrid Analysis",
-        "function": hybridanalysis,
-        "supported_types": ["md5", "sha1", "sha256", "sha512"],
-    },
-    "screenshot": {
-        "title": "Screenshot",
-        "function": get_website_screenshot,
-        "supported_types": ["domain", "url", "ipv4"],
-    },
-    "pulsedive": {
-        "title": "Pulsedive",
-        "function": pulse_dive,
-        "supported_types": ["domain", "url", "ipv4"],
-    },
-    "virustotal": {
-        "title": "VirusTotal",
-        "function": virustotal,
-        "supported_types": ["domain", "ipv4", "url", "md5", "sha1", "sha256", "sha512"],
-    },
-    "abuseipdb": {
-        "title": "AbuseIPDB",
-        "function": abuseipdb,
-        "supported_types": ["ipv4"],
-    },
-    "emailvalidator": {
-        "title": "Email Validator",
-        "function": emailvalidator,
-        "supported_types": ["email"],
-    },
-    "urlscan": {
-        "title": "urlscan.io",
-        "function": urlscan,
-        "supported_types": ["domain", "url", "ipv4"],
-    },
-    "redirect_checker": {
-        "title": "Redirect Checker",
-        "function": redirect_checker,
-        "supported_types": ["domain", "url", "ipv4"],
-    },
-    "geekflare": {
-        "title": "Geekflare",
-        "function": geekflare_redirect_checker,
-        "supported_types": ["domain", "url", "ipv4"],
-    },
-    "hostio": {
-        "title": "host.io",
-        "function": hostio,
-        "supported_types": ["domain", "url"],
-    },
-    "phishtank": {
-        "title": "PhishTank",
-        "function": phishtank,
-        "supported_types": ["domain", "url", "ipv4"],
-    },
 }
 
 # Preset configurations

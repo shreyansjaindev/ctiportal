@@ -1,8 +1,10 @@
 import { AlertCircle } from "lucide-react"
+
 import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
-import { isBase64Image } from "./utils"
+
 import { FieldTable } from "./FieldTable"
+import { isBase64Image } from "./utils"
 
 interface ScreenshotDisplayProps {
   result: LookupResult
@@ -10,35 +12,32 @@ interface ScreenshotDisplayProps {
 }
 
 function formatValue(key: string, value: unknown): React.ReactNode {
-  if (value === null || value === undefined) return "—"
+  if (value === null || value === undefined) return "-"
   if (value === "") return "Not Found"
-  
-  // Handle screenshot/image fields
+
   if ((key.toLowerCase().includes("screenshot") || key.toLowerCase().includes("image")) && typeof value === "string") {
-    // If it's already a data URL
     if (value.startsWith("data:image/")) {
       return (
-        <img 
-          src={value} 
-          alt="Screenshot" 
+        <img
+          src={value}
+          alt="Screenshot"
           className="max-w-full h-auto rounded-md"
           style={{ maxHeight: "400px" }}
         />
       )
     }
-    // If it's base64 without the data URL prefix
     if (isBase64Image(value)) {
       return (
-        <img 
-          src={`data:image/png;base64,${value}`} 
-          alt="Screenshot" 
+        <img
+          src={`data:image/png;base64,${value}`}
+          alt="Screenshot"
           className="max-w-full h-auto rounded-md"
           style={{ maxHeight: "400px" }}
         />
       )
     }
   }
-  
+
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return String(value)
   }
@@ -79,43 +78,32 @@ export function ScreenshotDisplay({ result, isOverview = false }: ScreenshotDisp
   }
 
   if (isOverview) {
-    // Overview tab - show screenshot image if available
     const allData = result.essential || {}
-    const screenshotField = Object.entries(allData).find(([key]) => 
-      key.toLowerCase().includes("screenshot") || key.toLowerCase().includes("image")
+    const screenshotField = Object.entries(allData).find(
+      ([key]) => key.toLowerCase().includes("screenshot") || key.toLowerCase().includes("image")
     )
-    
+
     if (!screenshotField) return null
-    
+
     const [key, value] = screenshotField
-    
-    return (
-      <div className="flex justify-center">
-        {formatValue(key, value)}
-      </div>
-    )
+
+    return <div className="flex justify-center">{formatValue(key, value)}</div>
   }
 
-  // Expanded view - prioritize the screenshot itself and let it use the
-  // available card space before showing any metadata below it.
   const allFields = Object.entries({
     ...result.essential,
-    ...result.additional
+    ...result.additional,
   }).filter(([, value]) => value !== null && value !== undefined)
 
   if (allFields.length === 0) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        No screenshot available for this result.
-      </div>
-    )
+    return <div className="text-sm text-muted-foreground">No screenshot available for this result.</div>
   }
 
-  const imageFields = allFields.filter(([key]) =>
-    key.toLowerCase().includes("screenshot") || key.toLowerCase().includes("image")
+  const imageFields = allFields.filter(
+    ([key]) => key.toLowerCase().includes("screenshot") || key.toLowerCase().includes("image")
   )
-  const regularFields = allFields.filter(([key]) =>
-    !key.toLowerCase().includes("screenshot") && !key.toLowerCase().includes("image")
+  const regularFields = allFields.filter(
+    ([key]) => !key.toLowerCase().includes("screenshot") && !key.toLowerCase().includes("image")
   )
 
   const primaryImageField = imageFields[0]
@@ -125,8 +113,11 @@ export function ScreenshotDisplay({ result, isOverview = false }: ScreenshotDisp
       {primaryImageField && (
         <div className="overflow-hidden rounded-lg border bg-muted/20 p-3">
           <div className="flex justify-center">
-            {renderImage(primaryImageField[1], "h-auto max-h-[70vh] w-full rounded-md object-contain")
-              ?? <span className="text-sm text-muted-foreground">{formatValue(primaryImageField[0], primaryImageField[1])}</span>}
+            {renderImage(primaryImageField[1], "h-auto max-h-[70vh] w-full rounded-md object-contain") ?? (
+              <span className="text-sm text-muted-foreground">
+                {formatValue(primaryImageField[0], primaryImageField[1])}
+              </span>
+            )}
           </div>
         </div>
       )}

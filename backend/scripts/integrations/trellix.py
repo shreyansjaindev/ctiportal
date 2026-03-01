@@ -49,17 +49,17 @@ def add_domains_to_yara_rule(domains):
 
 
 def generate_yara_rule_file(domains):
-    rule_name = "fis_domain_monitoring"
+    rule_name = "sample_domain_monitoring"
     meta_data = {
         "author": "CTI",
-        "description": "Identify if a FIS look-alike domain is present in the email body.",
+        "description": "Identify if a look-alike domain is present in the email body.",
     }
     condition = "1 of ($regex*)"
 
     try:
         strings_to_match = add_domains_to_yara_rule(domains)
         yara_content = generate_yara_rule(rule_name, meta_data, strings_to_match, condition)
-        with open("URL_fis_domain_monitoring.yara", "w") as yara_file:
+        with open("URL_sample_domain_monitoring.yara", "w") as yara_file:
             yara_file.write(yara_content)
         print("YARA file generated successfully.")
     except Exception as e:
@@ -94,7 +94,7 @@ def update_yara_ruleset_by_name(domains, name, policy_uuid):
         )
         generate_yara_rule_file(domains)
         try:
-            with open("URL_fis_domain_monitoring.yara", "rb") as file:
+            with open("URL_sample_domain_monitoring.yara", "rb") as file:
                 files = {"file": file}
                 response = requests.put(yara_ruleset_url, headers=HEADERS, files=files)
                 response.raise_for_status()

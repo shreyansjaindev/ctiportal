@@ -5,9 +5,7 @@ import { ChevronDown, ChevronUp } from "lucide-react"
 
 import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/shared/lib/utils"
-import type { FilterOption } from "./types"
-
-export type { FilterOption }
+import type { Option } from "./types"
 
 interface DataTableColumnHeaderProps<TData, TValue> {
   column: Column<TData, TValue>
@@ -15,7 +13,7 @@ interface DataTableColumnHeaderProps<TData, TValue> {
   /** If provided, renders a filter icon with popover */
   filterType?: "text" | "select"
   /** Options for select filter type */
-  filterOptions?: FilterOption[]
+  filterOptions?: Option[]
   /** Placeholder for text filter input */
   filterPlaceholder?: string
   /** "All" label shown at top of select (default: "All") */
