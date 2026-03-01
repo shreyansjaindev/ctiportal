@@ -7,8 +7,6 @@ services:
       POSTGRES_DB: ctiportal_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    env_file:
-      - ./backend/.env.docker
     ports:
       - "5432:5432"
     volumes:
@@ -25,7 +23,9 @@ services:
     container_name: ctiportal_backend
     restart: unless-stopped
     env_file:
-      - ./backend/.env.docker
+      - ./backend/.env
+    environment:
+      DB_HOST: postgres
     ports:
       - "8000:8000"
     volumes:
@@ -40,7 +40,9 @@ services:
     container_name: ctiportal_frontend
     restart: unless-stopped
     env_file:
-      - ./frontend/.env.docker
+      - ./frontend/.env
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
     ports:
       - "5173:5173"
     volumes:

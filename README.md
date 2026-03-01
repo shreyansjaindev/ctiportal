@@ -21,26 +21,19 @@ Live demo:
 - Backend: Django, DRF, PostgreSQL
 - Auth: cookie-based JWT
 
-## Backend env files
+## Env files
 
-Use these files:
+Use one template and one real env file per app:
 
-- `backend/.env.example`: committed template
-- `backend/.env.development`: local development template
-- `backend/.env.docker`: Docker Compose template
-- `backend/.env`: actual runtime file loaded by Django
-
-Use these frontend files:
-
-- `frontend/.env.example`
-- `frontend/.env.docker`
+- `backend/.env.example` -> copy to `backend/.env`
+- `frontend/.env.example` -> copy to `frontend/.env`
 
 ## Local development
 
 Backend:
 
 ```bash
-cp backend/.env.development backend/.env
+cp backend/.env.example backend/.env
 cd backend
 python -m venv .venv
 . .venv/Scripts/activate
@@ -52,6 +45,7 @@ python manage.py runserver
 Frontend:
 
 ```bash
+cp frontend/.env.example frontend/.env
 cd frontend
 npm install
 npm run dev
@@ -67,15 +61,14 @@ AUTH_COOKIE_SAMESITE=Lax
 ## Docker Compose
 
 ```bash
-cp backend/.env.docker backend/.env
 docker-compose up
 ```
 
 Notes:
 
-- local development uses `DB_HOST=localhost`
-- Docker uses `DB_HOST=postgres`
-- Docker Compose defines the Postgres container credentials in `docker-compose.yml`
+- Docker Compose reads the same `backend/.env` and `frontend/.env` files
+- Docker-specific values are overridden in `docker-compose.yml`
+- Postgres container credentials are defined in `docker-compose.yml`
 
 Default Docker auth cookie settings:
 
