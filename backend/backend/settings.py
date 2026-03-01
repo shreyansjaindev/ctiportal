@@ -237,8 +237,8 @@ REST_AUTH = {
     "JWT_AUTH_COOKIE": "cti-access-token",
     "JWT_AUTH_REFRESH_COOKIE": "cti-refresh-token",
     "JWT_AUTH_HTTPONLY": True,
-    "JWT_AUTH_SECURE": not DEBUG,
-    "JWT_AUTH_SAMESITE": "Lax",
+    "JWT_AUTH_SECURE": True,
+    "JWT_AUTH_SAMESITE": "None",
 }
 
 # DRF Spectacular Settings for API Documentation
