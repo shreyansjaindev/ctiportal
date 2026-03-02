@@ -1,7 +1,9 @@
 from django.contrib import admin
+from solo.admin import SingletonModelAdmin
 from .models import (
     Company,
     CompanyDomain,
+    DomainMonitoringSettings,
     WatchedResource,
     MonitoredDomain,
     MonitoredDomainAlert,
@@ -15,10 +17,14 @@ from .models import (
 
 class CompanyAdmin(admin.ModelAdmin):
     list_display = ("created", "name", "status")
+    search_fields = ("name",)
+    list_filter = ("status", "created")
 
 
 class CompanyDomainAdmin(admin.ModelAdmin):
     list_display = ("created", "value", "company", "status")
+    search_fields = ("value", "company__name")
+    list_filter = ("status", "company", "created")
 
 
 class WatchedResourceAdmin(admin.ModelAdmin):
@@ -26,11 +32,14 @@ class WatchedResourceAdmin(admin.ModelAdmin):
         "created",
         "value",
         "resource_type",
+        "lookalike_match_from",
         "properties",
         "exclude_keywords",
         "company",
         "status",
     )
+    search_fields = ("value", "company__name")
+    list_filter = ("status", "resource_type", "lookalike_match_from", "company", "created")
 
 
 class MonitoredDomainAdmin(admin.ModelAdmin):
@@ -44,6 +53,8 @@ class MonitoredDomainAdmin(admin.ModelAdmin):
         "website_status_code",
         "website_screenshot",
     )
+    search_fields = ("value", "company__name", "website_url")
+    list_filter = ("status", "company", "last_checked", "created")
 
 
 class MonitoredDomainAlertAdmin(admin.ModelAdmin):
@@ -61,10 +72,14 @@ class MonitoredDomainAlertAdmin(admin.ModelAdmin):
         "company",
         "status",
     )
+    search_fields = ("domain_name", "company__name", "website_url")
+    list_filter = ("status", "company", "created")
 
 
 class NewlyRegisteredDomainAdmin(admin.ModelAdmin):
-    list_display = ("created", "value")
+    list_display = ("source_date", "created", "value")
+    search_fields = ("value",)
+    list_filter = ("source_date",)
 
 
 class LookalikeAdmin(admin.ModelAdmin):
@@ -77,10 +92,25 @@ class LookalikeAdmin(admin.ModelAdmin):
         "status",
         "company",
     )
+    search_fields = ("value", "watched_resource", "company__name", "source")
+    list_filter = ("status", "potential_risk", "company", "source_date", "created")
 
 
 class SSLCertificateAdmin(admin.ModelAdmin):
     list_display = ("created", "cert_index", "cert_domain", "watched_domain", "company")
+    search_fields = ("cert_domain", "watched_domain", "company__name")
+    list_filter = ("company", "created")
+
+
+class DomainMonitoringSettingsAdmin(SingletonModelAdmin):
+    list_display = (
+        "created",
+        "last_modified",
+        "dns_provider",
+        "subdomain_provider",
+        "screenshot_provider",
+        "nrd_provider",
+    )
 
 
 class MonitoredDomainAlertCommentAdmin(admin.ModelAdmin):
@@ -90,6 +120,8 @@ class MonitoredDomainAlertCommentAdmin(admin.ModelAdmin):
         return obj.alert.id
 
     alert_id.short_description = "Alert ID"
+    search_fields = ("text", "alert__domain_name", "user__username")
+    list_filter = ("created", "last_modified", "user")
 
 
 admin.site.register(Company, CompanyAdmin)
@@ -100,5 +132,19 @@ admin.site.register(MonitoredDomainAlert, MonitoredDomainAlertAdmin)
 admin.site.register(NewlyRegisteredDomain, NewlyRegisteredDomainAdmin)
 admin.site.register(LookalikeDomain, LookalikeAdmin)
 admin.site.register(SSLCertificate, SSLCertificateAdmin)
+admin.site.register(DomainMonitoringSettings, DomainMonitoringSettingsAdmin)
 admin.site.register(MonitoredDomainAlertComment, MonitoredDomainAlertCommentAdmin)
-admin.site.register(LookalikeDomainComment)
+
+
+class LookalikeDomainCommentAdmin(admin.ModelAdmin):
+    list_display = ("created", "last_modified", "text", "lookalike_domain_id", "user")
+    search_fields = ("text", "lookalike_domain__value", "user__username")
+    list_filter = ("created", "last_modified", "user")
+
+    def lookalike_domain_id(self, obj):
+        return obj.lookalike_domain.id
+
+    lookalike_domain_id.short_description = "Lookalike ID"
+
+
+admin.site.register(LookalikeDomainComment, LookalikeDomainCommentAdmin)

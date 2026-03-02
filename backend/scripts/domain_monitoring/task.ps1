@@ -3,4 +3,4 @@ cd D:\apps\ctiportal\venv\Scripts\
 cd ..\..
 $date_yesterday = (Get-Date).AddDays(-1).ToString("yyyy-MM-dd")
 
-python scripts\domain_monitoring\lookalike_domains.py $date_yesterday
+python backend\manage.py run_lookalike_scan --date $date_yesterday

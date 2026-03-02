@@ -5,6 +5,7 @@ from .models import (
     WatchedResource,
     MonitoredDomain,
     MonitoredDomainAlert,
+    MonitoredDomainScreenshotPattern,
     NewlyRegisteredDomain,
     LookalikeDomain,
     SSLCertificate,
@@ -58,6 +59,23 @@ class MonitoredDomainAlertSerializer(serializers.ModelSerializer):
     class Meta:
         model = MonitoredDomainAlert
         fields = "__all__"
+
+
+class MonitoredDomainScreenshotPatternSerializer(serializers.ModelSerializer):
+    monitored_domain = serializers.PrimaryKeyRelatedField(queryset=MonitoredDomain.objects.all())
+    created_by_username = serializers.CharField(source="created_by.username", read_only=True)
+
+    class Meta:
+        model = MonitoredDomainScreenshotPattern
+        fields = "__all__"
+
+
+class SponsoredListingPatternCreateSerializer(serializers.Serializer):
+    pattern_type = serializers.ChoiceField(
+        choices=MonitoredDomainScreenshotPattern._meta.get_field("pattern_type").choices,
+        default="sponsored_listing",
+        required=False,
+    )
 
 
 class NewlyRegisteredDomainSerializer(serializers.ModelSerializer):

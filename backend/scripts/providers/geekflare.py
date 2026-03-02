@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import requests
 
@@ -6,26 +7,76 @@ from ..utils.api_helpers import check_api_key
 
 _raw_geekflare = os.getenv("GEEKFLARE")
 API_KEY = _raw_geekflare.split(",")[0].strip() if _raw_geekflare else None
+BASE_URL = "https://api.geekflare.com"
 
 
-def geekflare_redirect_checker(query: str):
-    error = check_api_key(API_KEY, "Geekflare")
+def _geekflare_headers() -> dict[str, str]:
+    return {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY or "",
+    }
+
+
+def _post_geekflare_request(url: str, payload: dict[str, Any], provider_name: str = "Geekflare") -> dict[str, Any] | None:
+    error = check_api_key(API_KEY, provider_name)
     if error:
-        return error
+        return None
 
     try:
         response = requests.post(
-            "https://api.geekflare.com/redirectcheck",
-            headers={
-                "Content-Type": "application/json",
-                "x-api-key": API_KEY,
-            },
-            json={"url": query},
+            url,
+            headers=_geekflare_headers(),
+            json=payload,
             timeout=30,
         )
         response.raise_for_status()
-        payload = response.json()
+        return response.json()
     except requests.RequestException:
+        return None
+
+
+def get_dns_records(query: str) -> dict[str, Any]:
+    payload = _post_geekflare_request(
+        f"{BASE_URL}/dnsrecord",
+        {"url": query},
+    )
+    if not payload:
+        return {}
+
+    data = payload.get("data", {})
+    return {
+        "status_code": payload.get("apiCode", ""),
+        "a": [a["address"] for a in data.get("A", [])],
+        "mx": [mx["exchange"] for mx in data.get("MX", [])],
+        "spf": next(
+            (txt[0] for txt in data.get("TXT", []) if txt[0].startswith("v=spf1")),
+            "",
+        ),
+    }
+
+
+def get_screenshot_url(query: str) -> str:
+    payload = _post_geekflare_request(
+        f"{BASE_URL}/screenshot",
+        {
+            "url": query,
+            "device": "desktop",
+            "blockAds": False,
+            "skipCaptcha": False,
+            "hideCookie": False,
+        },
+    )
+    if not payload:
+        return ""
+    return str(payload.get("data", "") or "")
+
+
+def get_web_redirects(query: str):
+    payload = _post_geekflare_request(
+        f"{BASE_URL}/redirectcheck",
+        {"url": query},
+    )
+    if not payload:
         return {"error": "Geekflare request failed"}
 
     hops = payload.get("data")

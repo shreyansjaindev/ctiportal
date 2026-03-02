@@ -19,13 +19,18 @@ from ..models import (
     MonitoredDomain,
     MonitoredDomainAlert,
     MonitoredDomainAlertComment,
+    MonitoredDomainScreenshotPattern,
 )
 from ..serializers import (
     AnomaliThreatstreamDomainsSerializer,
     MonitoredDomainAlertCommentSerializer,
     MonitoredDomainAlertSerializer,
     MonitoredDomainSerializer,
+    MonitoredDomainScreenshotPatternSerializer,
+    SponsoredListingPatternCreateSerializer,
 )
+from ..choices import AlertStatus
+from ..services.screenshot_compare import compute_screenshot_phash
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +155,49 @@ class MonitoredDomainAlertViewSet(viewsets.ModelViewSet, CountMixin):
     def list(self, request, *args, **kwargs):
         """List alerts with count metadata"""
         return self.list_with_counts(request, *args, **kwargs)
+
+    @action(detail=True, methods=["post"], url_path="mark-sponsored-listing")
+    def mark_sponsored_listing(self, request, pk=None):
+        alert = self.get_object()
+        serializer = SponsoredListingPatternCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            monitored_domain = MonitoredDomain.objects.get(
+                value=alert.domain_name,
+                company=alert.company,
+            )
+        except MonitoredDomain.DoesNotExist:
+            return Response(
+                {"error": "Matching monitored domain not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not alert.website_screenshot:
+            return Response(
+                {"error": "Alert has no screenshot to classify"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        pattern, _ = MonitoredDomainScreenshotPattern.objects.update_or_create(
+            monitored_domain=monitored_domain,
+            screenshot_hash=alert.website_screenshot_hash,
+            defaults={
+                "pattern_type": serializer.validated_data["pattern_type"],
+                "screenshot": alert.website_screenshot,
+                "screenshot_phash": compute_screenshot_phash(alert.website_screenshot),
+                "active": True,
+                "created_by": request.user,
+            },
+        )
+
+        if alert.status != AlertStatus.CLOSED:
+            alert.status = AlertStatus.CLOSED
+            alert.save(update_fields=["status", "last_modified"])
+
+        pattern_serializer = MonitoredDomainScreenshotPatternSerializer(pattern)
+        return Response(pattern_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["get", "post", "patch", "delete"], url_path="comments")
     def comments(self, request, pk=None):

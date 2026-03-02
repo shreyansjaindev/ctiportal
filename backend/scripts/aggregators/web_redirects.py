@@ -5,14 +5,14 @@ import logging
 from typing import Optional, Dict, Any
 
 from ..providers.redirect_checker import redirect_checker
-from ..providers.geekflare import geekflare_redirect_checker
+from ..providers.geekflare import get_web_redirects
 
 logger = logging.getLogger(__name__)
 
 
 PROVIDERS = {
     'redirect_checker': redirect_checker,
-    'geekflare': geekflare_redirect_checker,
+    'geekflare': get_web_redirects,
 }
 
 

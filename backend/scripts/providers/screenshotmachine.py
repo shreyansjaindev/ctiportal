@@ -3,10 +3,6 @@ import requests
 import base64
 import sys
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 _raw_screenshotmachine = os.getenv("SCREENSHOTMACHINE")
 if _raw_screenshotmachine:
     API_KEYS = [k.strip() for k in _raw_screenshotmachine.split(",") if k.strip()]

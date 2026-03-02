@@ -4,10 +4,7 @@ from datetime import datetime, timedelta
 import pytz
 import logging
 
-from dotenv import load_dotenv
 from api_endpoints import *
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 

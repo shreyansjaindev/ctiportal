@@ -1,12 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import User
+from solo.models import SingletonModel
 
 from .choices import (
     ActiveStatus,
     AlertStatus,
+    DNSProvider,
     LookalikeStatus,
+    NRDProvider,
     ResourceType,
     RiskLevel,
+    ScreenshotPatternType,
+    ScreenshotProvider,
+    SubdomainProvider,
 )
 
 
@@ -61,6 +67,7 @@ class WatchedResource(models.Model):
     last_modified = models.DateTimeField(auto_now=True)
     value = models.CharField(max_length=255)
     resource_type = models.CharField(max_length=10, choices=ResourceType.choices)
+    lookalike_match_from = models.DateField(null=True, blank=True)
     properties = models.JSONField(default=list, blank=True)
     exclude_keywords = models.JSONField(default=list, blank=True)
     company = models.ForeignKey(
@@ -107,6 +114,7 @@ class MonitoredDomain(models.Model):
     website_url = models.URLField(max_length=1000, blank=True)
     website_status_code = models.CharField(max_length=3, blank=True)
     website_screenshot = models.CharField(max_length=500, blank=True)
+    website_screenshot_hash = models.CharField(max_length=64, blank=True)
     website_certificate = models.JSONField(default=list, blank=True)
     last_checked = models.DateField(null=True, blank=True)
 
@@ -133,6 +141,7 @@ class MonitoredDomainAlert(models.Model):
     website_url = models.URLField(max_length=1000, blank=True)
     website_status_code = models.CharField(max_length=3, blank=True)
     website_screenshot = models.CharField(max_length=500, blank=True)
+    website_screenshot_hash = models.CharField(max_length=64, blank=True)
     website_certificate = models.JSONField(default=list, blank=True)
     company = models.ForeignKey(
         Company,
@@ -171,13 +180,82 @@ class MonitoredDomainAlertComment(models.Model):
         return f"Alert {self.alert_id}: {self.text[:50]}"
 
 
+class MonitoredDomainScreenshotPattern(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    last_modified = models.DateTimeField(auto_now=True)
+    monitored_domain = models.ForeignKey(
+        MonitoredDomain,
+        on_delete=models.CASCADE,
+        related_name="screenshot_patterns",
+    )
+    pattern_type = models.CharField(
+        default=ScreenshotPatternType.SPONSORED_LISTING,
+        max_length=24,
+        choices=ScreenshotPatternType.choices,
+    )
+    screenshot = models.CharField(max_length=500, blank=True)
+    screenshot_hash = models.CharField(max_length=64, blank=True)
+    screenshot_phash = models.CharField(max_length=16, blank=True)
+    active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["monitored_domain", "active"]),
+            models.Index(fields=["pattern_type", "active"]),
+        ]
+
+    def __str__(self):
+        return f"{self.monitored_domain.value} ({self.pattern_type})"
+
+
 class NewlyRegisteredDomain(models.Model):
     source_date = models.DateField()
     created = models.DateTimeField(auto_now_add=True)
     value = models.CharField(max_length=255)
 
+    class Meta:
+        verbose_name = "Newly Registered Domain"
+        verbose_name_plural = "Newly Registered Domains"
+        indexes = [
+            models.Index(fields=["source_date"]),
+            models.Index(fields=["value"]),
+        ]
+
     def __str__(self):
         return self.value
+
+
+class DomainMonitoringSettings(SingletonModel):
+    created = models.DateTimeField(auto_now_add=True)
+    last_modified = models.DateTimeField(auto_now=True)
+    dns_provider = models.CharField(
+        default=DNSProvider.GEEKFLARE,
+        max_length=20,
+        choices=DNSProvider.choices,
+    )
+    subdomain_provider = models.CharField(
+        default=SubdomainProvider.VIRUSTOTAL,
+        max_length=20,
+        choices=SubdomainProvider.choices,
+    )
+    screenshot_provider = models.CharField(
+        default=ScreenshotProvider.GEEKFLARE,
+        max_length=24,
+        choices=ScreenshotProvider.choices,
+    )
+    nrd_provider = models.CharField(
+        default=NRDProvider.WHOISXMLAPI_SAMPLE,
+        max_length=24,
+        choices=NRDProvider.choices,
+    )
+
+    class Meta:
+        verbose_name = "Domain Monitoring Settings"
+        verbose_name_plural = "Domain Monitoring Settings"
+
+    def __str__(self):
+        return "Domain Monitoring Settings"
 
 
 class LookalikeDomain(models.Model):

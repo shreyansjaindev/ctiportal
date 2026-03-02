@@ -30,3 +30,27 @@ class RiskLevel(models.TextChoices):
 class ResourceType(models.TextChoices):
     KEYWORD = "keyword", "Keyword"
     DOMAIN = "domain", "Domain"
+
+
+class ScreenshotPatternType(models.TextChoices):
+    SPONSORED_LISTING = "sponsored_listing", "Sponsored Listing"
+
+
+class DNSProvider(models.TextChoices):
+    GEEKFLARE = "geekflare", "Geekflare"
+    SECURITYTRAILS = "securitytrails", "SecurityTrails"
+
+
+class SubdomainProvider(models.TextChoices):
+    VIRUSTOTAL = "virustotal", "VirusTotal"
+    SECURITYTRAILS = "securitytrails", "SecurityTrails"
+
+
+class ScreenshotProvider(models.TextChoices):
+    GEEKFLARE = "geekflare", "Geekflare"
+    SCREENSHOTMACHINE = "screenshotmachine", "ScreenshotMachine"
+
+
+class NRDProvider(models.TextChoices):
+    WHOISXMLAPI_SAMPLE = "whoisxmlapi_sample", "WhoisXMLAPI Sample"
+    WHOISXMLAPI = "whoisxmlapi", "WhoisXMLAPI"
