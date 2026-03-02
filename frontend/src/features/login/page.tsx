@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { useState } from "react"
 
-import { LoginForm } from "@/shared/components/login-form"
+import { LoginForm } from "@/shared/components/LoginForm"
 import { API_BASE } from "@/shared/lib/api"
 import { useAuth, type UserMe } from "@/shared/lib/auth"
 

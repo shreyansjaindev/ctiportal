@@ -311,7 +311,9 @@ export function DataTable<TData, TValue>({
             </TableComponent>
           </div>
           {(pageSizeOptions || onPaginationChange) && (
-            <DataTablePagination pageSizeOptions={pageSizeOptions} />
+            <div className="border-t border-border px-2 py-3">
+              <DataTablePagination pageSizeOptions={pageSizeOptions} />
+            </div>
           )}
         </div>
       </div>

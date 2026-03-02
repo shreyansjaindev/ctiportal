@@ -91,7 +91,8 @@ class IndicatorLookupViewSet(viewsets.ViewSet):
             "providers_by_type": {
                 "whois": ["whoisxmlapi"],
                 "reputation": ["abuseipdb"]
-            }
+            },
+            "force_refresh": false
         }
         """
         try:
@@ -107,6 +108,7 @@ class IndicatorLookupViewSet(viewsets.ViewSet):
 
             indicators = serializer.validated_data["indicators"]
             providers_by_type = serializer.validated_data["providers_by_type"]
+            force_refresh = serializer.validated_data["force_refresh"]
             logger.info(f"Batch lookup request: {len(indicators)} indicators")
             
             # Validate providers_by_type is not empty
@@ -121,7 +123,7 @@ class IndicatorLookupViewSet(viewsets.ViewSet):
             lookup_types = list(providers_by_type.keys())
             logger.debug(f"Requested lookup types: {lookup_types}")
 
-            payload = execute_batch_lookups(indicators, providers_by_type)
+            payload = execute_batch_lookups(indicators, providers_by_type, force_refresh=force_refresh)
 
             logger.info(f"Batch lookup completed: {len(payload['results'])} indicators processed")
             return success(payload)

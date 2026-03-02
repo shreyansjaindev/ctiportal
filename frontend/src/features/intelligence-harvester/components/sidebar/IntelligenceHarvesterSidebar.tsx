@@ -3,7 +3,7 @@ import { Button } from "@/shared/components/ui/button"
 import { Checkbox } from "@/shared/components/ui/checkbox"
 import { Trash2, Info, Loader2 } from "lucide-react"
 import { useMemo, useState } from "react"
-import { LookupResults } from "./LookupResults"
+import { LookupResults } from "../results/LookupResults"
 import type { IndicatorResult, IndicatorType, LookupType, LookupResult, Provider } from "@/shared/types/intelligence-harvester"
 import { cn } from "@/shared/lib/utils"
 
@@ -76,7 +76,7 @@ export function IntelligenceHarvesterSidebar({
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* Left: Indicator List */}
-      <div className="w-80 border-r flex flex-col flex-shrink-0">
+      <div className="w-64 xl:w-72 border-r flex flex-col flex-shrink-0">
         <div className="border-b p-3 flex-shrink-0 space-y-3">
           <div className="flex items-center gap-2">
             <div className="text-base font-medium text-foreground">Observables</div>
@@ -185,7 +185,7 @@ export function IntelligenceHarvesterSidebar({
                                 : "hover:bg-sidebar-accent/30"
                               }`}
                           >
-                            <div className="grid grid-cols-[16px_1fr_16px_28px] items-center gap-2">
+                            <div className="grid grid-cols-[16px_1fr_28px] items-center gap-2">
                               <div className="flex items-center justify-center">
                                 <Checkbox
                                   checked={isSelected}
@@ -198,23 +198,26 @@ export function IntelligenceHarvesterSidebar({
                               </span>
                               <div className="flex items-center justify-center">
                                 {isActive && resultsLoading ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                                ) : null}
+                                  <div className="flex h-7 w-7 items-center justify-center">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                                  </div>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className={`h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 ${
+                                      isActive ? "text-foreground hover:text-foreground" : "hover:text-destructive"
+                                    }`}
+                                    onClick={(event) => {
+                                      event.stopPropagation()
+                                      onRemoveIndicator(indicator)
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
                               </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className={`h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 ${
-                                  isActive ? "text-foreground hover:text-foreground" : "hover:text-destructive"
-                                }`}
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  onRemoveIndicator(indicator)
-                                }}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
                             </div>
                           </div>
                         )

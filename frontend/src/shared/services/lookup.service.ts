@@ -13,6 +13,7 @@ export interface LookupRequest {
   selectedTypes: Set<LookupType>
   providers_by_type: Record<string, Provider[]>
   getProviderForType: (type: LookupType) => string[]
+  forceRefresh?: boolean
 }
 
 /**
@@ -70,7 +71,7 @@ function resolveProviders(
  * Uses unified backend search endpoint
  */
 export async function executeIndicatorLookups(request: LookupRequest): Promise<LookupResult[]> {
-  const { indicator, indicatorType, selectedTypes, providers_by_type, getProviderForType } = request
+  const { indicator, indicatorType, selectedTypes, providers_by_type, getProviderForType, forceRefresh = false } = request
 
   const typesToRun = Array.from(selectedTypes).filter((type) => isLookupApplicable(type, indicatorType))
 
@@ -98,7 +99,8 @@ export async function executeIndicatorLookups(request: LookupRequest): Promise<L
   // Send batch lookup request to backend
   const response = await aggregators.performIndicatorLookups(
     [indicator],
-    providersForLookup
+    providersForLookup,
+    forceRefresh
   )
 
   // Transform response to match LookupResult format

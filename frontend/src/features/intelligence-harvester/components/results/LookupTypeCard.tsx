@@ -11,7 +11,7 @@ import { isProviderApplicable } from "@/shared/services/lookup.service"
 import { cn } from "@/shared/lib/utils"
 import type { IndicatorType, LookupResult, LookupType, Provider } from "@/shared/types/intelligence-harvester"
 
-import { renderLookupDisplay } from "./LookupResultDisplay"
+import { renderLookupDisplay } from "./displays/LookupResultDisplay"
 import { getLookupErrorMessage } from "./displays/display-utils"
 
 export interface LookupTypeCardProps {
@@ -25,6 +25,7 @@ export interface LookupTypeCardProps {
   providersByType: Record<string, Provider[]>
   selectedProviders?: string[]
   onLoad: (providerId?: string) => void
+  onForceRefresh?: (providerId: string) => void
   onRetry: () => void
   onExpand: () => void
   expanded?: boolean
@@ -33,7 +34,7 @@ export interface LookupTypeCardProps {
 
 export function LookupTypeCard({
   type, indicatorType, typeResults, isLoading, loadingTarget = null, isFetched, error,
-  providersByType, selectedProviders = [], onLoad, onRetry, onExpand,
+  providersByType, selectedProviders = [], onLoad, onForceRefresh, onRetry, onExpand,
   expanded = false, onCollapse,
 }: LookupTypeCardProps) {
   const [activeProviderId, setActiveProviderId] = useState<string | null>(null)
@@ -58,6 +59,21 @@ export function LookupTypeCard({
     : false
   const activeProviderReturned = resolvedProviderId
     ? returnedProviderIds.has(resolvedProviderId)
+    : false
+  const isTargetingActiveProvider = resolvedProviderId
+    ? isLoading
+      && (
+        loadingTarget === resolvedProviderId
+        || (loadingTarget === "__selected__" && selectedProviders.includes(resolvedProviderId))
+      )
+    : false
+  const isActiveProviderLoading = resolvedProviderId
+    ? isLoading
+      && !activeProviderReturned
+      && isTargetingActiveProvider
+    : false
+  const isActiveProviderRefreshing = resolvedProviderId
+    ? activeProviderReturned && isTargetingActiveProvider
     : false
   const activeTabValue = resolvedProviderId ?? "__none__"
 
@@ -95,17 +111,32 @@ export function LookupTypeCard({
           )}
         </div>
         <CardAction className="row-span-1">
-          {expanded ? (
-            <Button variant="ghost" size="sm" onClick={onCollapse}>
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          ) : isFetched ? (
-            <Button variant="ghost" size="xs" onClick={onExpand} title="View more">
-              View more
-              <ArrowRight className="h-3 w-3" />
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-1">
+            {resolvedProviderId && activeProviderReturned && onForceRefresh ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="h-6 w-6 shrink-0"
+                onClick={() => onForceRefresh(resolvedProviderId)}
+                title="Force refresh"
+                disabled={isActiveProviderRefreshing}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+            ) : null}
+            {expanded ? (
+              <Button variant="ghost" size="sm" onClick={onCollapse}>
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+            ) : isFetched ? (
+              <Button variant="ghost" size="xs" onClick={onExpand} title="View more">
+                View more
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            ) : null}
+          </div>
         </CardAction>
       </CardHeader>
 
@@ -151,14 +182,10 @@ export function LookupTypeCard({
             }}
             className="gap-0 border-b"
           >
-            <TabsList variant="line" className={cn("w-full justify-start flex-wrap px-5 rounded-none", expanded ? "h-auto" : "h-10")}>
+            <TabsList variant="line" className={cn("justify-start flex-wrap px-5 rounded-none", expanded ? "h-auto" : "h-10")}>
               {availableProviders.map((provider) => {
                 const wasReturned = returnedProviderIds.has(provider.id)
                 const hasError = wasReturned && typeResults.find((result) => result._provider === provider.id)?.error
-                const isProviderLoading = isLoading && !wasReturned && (
-                  loadingTarget === provider.id ||
-                  (loadingTarget === "__selected__" && selectedProviders.includes(provider.id))
-                )
 
                 return (
                   <TabsTrigger
@@ -171,23 +198,19 @@ export function LookupTypeCard({
                     )}
                   >
                     <span className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white p-1 text-black shadow-sm">
-                      {isProviderLoading ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <ProviderLogo
-                          providerId={provider.id}
-                          providerName={provider.name}
-                          size={expanded ? "sm" : "md"}
-                          className="h-full w-full max-h-4 max-w-4"
-                        />
-                      )}
+                      <ProviderLogo
+                        providerId={provider.id}
+                        providerName={provider.name}
+                        size={expanded ? "sm" : "md"}
+                        className="h-full w-full max-h-4 max-w-4"
+                      />
                     </span>
                     <span
                       className={cn(
-                        "truncate",
+                        "whitespace-nowrap transition-all duration-150",
                         expanded
                           ? ""
-                          : "max-w-0 overflow-hidden opacity-0 transition-all duration-150 group-hover:max-w-24 group-hover:opacity-100"
+                          : "max-w-0 overflow-hidden opacity-0 group-hover:max-w-30 group-hover:opacity-100"
                       )}
                     >
                       {provider.name}
@@ -223,7 +246,11 @@ export function LookupTypeCard({
 
       {resolvedProviderId && activeProviderReturned && (
         <CardContent className={cn("px-5", expanded && "min-h-0 flex-1 overflow-y-auto")}>
-          {activeErrorMessage ? (
+          {isActiveProviderRefreshing ? (
+            <div className="flex min-h-[8rem] items-center justify-center text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : activeErrorMessage ? (
             <Alert variant="destructive" className={cn("text-xs", expanded && "mx-1")}>
               <AlertCircle className="h-3.5 w-3.5" />
               <AlertDescription className="break-words">
@@ -239,6 +266,13 @@ export function LookupTypeCard({
           )}
         </CardContent>
       )}
+      {resolvedProviderId && !activeProviderReturned && isActiveProviderLoading ? (
+        <CardContent className={cn("px-5", expanded && "min-h-0 flex-1 overflow-y-auto")}>
+          <div className="flex min-h-[8rem] items-center justify-center text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        </CardContent>
+      ) : null}
     </Card>
   )
 }

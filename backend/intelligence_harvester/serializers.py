@@ -17,3 +17,4 @@ class BatchIndicatorLookupSerializer(serializers.Serializer):
         child=serializers.ListField(child=serializers.CharField()),
         required=True,
     )
+    force_refresh = serializers.BooleanField(required=False, default=False)

@@ -10,7 +10,7 @@ import { LOOKUP_TYPE_CONFIG, ALL_LOOKUP_TYPES } from "@/shared/lib/lookup-config
 
 type ProvidersByType = Partial<Record<LookupType, Provider[]>>
 
-interface LookupConfigurationProps {
+interface ProviderAutoLoadSetupProps {
   selections: ProviderSelections
   setProviderForType: (type: LookupType, value: ProviderValue) => void
   providersByType: ProvidersByType
@@ -133,12 +133,12 @@ function ProviderPopover({
   )
 }
 
-export function LookupConfiguration({
+export function ProviderAutoLoadSetup({
   selections,
   setProviderForType,
   providersByType,
   presets,
-}: LookupConfigurationProps) {
+}: ProviderAutoLoadSetupProps) {
   const lookupTypes: LookupTypeUIConfig[] = LOOKUP_TYPE_CONFIG.map(c => ({
     id: c.id,
     label: c.label,

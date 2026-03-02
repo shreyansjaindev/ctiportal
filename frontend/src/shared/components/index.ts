@@ -3,18 +3,18 @@
  */
 
 // Layout
-export { AppShell } from './app-shell'
-export { AppSidebar } from './app-sidebar'
-export { SecondarySidebar } from './secondary-sidebar'
-export { ThemeProvider } from './theme-provider'
-export { ModeToggle } from './mode-toggle'
+export { AppShell } from './AppShell'
+export { AppSidebar } from './AppSidebar'
+export { SecondarySidebar } from './SecondarySidebar'
+export { ThemeProvider } from './ThemeProvider'
+export { ModeToggle } from './ModeToggle'
 
 // Auth
-export { LoginForm } from './login-form'
+export { LoginForm } from './LoginForm'
 
 // Navigation
-export { Logo } from './logo'
-export { NavUser } from './nav-user'
+export { Logo } from './Logo'
+export { NavUser } from './NavUser'
 export { navItems, navGroups } from './navigation'
 
 // UI Components

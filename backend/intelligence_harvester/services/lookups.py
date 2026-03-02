@@ -102,7 +102,13 @@ def _run_lookup(lookup_type: str, indicator_value: str, indicator_type: str, pro
     return module.get(indicator_value, provider=provider)
 
 
-def execute_lookup(lookup_type: str, indicator_value: str, indicator_type: str, provider=None) -> dict:
+def execute_lookup(
+    lookup_type: str,
+    indicator_value: str,
+    indicator_type: str,
+    provider=None,
+    force_refresh: bool = False,
+) -> dict:
     """Execute a single lookup with cache support and normalized response shape."""
     try:
         logger.debug(
@@ -113,13 +119,16 @@ def execute_lookup(lookup_type: str, indicator_value: str, indicator_type: str, 
         hashed_value = generate_sha256_hash(normalized_value)
         cache_source = f"{lookup_type}_{provider or 'auto'}"
 
-        try:
-            cached_data = _get_cached_lookup_response(hashed_value, cache_source)
-            if cached_data is not None:
-                logger.debug(f"Cache hit for {lookup_type}/{provider} on {indicator_value}")
-                return cached_data
-        except Exception as cache_error:
-            logger.warning(f"Error checking cache: {cache_error}")
+        if not force_refresh:
+            try:
+                cached_data = _get_cached_lookup_response(hashed_value, cache_source)
+                if cached_data is not None:
+                    logger.debug(f"Cache hit for {lookup_type}/{provider} on {indicator_value}")
+                    return cached_data
+            except Exception as cache_error:
+                logger.warning(f"Error checking cache: {cache_error}")
+        else:
+            logger.debug(f"Force refresh enabled for {lookup_type}/{provider} on {indicator_value}")
 
         logger.debug(
             f"Cache miss for {lookup_type}/{provider} on {indicator_value}, performing fresh lookup"
@@ -191,6 +200,7 @@ def build_indicator_results(
     indicator_type: str,
     lookup_types: list[str],
     providers_by_type: dict[str, list[str]],
+    force_refresh: bool = False,
 ) -> dict:
     indicator_results = []
 
@@ -202,7 +212,13 @@ def build_indicator_results(
         for provider in providers:
             if not is_provider_applicable(lookup_type, provider, indicator_type):
                 continue
-            result = execute_lookup(lookup_type, indicator_value, indicator_type, provider)
+            result = execute_lookup(
+                lookup_type,
+                indicator_value,
+                indicator_type,
+                provider,
+                force_refresh=force_refresh,
+            )
             indicator_results.append(result)
 
     return {
@@ -212,7 +228,11 @@ def build_indicator_results(
     }
 
 
-def execute_batch_lookups(indicators: list[str], providers_by_type: dict[str, list[str]]) -> dict:
+def execute_batch_lookups(
+    indicators: list[str],
+    providers_by_type: dict[str, list[str]],
+    force_refresh: bool = False,
+) -> dict:
     lookup_types = list(providers_by_type.keys())
     indicator_types = detect_indicator_types(indicators)
     results = []
@@ -225,6 +245,7 @@ def execute_batch_lookups(indicators: list[str], providers_by_type: dict[str, li
                 indicator_type=indicator_type,
                 lookup_types=lookup_types,
                 providers_by_type=providers_by_type,
+                force_refresh=force_refresh,
             )
         )
 

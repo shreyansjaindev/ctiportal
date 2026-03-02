@@ -8,7 +8,7 @@ import { isLookupApplicable, executeIndicatorLookups } from "@/shared/services/l
 import { detectIndicatorType } from "@/shared/lib/indicator-utils"
 import { ALL_LOOKUP_TYPES } from "@/shared/lib/lookup-config"
 
-import { LookupResultsCategoryView } from "./LookupResultsCategoryView"
+import { LookupResultsCategoryView } from "./category-results/LookupResultsCategoryView"
 import { LookupTypeCard } from "./LookupTypeCard"
 
 interface LookupResultsProps {
@@ -49,7 +49,13 @@ export function LookupResults({
   const [fetchedKeys, setFetchedKeys] = useState<Set<string>>(new Set())
   const [typeErrors, setTypeErrors] = useState<Map<LookupType, string>>(new Map())
   const [detailType, setDetailType] = useState<LookupType | null>(null)
+  const [refreshingEntryKeys, setRefreshingEntryKeys] = useState<Set<string>>(new Set())
   const categoryAutoLoadedRef = useRef(new Set<string>())
+
+  const getEntryRefreshKey = useCallback(
+    (indicator: string, type: LookupType, providerId: string) => `${indicator}:${type}:${providerId}`,
+    []
+  )
 
   const activeResult = results.find(item => item.indicator === activeIndicator)
 
@@ -229,6 +235,7 @@ export function LookupResults({
     type: LookupType,
     isRetry = false,
     providerOverride?: string,
+    forceRefresh = false,
   ) => {
     if (!activeIndicator || !activeIndicatorType || !getProviderForType || !providersByType) return
 
@@ -236,7 +243,7 @@ export function LookupResults({
     const providerMap = providersByType
 
     const cacheKey = `${type}:${providerOverride ?? ""}`
-    if (!isRetry && (loadingTypes.has(type) || fetchedKeys.has(cacheKey))) return
+    if (!forceRefresh && !isRetry && (loadingTypes.has(type) || fetchedKeys.has(cacheKey))) return
 
     setLoadingTypes(prev => new Set(prev).add(type))
     setLoadingTargets(prev => {
@@ -262,6 +269,7 @@ export function LookupResults({
         selectedTypes: new Set([type]),
         providers_by_type: providerMap,
         getProviderForType: (t) => t === type ? resolveProviders() : providerLookup(t),
+        forceRefresh,
       })
       if (onResultsUpdate && fetched.length > 0) onResultsUpdate(activeIndicator, fetched)
     } catch (err) {
@@ -338,6 +346,67 @@ export function LookupResults({
     }
   }, [indicators, indicatorTypes, loadingTypes, onResultsUpdate, providersByType, results])
 
+  const handleCategoryProviderForceRefresh = useCallback(async (
+    indicator: string,
+    type: LookupType,
+    providerId: string
+  ) => {
+    if (!onResultsUpdate || !providersByType) return
+
+    const indicatorType = indicatorTypes?.get(indicator) ?? detectIndicatorType(indicator)
+    if (!indicatorType) return
+    if (!isLookupApplicable(type, indicatorType)) return
+
+    const refreshKey = getEntryRefreshKey(indicator, type, providerId)
+    setRefreshingEntryKeys((prev) => new Set(prev).add(refreshKey))
+    setLoadingTypes((prev) => new Set(prev).add(type))
+    setLoadingTargets((prev) => {
+      const next = new Map(prev)
+      next.set(type, providerId)
+      return next
+    })
+    setTypeErrors((prev) => {
+      const next = new Map(prev)
+      next.delete(type)
+      return next
+    })
+
+    try {
+      const fetched = await executeIndicatorLookups({
+        indicator,
+        indicatorType,
+        selectedTypes: new Set([type]),
+        providers_by_type: providersByType,
+        getProviderForType: (lookupType) => (lookupType === type ? [providerId] : []),
+        forceRefresh: true,
+      })
+      if (fetched.length > 0) {
+        onResultsUpdate(indicator, fetched)
+      }
+    } catch (err) {
+      setTypeErrors((prev) => new Map(prev).set(
+        type,
+        err instanceof Error ? err.message : "Failed to fetch data"
+      ))
+    } finally {
+      setRefreshingEntryKeys((prev) => {
+        const next = new Set(prev)
+        next.delete(refreshKey)
+        return next
+      })
+      setLoadingTypes((prev) => {
+        const next = new Set(prev)
+        next.delete(type)
+        return next
+      })
+      setLoadingTargets((prev) => {
+        const next = new Map(prev)
+        next.delete(type)
+        return next
+      })
+    }
+  }, [getEntryRefreshKey, indicatorTypes, onResultsUpdate, providersByType])
+
   if (!activeIndicatorTypeFilter && !activeIndicator) {
     return (
       <div className={cn("h-full flex items-center justify-center p-6", className)}>
@@ -364,8 +433,11 @@ export function LookupResults({
               providersByType={providersByType}
               getProviderForType={getProviderForType}
               isLoadingCategory={activeCategory ? loadingTypes.has(activeCategory) : false}
-              loadingProviderId={activeCategory ? loadingTargets.get(activeCategory) ?? null : null}
               onLoadProvider={handleCategoryProviderLoad}
+              onForceRefreshEntry={handleCategoryProviderForceRefresh}
+              isEntryRefreshing={(indicator, type, providerId) =>
+                refreshingEntryKeys.has(getEntryRefreshKey(indicator, type, providerId))
+              }
             />
           ) : detailType ? (
             <LookupTypeCard
@@ -379,6 +451,7 @@ export function LookupResults({
               providersByType={providersByType ?? {}}
               selectedProviders={getProviderForType?.(detailType) ?? []}
               onLoad={(pid) => handleLookupType(detailType, false, pid)}
+              onForceRefresh={(pid) => handleLookupType(detailType, false, pid, true)}
               onRetry={() => handleLookupType(detailType, true)}
               onExpand={() => setDetailType(detailType)}
               expanded
@@ -389,7 +462,7 @@ export function LookupResults({
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2 2xl:grid-cols-3">
               {lookupTypes.map(type => (
                 <LookupTypeCard
                   key={type}
@@ -403,6 +476,7 @@ export function LookupResults({
                   providersByType={providersByType ?? {}}
                   selectedProviders={getProviderForType?.(type) ?? []}
                   onLoad={(pid) => handleLookupType(type, false, pid)}
+                  onForceRefresh={(pid) => handleLookupType(type, false, pid, true)}
                   onRetry={() => handleLookupType(type, true)}
                   onExpand={() => setDetailType(type)}
                 />

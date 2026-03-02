@@ -14,6 +14,7 @@ const HARVESTER_BULK_TIMEOUT_MS = 90000
 export interface IndicatorLookupRequest {
   indicators: string[]
   providers_by_type: Record<string, string[]>
+  force_refresh?: boolean
 }
 
 /**
@@ -81,11 +82,13 @@ export async function identifyIndicators(
  */
 export async function performIndicatorLookups(
   indicators: string[],
-  providers_by_type: Record<string, string[]>
+  providers_by_type: Record<string, string[]>,
+  force_refresh = false
 ): Promise<IndicatorLookupResponse> {
   const request: IndicatorLookupRequest = {
     indicators,
     providers_by_type,
+    force_refresh,
   }
   
   return apiPost<IndicatorLookupResponse>(
@@ -98,11 +101,13 @@ export async function performIndicatorLookups(
 
 export async function exportIndicatorLookupsExcel(
   indicators: string[],
-  providers_by_type: Record<string, string[]>
+  providers_by_type: Record<string, string[]>,
+  force_refresh = false
 ): Promise<Blob> {
   const request: IndicatorLookupRequest = {
     indicators,
     providers_by_type,
+    force_refresh,
   }
 
   return apiPostBlob(

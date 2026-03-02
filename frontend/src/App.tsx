@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { Navigate, Route, Routes } from "react-router-dom"
 
 import { AppShell } from "@/shared/components"
-import { ThemeProvider } from "@/shared/components/theme-provider"
+import { ThemeProvider } from "@/shared/components/ThemeProvider"
 import { useAuth } from "@/shared/lib"
 import ActiveDirectoryPage from "@/features/active-directory/page"
 import DomainMonitoringPage from "@/features/domain-monitoring/page"

@@ -1,8 +1,8 @@
 import * as React from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 
-import { NavUser } from "@/shared/components/nav-user"
-import { Logo } from "@/shared/components/logo"
+import { NavUser } from "@/shared/components/NavUser"
+import { Logo } from "@/shared/components/Logo"
 import { branding } from "@/shared/lib/branding"
 import {
   Sidebar,

@@ -1,15 +1,15 @@
 import type { LookupResult } from "@/shared/types/intelligence-harvester"
 
-import { WebRedirectsDisplay } from "./displays/web-redirects/WebRedirectsDisplay"
-import { WebScanDisplay } from "./displays/WebScanDisplay"
-import { DnsDisplay } from "./displays/DnsDisplay"
-import { WhoisDisplay } from "./displays/WhoisDisplay"
-import { ReputationDisplay } from "./displays/ReputationDisplay"
-import { ScreenshotDisplay } from "./displays/ScreenshotDisplay"
-import { PassiveDnsDisplay } from "./displays/PassiveDnsDisplay"
-import { WhoisHistoryDisplay } from "./displays/WhoisHistoryDisplay"
-import { SubdomainsDisplay } from "./displays/SubdomainsDisplay"
-import { DefaultDisplay } from "./displays/DefaultDisplay"
+import { WebRedirectsDisplay } from "./web-redirects/WebRedirectsDisplay"
+import { WebScanDisplay } from "./WebScanDisplay"
+import { DnsDisplay } from "./DnsDisplay"
+import { WhoisDisplay } from "./WhoisDisplay"
+import { ReputationDisplay } from "./ReputationDisplay"
+import { ScreenshotDisplay } from "./ScreenshotDisplay"
+import { PassiveDnsDisplay } from "./PassiveDnsDisplay"
+import { WhoisHistoryDisplay } from "./WhoisHistoryDisplay"
+import { SubdomainsDisplay } from "./SubdomainsDisplay"
+import { DefaultDisplay } from "./DefaultDisplay"
 
 export function renderLookupDisplay(type: string, result: LookupResult, isOverview: boolean) {
   switch (type) {
