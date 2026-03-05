@@ -18,6 +18,7 @@ from .whoisxmlapi import (
 class NRDFeedResult:
     dataframe: pd.DataFrame | None
     source_date_used: date | None
+    provider_used: str
 
 
 NRD_ADAPTERS: dict[str, Callable[[str], NRDFeedResult]] = {
@@ -31,4 +32,9 @@ def get_newly_registered_domains_df(source_date: str) -> NRDFeedResult:
     adapter = NRD_ADAPTERS.get(selected_provider)
     if adapter is None:
         raise ValueError(f"Unsupported newly registered domains provider: {selected_provider}")
-    return adapter(source_date)
+    result = adapter(source_date)
+    return NRDFeedResult(
+        dataframe=result.dataframe,
+        source_date_used=result.source_date_used,
+        provider_used=selected_provider,
+    )

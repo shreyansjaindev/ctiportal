@@ -213,13 +213,16 @@ class NewlyRegisteredDomain(models.Model):
     source_date = models.DateField()
     created = models.DateTimeField(auto_now_add=True)
     value = models.CharField(max_length=255)
+    source = models.CharField(max_length=64, default="unknown")
 
     class Meta:
         verbose_name = "Newly Registered Domain"
         verbose_name_plural = "Newly Registered Domains"
+        unique_together = ("value", "source_date", "source")
         indexes = [
-            models.Index(fields=["source_date"]),
             models.Index(fields=["value"]),
+            models.Index(fields=["source_date"], name="domain_moni_source__6bb38d_idx"),
+            models.Index(fields=["source"], name="domain_moni_source_6b4ac1_idx"),
         ]
 
     def __str__(self):

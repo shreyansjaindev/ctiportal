@@ -37,6 +37,7 @@ export function useWatchedResources() {
       resource_type: "resource_type",
       status: "status",
       created: "created",
+      lookalike_match_from: "lookalike_match_from",
     }
     const field = fieldMap[sort.id] ?? "created"
     return `${sort.desc ? "-" : ""}${field}`

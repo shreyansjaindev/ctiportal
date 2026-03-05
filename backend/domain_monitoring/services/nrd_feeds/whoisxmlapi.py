@@ -6,7 +6,7 @@ import os
 import re
 import time
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date
 
 import pandas as pd
 import requests
@@ -20,8 +20,6 @@ WHOISXMLAPI_NRD_FEED = os.getenv("WHOISXMLAPI_NRD_FEED")
 WHOISXML_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 WHOISXML_EXTENSION = "csv.gz"
 WHOISXML_USER = "user"
-SAMPLE_DELAY_DAYS = 2
-SAMPLE_WINDOW_DAYS = 5
 
 
 @dataclass(frozen=True)
@@ -83,33 +81,20 @@ def _download_sample_file_bytes(source_date: str) -> tuple[bytes, date] | None:
         raise ValueError(f"Invalid source date format: {source_date}")
 
     requested_date = date.fromisoformat(source_date)
-    latest_available_date = requested_date - timedelta(days=SAMPLE_DELAY_DAYS)
+    source_url = _get_sample_source_url(source_date)
+    response = requests.get(source_url, timeout=60)
+    if response.status_code == 200 and response.content.strip():
+        logger.info("Downloaded WhoisXMLAPI sample NRD feed for %s", source_date)
+        return response.content, requested_date
 
-    for offset in range(SAMPLE_WINDOW_DAYS):
-        candidate = latest_available_date - timedelta(days=offset)
-        candidate_date = candidate.isoformat()
-        source_url = _get_sample_source_url(candidate_date)
-        response = requests.get(source_url, timeout=60)
-        if response.status_code == 200 and response.content.strip():
-            logger.info(
-                "Downloaded WhoisXMLAPI sample NRD feed for %s using sample date %s",
-                source_date,
-                candidate_date,
-            )
-            return response.content, candidate
+    if response.status_code != 404:
+        logger.warning(
+            "WhoisXMLAPI sample NRD request for %s returned status %s",
+            source_date,
+            response.status_code,
+        )
 
-        if response.status_code != 404:
-            logger.warning(
-                "WhoisXMLAPI sample NRD request for %s returned status %s",
-                candidate_date,
-                response.status_code,
-            )
-
-    logger.info(
-        "No WhoisXMLAPI sample NRD feed available for %s within the delayed %s-file window",
-        source_date,
-        SAMPLE_WINDOW_DAYS,
-    )
+    logger.info("No WhoisXMLAPI sample NRD feed available for %s", source_date)
     return None
 
 

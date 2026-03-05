@@ -121,6 +121,9 @@ function WatchedResourceFormContent({
       ? JSON.stringify(initial.exclude_keywords, null, 2)
       : ""
   )
+  const [lookalikeMatchFrom, setLookalikeMatchFrom] = useState(
+    initial?.lookalike_match_from ? initial.lookalike_match_from.slice(0, 10) : ""
+  )
 
   return (
     <>
@@ -224,6 +227,16 @@ function WatchedResourceFormContent({
             />
           </FieldContent>
         </Field>
+        <Field>
+          <FieldLabel>Lookalike match from</FieldLabel>
+          <FieldContent>
+            <Input
+              type="date"
+              value={lookalikeMatchFrom}
+              onChange={(event) => setLookalikeMatchFrom(event.target.value)}
+            />
+          </FieldContent>
+        </Field>
       </div>
 
       <SheetFooter>
@@ -236,6 +249,7 @@ function WatchedResourceFormContent({
               status,
               properties: properties,
               exclude_keywords: parseListInput(excludeKeywords),
+              lookalike_match_from: lookalikeMatchFrom || null,
             })
           }
           disabled={!value || !company || isSubmitting}

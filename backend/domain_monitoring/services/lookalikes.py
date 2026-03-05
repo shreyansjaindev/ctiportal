@@ -3,13 +3,15 @@ from __future__ import annotations
 import logging
 import math
 import re
+from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 import idna
 import Levenshtein
 from unidecode import unidecode
+from django.utils import timezone
 
 from domain_monitoring.models import Company, LookalikeDomain, NewlyRegisteredDomain, WatchedResource
 from scripts.domain_monitoring.substring_match import find_best_substring_match, find_substring_typo_match
@@ -24,6 +26,8 @@ RISK_LEVELS = {1: "low", 2: "medium", 3: "high"}
 @dataclass(frozen=True)
 class ResourceMatch:
     domain_name: str
+    source_date: date
+    source: str
     resource_value: str
     resource_type: str
     risk: str
@@ -34,12 +38,38 @@ class CandidateDomain:
     value: str
     created: datetime
     source_date: date
+    source: str
 
 
 def normalize_source_date(source_date: date | str) -> date:
     if isinstance(source_date, date):
         return source_date
     return datetime.strptime(source_date, "%Y-%m-%d").date()
+
+
+def normalize_since_from(since_from: datetime | date | str | None) -> datetime:
+    if since_from is None:
+        return timezone.now()
+
+    if isinstance(since_from, datetime):
+        if timezone.is_naive(since_from):
+            return timezone.make_aware(since_from, timezone.get_current_timezone())
+        return since_from
+
+    if isinstance(since_from, date):
+        naive_start = datetime.combine(since_from, time.min)
+        return timezone.make_aware(naive_start, timezone.get_current_timezone())
+
+    parsed_value: datetime | date
+    try:
+        if "T" in since_from or " " in since_from:
+            parsed_value = datetime.fromisoformat(since_from)
+        else:
+            parsed_value = date.fromisoformat(since_from)
+    except ValueError as exc:
+        raise ValueError("since_from must be an ISO date or datetime.") from exc
+
+    return normalize_since_from(parsed_value)
 
 
 def chunk_list(values: list[str], chunk_count: int) -> list[list[str]]:
@@ -153,10 +183,12 @@ def identify_lookalike_matches(queries: list[dict], domains: list[CandidateDomai
             similarity = 0.0
             if query_type == "keyword":
                 if "*" in query_value:
-                    if re.search(rf"^{query_value.replace('*', '.*')}$", domain_name):
+                    wildcard_pattern = re.escape(query_value).replace(r"\*", ".*")
+                    if re.search(rf"^{wildcard_pattern}$", domain_name):
                         resource_matches.append(
                             {
                                 "domain_name": idna.encode(normalized_domain).decode("utf-8"),
+                                "source": candidate.source,
                                 "resource_value": query_value,
                                 "resource_type": query_type,
                                 "similarity": 0.82,
@@ -180,6 +212,7 @@ def identify_lookalike_matches(queries: list[dict], domains: list[CandidateDomai
                 resource_matches.append(
                     {
                         "domain_name": idna.encode(normalized_domain).decode("utf-8"),
+                        "source": candidate.source,
                         "resource_value": query_value,
                         "resource_type": query_type,
                         "similarity": similarity,
@@ -224,6 +257,8 @@ def identify_lookalike_matches(queries: list[dict], domains: list[CandidateDomai
             matches.append(
                 ResourceMatch(
                     domain_name=best_match["domain_name"],
+                    source_date=candidate.source_date,
+                    source=best_match["source"],
                     resource_value=best_match["resource_value"],
                     resource_type=best_match["resource_type"],
                     risk=RISK_LEVELS[risk],
@@ -259,7 +294,7 @@ def persist_lookalike_matches(company_name: str, source_date: date, matches: lis
             value=match.domain_name,
             company=company,
             defaults={
-                "source": "whoisxmlapi",
+                "source": match.source,
                 "watched_resource": match.resource_value,
                 "potential_risk": match.risk,
                 "status": "open",
@@ -269,14 +304,52 @@ def persist_lookalike_matches(company_name: str, source_date: date, matches: lis
     return count
 
 
+def find_matches_for_resources(
+    resources: list[dict],
+    domains: list[CandidateDomain],
+    worker_count: int,
+) -> list[ResourceMatch]:
+    if worker_count == 1:
+        return identify_lookalike_matches(resources, domains)
+
+    matches: list[ResourceMatch] = []
+    with ProcessPoolExecutor(max_workers=worker_count) as executor:
+        futures = [
+            executor.submit(identify_lookalike_matches, resources, chunk)
+            for chunk in chunk_list(domains, worker_count)
+        ]
+        for future in futures:
+            matches.extend(future.result())
+    return matches
+
+
+def process_company_matches(
+    company_resources: dict[str, list[dict]],
+    domains: list[CandidateDomain],
+    worker_count: int,
+    persist_matches: Callable[[str, list[ResourceMatch]], int],
+) -> int:
+    total_matches = 0
+    for company_name, resources in company_resources.items():
+        matches = find_matches_for_resources(resources, domains, worker_count)
+        total_matches += persist_matches(company_name, matches)
+    return total_matches
+
+
 def run_lookalike_scan(source_date: date | str, workers: int = 1) -> int:
     normalized_date = normalize_source_date(source_date)
     domains = [
-        CandidateDomain(value=row["value"], created=row["created"], source_date=row["source_date"])
+        CandidateDomain(
+            value=row["value"],
+            created=row["created"],
+            source_date=row["source_date"],
+            source=row["source"],
+        )
         for row in NewlyRegisteredDomain.objects.filter(source_date=normalized_date).values(
             "value",
             "created",
             "source_date",
+            "source",
         )
     ]
     if not domains:
@@ -288,21 +361,63 @@ def run_lookalike_scan(source_date: date | str, workers: int = 1) -> int:
         logger.info("No active watched resources found for lookalike scan")
         return 0
 
-    total_matches = 0
     worker_count = max(1, workers)
-    for company_name, resources in company_resources.items():
-        if worker_count == 1:
-            matches = identify_lookalike_matches(resources, domains)
-        else:
-            matches = []
-            with ProcessPoolExecutor(max_workers=worker_count) as executor:
-                futures = [
-                    executor.submit(identify_lookalike_matches, resources, chunk)
-                    for chunk in chunk_list(domains, worker_count)
-                ]
-                for future in futures:
-                    matches.extend(future.result())
-        total_matches += persist_lookalike_matches(company_name, normalized_date, matches)
+    total_matches = process_company_matches(
+        company_resources,
+        domains,
+        worker_count,
+        lambda company_name, matches: persist_lookalike_matches(company_name, normalized_date, matches),
+    )
 
     logger.info("Processed lookalike scan for %s with %s upserts", normalized_date.isoformat(), total_matches)
+    return total_matches
+
+
+def run_lookalike_scan_since(since_from: datetime | date | str | None = None, workers: int = 1) -> int:
+    normalized_since_from = normalize_since_from(since_from)
+    domains = [
+        CandidateDomain(
+            value=row["value"],
+            created=row["created"],
+            source_date=row["source_date"],
+            source=row["source"],
+        )
+        for row in NewlyRegisteredDomain.objects.filter(created__gte=normalized_since_from).values(
+            "value",
+            "created",
+            "source_date",
+            "source",
+        )
+    ]
+    if not domains:
+        logger.info("No newly registered domains stored since %s", normalized_since_from.isoformat())
+        return 0
+
+    company_resources = get_active_company_resources()
+    if not company_resources:
+        logger.info("No active watched resources found for lookalike scan")
+        return 0
+
+    worker_count = max(1, workers)
+    def persist_grouped_matches(company_name: str, matches: list[ResourceMatch]) -> int:
+        grouped_matches: dict[date, list[ResourceMatch]] = {}
+        for match in matches:
+            grouped_matches.setdefault(match.source_date, []).append(match)
+        total = 0
+        for match_source_date, source_matches in grouped_matches.items():
+            total += persist_lookalike_matches(company_name, match_source_date, source_matches)
+        return total
+
+    total_matches = process_company_matches(
+        company_resources,
+        domains,
+        worker_count,
+        persist_grouped_matches,
+    )
+
+    logger.info(
+        "Processed lookalike scan since %s with %s upserts",
+        normalized_since_from.isoformat(),
+        total_matches,
+    )
     return total_matches

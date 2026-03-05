@@ -127,5 +127,6 @@ class NewlyRegisteredDomainFilter(django_filters.FilterSet):
         fields = {
             "created": ["lte", "gte"],
             "source_date": ["lte", "gte"],
+            "source": ["exact", "icontains"],
             "value": ["icontains"],
         }

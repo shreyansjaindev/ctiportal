@@ -1,5 +1,5 @@
 from .certstream import run_certstream_monitor
-from .lookalikes import run_lookalike_scan
+from .lookalikes import run_lookalike_scan, run_lookalike_scan_since
 from .monitoring import run_domain_monitor
 from .newly_registered_domains import ingest_and_scan_newly_registered_domains, ingest_newly_registered_domains
 from .provider_adapters import (
@@ -29,4 +29,5 @@ __all__ = [
     "run_certstream_monitor",
     "run_domain_monitor",
     "run_lookalike_scan",
+    "run_lookalike_scan_since",
 ]

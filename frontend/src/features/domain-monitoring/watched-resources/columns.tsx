@@ -111,6 +111,26 @@ export function getColumns({
       enableSorting: true,
     },
     {
+      accessorKey: "lookalike_match_from",
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Match From"
+          filterType="text"
+          filterPlaceholder="YYYY-MM-DD"
+        />
+      ),
+      cell: ({ row }) => {
+        const value = row.getValue("lookalike_match_from") as string | null
+        return (
+          <span className="text-muted-foreground">
+            {value ? new Date(value).toLocaleDateString() : "All history"}
+          </span>
+        )
+      },
+      enableSorting: true,
+    },
+    {
       id: "actions",
       cell: ({ row }) => (
         <DropdownMenu>

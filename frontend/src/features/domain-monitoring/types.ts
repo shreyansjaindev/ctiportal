@@ -56,6 +56,7 @@ export type WatchedResource = {
   exclude_keywords: unknown[]
   company: string
   status: string
+  lookalike_match_from: string | null
 }
 
 export type WatchedResourceListItem = WatchedResource
@@ -67,6 +68,7 @@ export type WatchedResourcePayload = {
   status?: string
   properties?: unknown[]
   exclude_keywords?: unknown[]
+  lookalike_match_from?: string | null
 }
 
 export type NewlyRegisteredDomain = {

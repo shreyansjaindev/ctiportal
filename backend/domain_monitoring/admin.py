@@ -77,9 +77,9 @@ class MonitoredDomainAlertAdmin(admin.ModelAdmin):
 
 
 class NewlyRegisteredDomainAdmin(admin.ModelAdmin):
-    list_display = ("source_date", "created", "value")
-    search_fields = ("value",)
-    list_filter = ("source_date",)
+    list_display = ("source_date", "created", "source", "value")
+    search_fields = ("value", "source")
+    list_filter = ("source_date", "source", "created")
 
 
 class LookalikeAdmin(admin.ModelAdmin):
