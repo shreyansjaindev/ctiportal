@@ -44,8 +44,9 @@ export function AppShell() {
             </div>
           </header>
 
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <Outlet />
+            <div id="app-content-overlay-root" className="pointer-events-none absolute inset-0 z-40" />
           </div>
         </div>
       </SidebarInset>

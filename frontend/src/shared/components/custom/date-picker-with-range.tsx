@@ -49,7 +49,6 @@ export function DatePickerWithRange({
           <Button
             id="date"
             variant="outline"
-            size="sm"
             className={cn(
               "w-full justify-start truncate text-left font-normal",
               !date && "text-muted-foreground"

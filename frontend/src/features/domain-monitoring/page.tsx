@@ -8,6 +8,7 @@ import {
   LookalikesTab,
   LookalikeFormSheet,
   MonitoredDomainsTab,
+  NewlyRegisteredDomainsTab,
   WatchedResourcesTab,
   WatchedResourceFormSheet,
 } from "./components"
@@ -15,6 +16,7 @@ import {
   useAlerts,
   useLookalikeDomains,
   useMonitoredDomains,
+  useNewlyRegisteredDomains,
   useWatchedResources,
 } from "./hooks"
 
@@ -25,23 +27,25 @@ export default function DomainMonitoringPage() {
   const lookalikes = useLookalikeDomains()
   const alerts = useAlerts()
   const monitoredDomains = useMonitoredDomains()
+  const nrds = useNewlyRegisteredDomains()
   const watched = useWatchedResources()
 
   return (
-    <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col overflow-hidden">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
         <TabsList variant="line">
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="lookalikes">Lookalike Domains</TabsTrigger>
+          <TabsTrigger value="nrds">Newly Registered Domains</TabsTrigger>
           <TabsTrigger value="monitored-domains">Monitored Domains</TabsTrigger>
           <TabsTrigger value="watched">Watched Resources</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="alerts">
+        <TabsContent value="alerts" className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <AlertsTab alerts={alerts} />
         </TabsContent>
 
-        <TabsContent value="lookalikes">
+        <TabsContent value="lookalikes" className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <LookalikesTab
             lookalikes={lookalikes}
             onOpenImport={() => {
@@ -52,11 +56,15 @@ export default function DomainMonitoringPage() {
           />
         </TabsContent>
 
-        <TabsContent value="monitored-domains">
+        <TabsContent value="nrds" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <NewlyRegisteredDomainsTab nrds={nrds} />
+        </TabsContent>
+
+        <TabsContent value="monitored-domains" className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <MonitoredDomainsTab monitoredDomains={monitoredDomains} />
         </TabsContent>
 
-        <TabsContent value="watched">
+        <TabsContent value="watched" className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <WatchedResourcesTab watched={watched} />
         </TabsContent>
       </Tabs>

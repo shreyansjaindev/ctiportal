@@ -1,4 +1,5 @@
 export { useAlerts } from "./useAlerts"
 export { useLookalikeDomains } from "./useLookalikeDomains"
 export { useMonitoredDomains } from "./useMonitoredDomains"
+export { useNewlyRegisteredDomains } from "./useNewlyRegisteredDomains"
 export { useWatchedResources } from "./useWatchedResources"

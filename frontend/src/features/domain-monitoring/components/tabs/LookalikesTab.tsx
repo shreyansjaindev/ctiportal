@@ -7,12 +7,14 @@ import { Button } from "@/shared/components/ui/button"
 import { DataTable } from "@/shared/components/data-table"
 import { Input } from "@/shared/components/ui/input"
 import { Skeleton } from "@/shared/components/ui/skeleton"
+import { Badge } from "@/shared/components/ui/badge"
 
 import { BulkActionsBar } from "../BulkActionsBar"
 import { LOOKALIKE_STATUS_OPTIONS } from "../../constants"
 import type { useLookalikeDomains } from "../../hooks"
 import type { LookalikeDomain } from "../../types"
 import { getColumns } from "../../lookalikes/columns"
+import { LookalikeEnrichmentPanel } from "../../lookalikes/LookalikeEnrichmentPanel"
 import { LIMIT_OPTIONS, lookalikesFilterFields } from "../../lookalikes/constants"
 import { lookalikesQueryOptions } from "../../lookalikes/query-options"
 
@@ -151,10 +153,64 @@ export function LookalikesTab({ lookalikes, onOpenImport }: LookalikesTabProps) 
             }}
             pageCount={Math.ceil(total / lookalikes.limit)}
             pageSizeOptions={LIMIT_OPTIONS}
+            fillViewport
             enableRowSelection
             selectedRowIds={lookalikes.selectedIds}
             onSelectedRowIdsChange={lookalikes.setSelectedIds}
             rowIdAccessor={(row) => row.id}
+            detailView={{
+              mode: "both",
+              getTitle: (selection) =>
+                selection ? String((selection.row as LookalikeDomain).value) : "Details",
+              render: ({ row }) => {
+                const item = row as LookalikeDomain
+                return (
+                  <div className="grid gap-6 text-sm xl:grid-cols-[320px_minmax(0,1fr)]">
+                    <div className="space-y-4">
+                      <div className="rounded-md border border-border/80 p-4">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Domain</p>
+                            <p className="break-all font-medium text-foreground">{item.value}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Company</p>
+                            <p className="text-foreground">{item.company}</p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="secondary">{item.potential_risk}</Badge>
+                            <Badge variant="outline">{item.status}</Badge>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Source</p>
+                            <p className="text-foreground">{item.source}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Watched Resource</p>
+                            <p className="break-all text-foreground">{item.watched_resource}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-border/80 p-4">
+                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Source Date</p>
+                            <p className="text-foreground">{new Date(item.source_date).toLocaleDateString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Created</p>
+                            <p className="text-foreground">{new Date(item.created).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <LookalikeEnrichmentPanel domain={item.value} />
+                    </div>
+                  </div>
+                )
+              },
+            }}
           />
         )}
     </>

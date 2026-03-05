@@ -1,4 +1,5 @@
 export { AlertsTab } from "./AlertsTab"
 export { LookalikesTab } from "./LookalikesTab"
 export { MonitoredDomainsTab } from "./MonitoredDomainsTab"
+export { NewlyRegisteredDomainsTab } from "./NewlyRegisteredDomainsTab"
 export { WatchedResourcesTab } from "./WatchedResourcesTab"

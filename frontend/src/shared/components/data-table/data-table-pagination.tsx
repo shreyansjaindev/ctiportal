@@ -17,43 +17,24 @@ import {
 } from "lucide-react"
 
 export function DataTablePagination({ pageSizeOptions = [10, 20, 30, 40, 50] }: { pageSizeOptions?: number[] }) {
-  const { table, pagination } = useDataTable()
+  const { table, pagination, totalCount } = useDataTable()
 
   if (!pagination) {
     return null
   }
 
-  const pageCount = table.getPageCount()
+  const totalRows = totalCount ?? table.getFilteredRowModel().rows.length
+  const rowStart = totalRows === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1
+  const rowEnd = totalRows === 0 ? 0 : Math.min(totalRows, (pagination.pageIndex + 1) * pagination.pageSize)
+  const centerLabel = `${rowStart}-${rowEnd} of ${totalRows}`
+  const normalizedPageSizeOptions = Array.from(new Set(pageSizeOptions)).sort((a, b) => a - b)
 
   return (
-    <div className="flex items-center justify-end space-x-4 md:space-x-6 lg:space-x-8">
-      <div className="flex items-center space-x-2">
-        <p className="text-sm font-medium">Rows per page</p>
-        <Select
-          value={`${pagination.pageSize}`}
-          onValueChange={(value) => {
-            table.setPageSize(Number(value))
-          }}
-        >
-          <SelectTrigger className="h-8 w-[70px]">
-            <SelectValue placeholder={pagination.pageSize} />
-          </SelectTrigger>
-          <SelectContent side="top">
-            {pageSizeOptions.map((pageSize) => (
-              <SelectItem key={pageSize} value={`${pageSize}`}>
-                {pageSize}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex items-center justify-center text-sm font-medium">
-        Page {pagination.pageIndex + 1} of {pageCount}
-      </div>
-      <div className="flex items-center space-x-2">
+    <div className="ml-auto">
+      <div className="inline-flex items-center overflow-hidden rounded-md border border-border bg-muted/10">
         <Button
-          variant="outline"
-          className="hidden h-8 w-8 p-0 lg:flex"
+          variant="ghost"
+          className="h-8 w-8 rounded-none p-0"
           onClick={() => {
             table.setPageIndex(0)
           }}
@@ -63,8 +44,8 @@ export function DataTablePagination({ pageSizeOptions = [10, 20, 30, 40, 50] }: 
           <ChevronsLeft className="h-4 w-4" />
         </Button>
         <Button
-          variant="outline"
-          className="h-8 w-8 p-0"
+          variant="ghost"
+          className="h-8 w-8 rounded-none p-0"
           onClick={() => {
             table.previousPage()
           }}
@@ -73,9 +54,32 @@ export function DataTablePagination({ pageSizeOptions = [10, 20, 30, 40, 50] }: 
           <span className="sr-only">Go to previous page</span>
           <ChevronLeft className="h-4 w-4" />
         </Button>
+
+        <div className="h-8 border-l border-border" />
+        <Select
+          value={`${pagination.pageSize}`}
+          onValueChange={(value) => {
+            table.setPageSize(Number(value))
+          }}
+        >
+          <SelectTrigger
+            className="h-8 w-auto min-w-28 justify-center border-0 bg-transparent px-2 text-center text-xs font-medium shadow-none focus:ring-0 [&>svg]:hidden"
+          >
+            <SelectValue>{centerLabel}</SelectValue>
+          </SelectTrigger>
+          <SelectContent side="bottom" position="popper" sideOffset={4} avoidCollisions={false}>
+            {normalizedPageSizeOptions.map((size) => (
+              <SelectItem key={size} value={`${size}`}>
+                {size}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="h-8 border-l border-border" />
         <Button
-          variant="outline"
-          className="h-8 w-8 p-0"
+          variant="ghost"
+          className="h-8 w-8 rounded-none p-0"
           onClick={() => {
             table.nextPage()
           }}
@@ -85,8 +89,8 @@ export function DataTablePagination({ pageSizeOptions = [10, 20, 30, 40, 50] }: 
           <ChevronRight className="h-4 w-4" />
         </Button>
         <Button
-          variant="outline"
-          className="hidden h-8 w-8 p-0 lg:flex"
+          variant="ghost"
+          className="h-8 w-8 rounded-none p-0"
           onClick={() => {
             table.setPageIndex(table.getPageCount() - 1)
           }}

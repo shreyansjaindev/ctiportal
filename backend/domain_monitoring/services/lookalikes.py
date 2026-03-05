@@ -7,6 +7,7 @@ from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from datetime import date, datetime, time
+from typing import Any
 
 import idna
 import Levenshtein
@@ -72,6 +73,31 @@ def normalize_since_from(since_from: datetime | date | str | None) -> datetime:
     return normalize_since_from(parsed_value)
 
 
+def normalize_since_to(since_to: datetime | date | str | None) -> datetime:
+    if since_to is None:
+        return timezone.now()
+
+    if isinstance(since_to, datetime):
+        if timezone.is_naive(since_to):
+            return timezone.make_aware(since_to, timezone.get_current_timezone())
+        return since_to
+
+    if isinstance(since_to, date):
+        naive_end = datetime.combine(since_to, time.max)
+        return timezone.make_aware(naive_end, timezone.get_current_timezone())
+
+    parsed_value: datetime | date
+    try:
+        if "T" in since_to or " " in since_to:
+            parsed_value = datetime.fromisoformat(since_to)
+        else:
+            parsed_value = date.fromisoformat(since_to)
+    except ValueError as exc:
+        raise ValueError("since_to must be an ISO date or datetime.") from exc
+
+    return normalize_since_to(parsed_value)
+
+
 def chunk_list(values: list[str], chunk_count: int) -> list[list[str]]:
     if not values:
         return []
@@ -79,7 +105,8 @@ def chunk_list(values: list[str], chunk_count: int) -> list[list[str]]:
     return [values[index : index + chunk_size] for index in range(0, len(values), chunk_size)]
 
 
-def calculate_similarity_keyword(query_value: str, domain: str) -> float:
+def calculate_similarity_keyword(query_value: str, domain: str, properties: list[str]) -> float:
+    best_similarity_ratio = 0.0
     unidecoded_domain = unidecode(domain)
     for variation in (
         unidecoded_domain.split(".")[0],
@@ -87,14 +114,20 @@ def calculate_similarity_keyword(query_value: str, domain: str) -> float:
         unidecoded_domain.replace(".", ""),
     ):
         if query_value in variation:
-            return 0.86
-    return 0.0
+            best_similarity_ratio = max(best_similarity_ratio, 0.86)
+
+        if "substring_typo_match" in properties:
+            similarity_ratio = find_substring_typo_match(query_value, variation)
+            if similarity_ratio > best_similarity_ratio:
+                best_similarity_ratio = similarity_ratio
+
+    return best_similarity_ratio
 
 
 def calculate_similarity_domain(query_domain: str, domain: str, properties: list[str]) -> tuple[float, bool]:
     best_similarity_ratio = 0.0
     first_character_match = False
-    typo_match = "typo_match" in properties or "substring_typo_match" in properties
+    typo_match = "typo_match" in properties
     noise_reduction = typo_match and "noise_reduction" in properties
 
     query_domain_name = query_domain.split(".", 1)[0]
@@ -149,7 +182,7 @@ def calculate_similarity_domain(query_domain: str, domain: str, properties: list
         if substring_match_score == 1.0:
             return 1.0, first_character_match
 
-        similarity_ratio = find_substring_typo_match(query_domain_name_variation, domain_name_variation)
+        similarity_ratio = Levenshtein.ratio(query_domain_name_variation, domain_name_variation)
         if similarity_ratio > best_similarity_ratio:
             best_similarity_ratio = similarity_ratio
 
@@ -176,6 +209,9 @@ def identify_lookalike_matches(queries: list[dict], domains: list[CandidateDomai
             match_from = query.get("lookalike_match_from")
             if match_from and candidate.source_date < match_from:
                 continue
+            match_to = query.get("lookalike_match_to")
+            if match_to and candidate.source_date > match_to:
+                continue
 
             if any(exclude_value in domain_name for exclude_value in query.get("exclude_keywords", [])):
                 continue
@@ -198,7 +234,11 @@ def identify_lookalike_matches(queries: list[dict], domains: list[CandidateDomai
                         )
                         continue
                 elif "." not in query_value:
-                    similarity = calculate_similarity_keyword(query_value, normalized_domain)
+                    similarity = calculate_similarity_keyword(
+                        query_value,
+                        normalized_domain,
+                        query.get("properties", []),
+                    )
             elif query_type == "domain":
                 similarity, first_character_match = calculate_similarity_domain(
                     query_value,
@@ -421,3 +461,65 @@ def run_lookalike_scan_since(since_from: datetime | date | str | None = None, wo
         total_matches,
     )
     return total_matches
+
+
+def query_nrd_matches(
+    value: str,
+    resource_type: str,
+    properties: list[str] | None = None,
+    exclude_keywords: list[str] | None = None,
+    lookalike_match_from: date | str | None = None,
+    lookalike_match_to: date | str | None = None,
+    since_from: datetime | date | str | None = None,
+    since_to: datetime | date | str | None = None,
+    limit: int = 5000,
+) -> list[dict[str, Any]]:
+    normalized_value = value.strip().lower()
+    if not normalized_value:
+        return []
+
+    query: dict[str, Any] = {
+        "value": normalized_value,
+        "resource_type": resource_type,
+        "properties": properties or [],
+        "exclude_keywords": [item.strip().lower() for item in (exclude_keywords or []) if item.strip()],
+        "lookalike_match_from": normalize_source_date(lookalike_match_from) if lookalike_match_from else None,
+        "lookalike_match_to": normalize_source_date(lookalike_match_to) if lookalike_match_to else None,
+    }
+
+    queryset = NewlyRegisteredDomain.objects.all().order_by("-created")
+    if since_from is not None:
+        queryset = queryset.filter(created__gte=normalize_since_from(since_from))
+    if since_to is not None:
+        queryset = queryset.filter(created__lte=normalize_since_to(since_to))
+    if lookalike_match_from is not None:
+        queryset = queryset.filter(source_date__gte=normalize_source_date(lookalike_match_from))
+    if lookalike_match_to is not None:
+        queryset = queryset.filter(source_date__lte=normalize_source_date(lookalike_match_to))
+
+    domains = [
+        CandidateDomain(
+            value=row["value"],
+            created=row["created"],
+            source_date=row["source_date"],
+            source=row["source"],
+        )
+        for row in queryset.values("value", "created", "source_date", "source")[: max(1, min(limit, 50000))]
+    ]
+
+    if not domains:
+        return []
+
+    matches = identify_lookalike_matches([query], domains)
+
+    return [
+        {
+            "value": match.domain_name,
+            "source_date": match.source_date,
+            "source": match.source,
+            "matched_with": match.resource_value,
+            "match_type": match.resource_type,
+            "potential_risk": match.risk,
+        }
+        for match in matches
+    ]

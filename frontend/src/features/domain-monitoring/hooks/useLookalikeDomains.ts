@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react"
 import type { ColumnFiltersState, OnChangeFn, SortingState } from "@tanstack/react-table"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useDebounce } from "@/shared/hooks/useDebounce"
 
 import {
   addDomainsToProofpoint,
@@ -21,6 +22,7 @@ export function useLookalikeDomains() {
 
   // State
   const [search, setSearch] = useState("")
+  const debouncedSearch = useDebounce(search, 400)
   const [limit, setLimit] = useState(DEFAULT_LIMIT)
   const [offset, setOffset] = useState(0)
   const [sorting, setSortingState] = useState<SortingState>([
@@ -133,11 +135,11 @@ export function useLookalikeDomains() {
     () => ({
       limit,
       offset,
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       ordering,
       ...filterParams,
     }),
-    [limit, offset, search, ordering, filterParams]
+    [limit, offset, debouncedSearch, ordering, filterParams]
   )
 
   const setSorting: OnChangeFn<SortingState> = (updater) => {

@@ -14,16 +14,8 @@ interface DataTableToolbarProps {
 }
 
 export function DataTableToolbar({ renderActions, hasFilters = true }: DataTableToolbarProps) {
-  const { table, totalCount } = useDataTable()
+  const { table } = useDataTable()
   const { open, setOpen } = useControls()
-  const filters = table.getState().columnFilters
-
-  const rows = {
-    // In server-side mode, totalCount is the authoritative server total.
-    // In client-side mode, derive from the table models.
-    total: totalCount ?? table.getCoreRowModel().rows.length,
-    filtered: totalCount ?? table.getFilteredRowModel().rows.length,
-  }
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -50,35 +42,6 @@ export function DataTableToolbar({ renderActions, hasFilters = true }: DataTable
         )}
         <div className="block sm:hidden">
           <DataTableFilterControlsDrawer />
-        </div>
-        <div>
-          <p className="hidden text-sm text-muted-foreground sm:block">
-            {filters.length ? (
-              <>
-                <span className="font-medium">
-                  {rows.filtered.toLocaleString()}
-                </span>{" "}
-                of{" "}
-                <span className="font-medium">
-                  {rows.total.toLocaleString()}
-                </span>{" "}
-                row(s) <span className="sr-only sm:not-sr-only">filtered</span>
-              </>
-            ) : (
-              <>
-                <span className="font-medium">
-                  {rows.total.toLocaleString()}
-                </span>{" "}
-                row(s)
-              </>
-            )}
-          </p>
-          <p className="block text-sm text-muted-foreground sm:hidden">
-            <span className="font-medium">
-              {rows.filtered.toLocaleString()}
-            </span>{" "}
-            row(s)
-          </p>
         </div>
       </div>
       <div className="ml-auto flex items-center gap-2">

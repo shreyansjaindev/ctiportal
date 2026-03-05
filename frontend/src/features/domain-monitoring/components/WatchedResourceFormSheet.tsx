@@ -1,10 +1,14 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
 
 import { Button } from "@/shared/components/ui/button"
+import { Calendar } from "@/shared/components/ui/calendar"
 import { Checkbox } from "@/shared/components/ui/checkbox"
 import { Field, FieldContent, FieldLabel } from "@/shared/components/ui/field"
 import { Input } from "@/shared/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -20,6 +24,7 @@ import {
   SheetTitle,
 } from "@/shared/components/ui/sheet"
 import { Textarea } from "@/shared/components/ui/textarea"
+import { cn } from "@/shared/lib/utils"
 
 import type { WatchedResource, WatchedResourcePayload } from "../types"
 import { listCompanies } from "../services"
@@ -60,6 +65,12 @@ function parseListInput(value: string): unknown[] {
       .filter(Boolean)
   }
   return []
+}
+
+function parseDateValue(value?: string | null): Date | undefined {
+  if (!value) return undefined
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed
 }
 
 export function WatchedResourceFormSheet({
@@ -124,6 +135,7 @@ function WatchedResourceFormContent({
   const [lookalikeMatchFrom, setLookalikeMatchFrom] = useState(
     initial?.lookalike_match_from ? initial.lookalike_match_from.slice(0, 10) : ""
   )
+  const selectedMatchFromDate = parseDateValue(lookalikeMatchFrom)
 
   return (
     <>
@@ -230,11 +242,29 @@ function WatchedResourceFormContent({
         <Field>
           <FieldLabel>Lookalike match from</FieldLabel>
           <FieldContent>
-            <Input
-              type="date"
-              value={lookalikeMatchFrom}
-              onChange={(event) => setLookalikeMatchFrom(event.target.value)}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !selectedMatchFromDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedMatchFromDate ? format(selectedMatchFromDate, "yyyy-MM-dd") : "Select a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedMatchFromDate}
+                  onSelect={(date) => setLookalikeMatchFrom(date ? format(date, "yyyy-MM-dd") : "")}
+                  captionLayout="dropdown"
+                />
+              </PopoverContent>
+            </Popover>
           </FieldContent>
         </Field>
       </div>

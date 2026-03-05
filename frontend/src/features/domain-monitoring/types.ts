@@ -76,6 +76,22 @@ export type NewlyRegisteredDomain = {
   created: string
   source_date: string
   value: string
+  source?: string
+  potential_risk?: string
+  matched_with?: string
+  match_type?: string
+}
+
+export type NRDMatchQueryPayload = {
+  value: string
+  resource_type: "domain" | "keyword"
+  properties?: string[]
+  exclude_keywords?: string[]
+  lookalike_match_from?: string | null
+  lookalike_match_to?: string | null
+  since_from?: string | null
+  since_to?: string | null
+  limit?: number
 }
 
 export type MonitoredDomain = {

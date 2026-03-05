@@ -16,6 +16,7 @@ import type {
   WatchedResourcePayload,
   MonitoredDomain,
   MonitoredDomainAlert,
+  NRDMatchQueryPayload,
 } from "../types"
 
 const BASE_PATH = "/domain-monitoring"
@@ -151,6 +152,15 @@ export async function listNewlyRegisteredDomains(
 
 export async function getNewlyRegisteredDomain(id: number): Promise<NewlyRegisteredDomain> {
   return apiGet<NewlyRegisteredDomain>(`${BASE_PATH}/newly-registered-domains/${id}/`)
+}
+
+export async function queryNewlyRegisteredDomainMatches(
+  payload: NRDMatchQueryPayload
+): Promise<PaginatedResponse<NewlyRegisteredDomain>> {
+  return apiPost<PaginatedResponse<NewlyRegisteredDomain>>(
+    `${BASE_PATH}/newly-registered-domains/query-matches/`,
+    JSON.stringify(payload)
+  )
 }
 
 // External integrations

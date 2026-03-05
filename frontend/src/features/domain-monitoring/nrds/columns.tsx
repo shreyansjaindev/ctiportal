@@ -34,6 +34,36 @@ export const columns: ColumnDef<NewlyRegisteredDomain>[] = [
     enableSorting: true,
   },
   {
+    accessorKey: "potential_risk",
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title="Risk"
+        filterType="text"
+        filterPlaceholder="low/medium/high"
+      />
+    ),
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">{(row.getValue("potential_risk") as string) || "—"}</span>
+    ),
+    enableSorting: true,
+  },
+  {
+    accessorKey: "source",
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title="Source"
+        filterType="text"
+        filterPlaceholder="Search source…"
+      />
+    ),
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">{(row.getValue("source") as string) || "—"}</span>
+    ),
+    enableSorting: true,
+  },
+  {
     accessorKey: "created",
     header: ({ column }) => (
       <DataTableColumnHeader

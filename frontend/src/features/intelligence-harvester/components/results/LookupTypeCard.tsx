@@ -48,6 +48,7 @@ export function LookupTypeCard({
 
   const returnedProviderIds = new Set(typeResults.map((result) => result._provider).filter(Boolean))
   const resolvedProviderId = activeProviderId
+    ?? selectedProviders[0]
     ?? (dataResults[0]?._provider ?? typeResults[0]?._provider ?? null)
 
   const activeResult = resolvedProviderId
@@ -98,11 +99,6 @@ export function LookupTypeCard({
           {isIdleState && availableProviders.length === 0 ? (
             <CardDescription>Click to load</CardDescription>
           ) : null}
-          {isLoading && !hasData && (
-            <span className="flex items-center text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" /> Fetching data...
-            </span>
-          )}
           {error && !hasData && (
             <span className="flex items-center text-xs text-destructive">
               <AlertCircle className="h-3 w-3" />
@@ -268,8 +264,9 @@ export function LookupTypeCard({
       )}
       {resolvedProviderId && !activeProviderReturned && isActiveProviderLoading ? (
         <CardContent className={cn("px-5", expanded && "min-h-0 flex-1 overflow-y-auto")}>
-          <div className="flex min-h-[8rem] items-center justify-center text-muted-foreground">
+          <div className="flex min-h-[8rem] flex-col items-center justify-center gap-2 text-center text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
+            <p className="text-xs">Fetching data...</p>
           </div>
         </CardContent>
       ) : null}
