@@ -71,6 +71,7 @@ interface DataTableProps<TData, TValue> {
   fillViewport?: boolean
   detailView?: {
     mode?: "row" | "cell" | "both"
+    triggerColumnIds?: string[]
     title?: string
     getTitle?: (selection: DataTableDetailSelection<TData> | null) => string
     emptyState?: ReactNode
@@ -209,6 +210,7 @@ export function DataTable<TData, TValue>({
   const detailMode = detailView?.mode ?? "row"
   const rowDetailEnabled = detailMode === "row" || detailMode === "both"
   const cellDetailEnabled = detailMode === "cell" || detailMode === "both"
+  const detailTriggerColumnIds = detailView?.triggerColumnIds
 
   const pageRows = table.getRowModel().rows
   const pageRowIds = selectable ? pageRows.map((row) => rowIdAccessor(row.original)) : []
@@ -295,7 +297,7 @@ export function DataTable<TData, TValue>({
           {filterFields && filterFields.length > 0 && (
           <div
             className={cn(
-              "hidden h-full w-full shrink-0 flex-col sm:flex sm:min-w-52 sm:max-w-52 md:min-w-64 md:max-w-64",
+              "hidden h-full w-full shrink-0 flex-col sm:sticky sm:top-0 sm:flex sm:self-start sm:max-h-[calc(100dvh-3.5rem)] sm:min-h-[calc(100dvh-3.5rem)] sm:min-w-52 sm:max-w-52 md:min-w-64 md:max-w-64",
               "group-data-[expanded=false]/controls:hidden",
             )}
           >
@@ -424,17 +426,23 @@ export function DataTable<TData, TValue>({
                           </TableCell>
                         ) : null}
                         {row.getVisibleCells().map((cell) => (
+                          (() => {
+                            const isDetailCell =
+                              cellDetailEnabled
+                              && (!detailTriggerColumnIds || detailTriggerColumnIds.includes(cell.column.id))
+
+                            return (
                           <TableCell
                             key={cell.id}
                             className={cn(
-                            "border-b border-border",
-                            cellDetailEnabled && "cursor-pointer"
-                          )}
-                          onClick={cellDetailEnabled ? (event) => {
-                            if (hasActiveTextSelection()) return
-                            event.stopPropagation()
-                            setDetailSelection({
-                              row: row.original,
+                              "border-b border-border",
+                              isDetailCell && "cursor-pointer"
+                            )}
+                            onClick={isDetailCell ? (event) => {
+                              if (hasActiveTextSelection()) return
+                              event.stopPropagation()
+                              setDetailSelection({
+                                row: row.original,
                                 rowIndex: row.index,
                                 columnId: cell.column.id,
                                 cellValue: cell.getValue(),
@@ -443,6 +451,8 @@ export function DataTable<TData, TValue>({
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </TableCell>
+                            )
+                          })()
                         ))}
                       </TableRow>
                     ))

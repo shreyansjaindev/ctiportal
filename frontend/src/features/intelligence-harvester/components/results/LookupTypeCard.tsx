@@ -48,8 +48,8 @@ export function LookupTypeCard({
 
   const returnedProviderIds = new Set(typeResults.map((result) => result._provider).filter(Boolean))
   const resolvedProviderId = activeProviderId
-    ?? selectedProviders[0]
     ?? (dataResults[0]?._provider ?? typeResults[0]?._provider ?? null)
+  const pendingProviderId = activeProviderId ?? (isLoading ? selectedProviders[0] ?? null : null)
 
   const activeResult = resolvedProviderId
     ? typeResults.find((result) => result._provider === resolvedProviderId) ?? null
@@ -61,14 +61,17 @@ export function LookupTypeCard({
   const activeProviderReturned = resolvedProviderId
     ? returnedProviderIds.has(resolvedProviderId)
     : false
-  const isTargetingActiveProvider = resolvedProviderId
+  const isTargetingActiveProvider = (resolvedProviderId ?? pendingProviderId)
     ? isLoading
       && (
-        loadingTarget === resolvedProviderId
-        || (loadingTarget === "__selected__" && selectedProviders.includes(resolvedProviderId))
+        loadingTarget === (resolvedProviderId ?? pendingProviderId)
+        || (
+          loadingTarget === "__selected__"
+          && selectedProviders.includes((resolvedProviderId ?? pendingProviderId)!)
+        )
       )
     : false
-  const isActiveProviderLoading = resolvedProviderId
+  const isActiveProviderLoading = (resolvedProviderId ?? pendingProviderId)
     ? isLoading
       && !activeProviderReturned
       && isTargetingActiveProvider
@@ -76,7 +79,7 @@ export function LookupTypeCard({
   const isActiveProviderRefreshing = resolvedProviderId
     ? activeProviderReturned && isTargetingActiveProvider
     : false
-  const activeTabValue = resolvedProviderId ?? "__none__"
+  const activeTabValue = resolvedProviderId ?? pendingProviderId ?? "__none__"
 
   const isIdleState = !isFetched && !isLoading
   const borderClass = error && !hasData ? "border-destructive/40" : undefined

@@ -83,6 +83,7 @@ export function LookalikesTab({ lookalikes, onOpenImport }: LookalikesTabProps) 
         <DataTable
           columns={columns}
           data={items}
+          serverSide
           filterFields={lookalikesFilterFields}
           isLoading={query.isFetching}
           totalCount={total}
@@ -159,7 +160,8 @@ export function LookalikesTab({ lookalikes, onOpenImport }: LookalikesTabProps) 
             onSelectedRowIdsChange={lookalikes.setSelectedIds}
             rowIdAccessor={(row) => row.id}
             detailView={{
-              mode: "both",
+              mode: "cell",
+              triggerColumnIds: ["value"],
               getTitle: (selection) =>
                 selection ? String((selection.row as LookalikeDomain).value) : "Details",
               render: ({ row }) => {
@@ -205,7 +207,7 @@ export function LookalikesTab({ lookalikes, onOpenImport }: LookalikesTabProps) 
                       </div>
                     </div>
                     <div className="space-y-3">
-                      <LookalikeEnrichmentPanel domain={item.value} />
+                      <LookalikeEnrichmentPanel key={item.value} domain={item.value} />
                     </div>
                   </div>
                 )

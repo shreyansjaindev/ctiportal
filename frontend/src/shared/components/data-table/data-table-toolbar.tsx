@@ -16,6 +16,7 @@ interface DataTableToolbarProps {
 export function DataTableToolbar({ renderActions, hasFilters = true }: DataTableToolbarProps) {
   const { table } = useDataTable()
   const { open, setOpen } = useControls()
+  const activeFilterCount = table.getState().columnFilters.length
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -30,12 +31,16 @@ export function DataTableToolbar({ renderActions, hasFilters = true }: DataTable
           {open ? (
             <>
               <PanelLeftClose className="h-4 w-4" />
-              <span className="hidden md:block">Hide Filters</span>
+              <span className="hidden md:block">
+                Hide Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              </span>
             </>
           ) : (
             <>
               <PanelLeftOpen className="h-4 w-4" />
-              <span className="hidden md:block">Show Filters</span>
+              <span className="hidden md:block">
+                Show Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              </span>
             </>
           )}
         </Button>
