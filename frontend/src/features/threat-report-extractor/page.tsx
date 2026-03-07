@@ -73,15 +73,6 @@ type ThreatReportExtraction = {
       context_snippet: string
       tags: string[]
     }>
-    secondary: Array<{
-      value: string
-      type: string
-      confidence: number
-      source_section: string
-      source_url: string
-      context_snippet: string
-      tags: string[]
-    }>
     legitimate_tools: Array<{
       value: string
       type: string
@@ -149,16 +140,6 @@ function toTitleCase(value: string) {
   return value
     .replaceAll("_", " ")
     .replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
-function formatIocSourceLabel(value: string) {
-  if (!value) {
-    return "-"
-  }
-  if (value === "linked IOC source") {
-    return "IOC source file"
-  }
-  return value
 }
 
 function getDisplayIocs(articleIocs: ThreatReportExtraction["article_iocs"]) {
@@ -927,7 +908,7 @@ export default function ThreatReportExtractorPage() {
                                 </TableCell>
                                 <TableCell className="align-top">
                                   <div className="space-y-1 text-sm text-muted-foreground">
-                                    <div>{formatIocSourceLabel(ioc.source_section)}</div>
+                                    <div>{ioc.source_section || "-"}</div>
                                     {ioc.source_url ? (
                                       <div className="break-all">{ioc.source_url}</div>
                                     ) : null}

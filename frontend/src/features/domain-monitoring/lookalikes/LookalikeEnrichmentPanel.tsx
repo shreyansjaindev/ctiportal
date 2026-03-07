@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/shared/components/ui/alert"
 import { useProviderSelection } from "@/shared/hooks"
 import * as aggregators from "@/shared/lib/aggregators"
 import { isProviderApplicable } from "@/shared/services/lookup.service"
-import type { LookupResult, LookupType, Provider } from "@/shared/types/intelligence-harvester"
+import type { LookupResult, LookupType, Provider, ProvidersMetadata } from "@/shared/types/intelligence-harvester"
 import { LookupTypeCard } from "@/features/intelligence-harvester/components/results/LookupTypeCard"
 
 const AUTO_ENRICH_TYPES: LookupType[] = ["whois", "dns", "reputation", "subdomains", "web_redirects"]
@@ -33,16 +33,17 @@ export function LookalikeEnrichmentPanel({ domain }: LookalikeEnrichmentPanelPro
     staleTime: 5 * 60 * 1000,
   })
 
-  const providersByType = useMemo<Record<string, Provider[]>>(() => {
-    const source = providersQuery.data?.providers_by_type ?? {}
+  const providersByType = useMemo<Record<LookupType, Provider[]>>(() => {
+    const source: Partial<ProvidersMetadata["providers_by_type"]> =
+      providersQuery.data?.providers_by_type ?? {}
     return Object.fromEntries(
       AUTO_ENRICH_TYPES.map((type) => [
         type,
         (source[type] ?? []).filter(
-          (provider) => provider.available && isProviderApplicable(provider, "domain")
+          (provider: Provider) => provider.available && isProviderApplicable(provider, "domain")
         ),
       ])
-    )
+    ) as Record<LookupType, Provider[]>
   }, [providersQuery.data?.providers_by_type])
 
   const availableTypes = useMemo(

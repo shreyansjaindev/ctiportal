@@ -106,20 +106,6 @@ COMPARISON_EVIDENCE_HINTS = (
     "publicly available",
     "contrary to popular belief",
 )
-LINKED_IOC_SOURCE_HINTS = (
-    "github.com",
-    "raw.githubusercontent.com",
-    ".txt",
-    ".csv",
-    ".json",
-    "/ioc",
-    "/iocs",
-    "/indicator",
-    "/indicators",
-    "/observables",
-    "/artifact",
-    "/artifacts",
-)
 PRIMARY_SOURCE_HOST_HINTS = (
     "talosintelligence.com",
     "mandiant.com",

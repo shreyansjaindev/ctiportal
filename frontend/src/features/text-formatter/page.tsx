@@ -79,9 +79,13 @@ export default function TextFormatterPage() {
 
   async function copyOutput() {
     if (!outputText) return
-    await navigator.clipboard.writeText(outputText)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1500)
+    try {
+      await navigator.clipboard.writeText(outputText)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      setCopied(false)
+    }
   }
 
   function toggleOperation(operationId: OperationId) {

@@ -201,7 +201,7 @@ def _parse_csv_linked_source(payload, candidate):
                         "value": value_str,
                         "type": ioc_type,
                         "confidence": 0.95,
-                        "source_section": "linked IOC source",
+                        "source_section": "IOC source file",
                         "source_url": candidate["url"],
                         "context_snippet": context_snippet or candidate["label"] or candidate["body_text"][:300],
                         "tags": row_tags,
@@ -224,7 +224,7 @@ def _parse_generic_linked_source(payload, candidate):
                     "value": value_str,
                     "type": ioc_type,
                     "confidence": 0.95,
-                    "source_section": "linked IOC source",
+                    "source_section": "IOC source file",
                     "source_url": candidate["url"],
                     "context_snippet": candidate["label"] or candidate["body_text"][:300],
                     "tags": [],
@@ -338,7 +338,6 @@ def extract_article_iocs_from_html(html, base_url):
 
     return {
         "primary": merge_ioc_entries(primary_iocs + linked_source_iocs),
-        "secondary": [],
         "legitimate_tools": merge_ioc_entries(legitimate_tool_entries),
         "linked_source_iocs": merge_ioc_entries(linked_source_iocs),
         "linked_ioc_sources": dedupe_preserve_order(linked_ioc_sources),

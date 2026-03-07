@@ -5,7 +5,6 @@ from scripts.utils.threat_report_extractor_normalize import (
     default_context_payload,
     extract_dates,
     ioc_entries_to_grouped,
-    parse_summary_object,
 )
 from scripts.utils.threat_report_extractor_source import resolve_source_input
 
@@ -64,6 +63,4 @@ def analyze_threat_report(query, source_kind="text"):
             **{key: value for key, value in source_info.items() if key not in {"warnings", "source_html"}},
         },
     }
-
-
-__all__ = ["analyze_threat_report", "parse_summary_object"]
+__all__ = ["analyze_threat_report"]

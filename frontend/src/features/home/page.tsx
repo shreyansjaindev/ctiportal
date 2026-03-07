@@ -35,7 +35,7 @@ export default function HomePage() {
   const subtitleByAppName: Record<string, string> = {
     "Intelligence Harvester": "Investigate indicators and enrich findings.",
     "Domain Monitoring": "Track domain activity and infrastructure changes.",
-    "Threat Report Extractor (Experimental)": "Extract victims, TTPs, IOCs, and relationships from reports and articles.",
+    "Threat Report Extractor": "Extract victims, TTPs, IOCs, and relationships from reports and articles.",
     "Text Utilities": "Fang, defang, normalize, and clean analyst input.",
     "Link Unwrapper": "Reveal the real destination behind wrapped links.",
     "Mail Header Analyzer": "Parse message headers and routing details.",

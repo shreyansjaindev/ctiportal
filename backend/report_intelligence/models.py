@@ -105,7 +105,6 @@ class ThreatReportIOC(models.Model):
 
     class Disposition(models.TextChoices):
         PRIMARY = "primary", "Primary"
-        SECONDARY = "secondary", "Secondary"
         LEGITIMATE_TOOL = "legitimate_tool", "Legitimate Tool"
         DETECTED = "detected", "Detected"
 

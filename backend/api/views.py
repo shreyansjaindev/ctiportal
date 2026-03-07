@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 APPS = [
     {"name": "Intelligence Harvester", "path": "/intelligence-harvester"},
     {"name": "Domain Monitoring", "path": "/domain-monitoring"},
-    {"name": "Threat Report Extractor (Experimental)", "path": "/threat-report-extractor"},
+    {"name": "Threat Report Extractor", "path": "/threat-report-extractor"},
     {"name": "Text Utilities", "path": "/text-utilities"},
     {"name": "Link Unwrapper", "path": "/link-unwrapper"},
     {"name": "Mail Header Analyzer", "path": "/mail-header-analyzer"},

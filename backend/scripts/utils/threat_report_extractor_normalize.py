@@ -33,7 +33,6 @@ def default_context_payload():
         },
         "article_iocs": {
             "primary": [],
-            "secondary": [],
             "legitimate_tools": [],
             "linked_ioc_sources": [],
             "linked_source_iocs": [],

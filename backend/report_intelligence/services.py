@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 
 from django.db import transaction
 from django.db.models import Q
-from scripts.utils.threat_report_extractor import parse_summary_object
+from scripts.utils.threat_report_extractor_normalize import parse_summary_object
 
 from report_intelligence.models import (
     ThreatReport,
@@ -195,7 +195,6 @@ def _build_cached_context(analysis: ThreatReportAnalysis) -> dict:
     snapshot = analysis.snapshot or {}
     article_iocs = {
         "primary": [],
-        "secondary": [],
         "legitimate_tools": [],
         "linked_ioc_sources": [],
         "linked_source_iocs": [],
@@ -206,8 +205,6 @@ def _build_cached_context(analysis: ThreatReportAnalysis) -> dict:
             article_iocs["linked_source_iocs"].append(serialized)
         elif ioc.disposition == ThreatReportIOC.Disposition.PRIMARY:
             article_iocs["primary"].append(serialized)
-        elif ioc.disposition == ThreatReportIOC.Disposition.SECONDARY:
-            article_iocs["secondary"].append(serialized)
         elif ioc.disposition == ThreatReportIOC.Disposition.LEGITIMATE_TOOL:
             article_iocs["legitimate_tools"].append(serialized)
 
@@ -316,7 +313,6 @@ def _persist_article_iocs(analysis: ThreatReportAnalysis, context: dict) -> None
     seen = set()
     for disposition_key, disposition in (
         ("primary", ThreatReportIOC.Disposition.PRIMARY),
-        ("secondary", ThreatReportIOC.Disposition.SECONDARY),
         ("legitimate_tools", ThreatReportIOC.Disposition.LEGITIMATE_TOOL),
         ("linked_source_iocs", ThreatReportIOC.Disposition.PRIMARY),
     ):
