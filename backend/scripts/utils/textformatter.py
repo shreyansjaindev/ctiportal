@@ -1,8 +1,22 @@
 import re
 import sys
+from html import unescape
+
 import ioc_fanger
+import requests
 import tldextract
 from ioc_finder import find_iocs
+
+REQUEST_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; CTIPortal/1.0; +https://ctiportal.local)"
+}
+FETCHABLE_CONTENT_TYPES = (
+    "text/html",
+    "text/plain",
+    "application/json",
+    "application/xml",
+    "text/xml",
+)
 
 
 def duplicates(query):
@@ -70,6 +84,41 @@ def extract_iocs(query):
     )
 
 
+def _strip_markup(content):
+    content = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", content, flags=re.IGNORECASE | re.DOTALL)
+    content = re.sub(r"<[^>]+>", " ", content)
+    content = unescape(content)
+    return re.sub(r"\s+", " ", content).strip()
+
+
+def fetch_url_text(query):
+    urls = extract_iocs(query).get("urls", [])
+    if not urls:
+        return query
+
+    fetched_chunks = [query]
+    for url in dict.fromkeys(urls):
+        try:
+            response = requests.get(
+                fang(url),
+                headers=REQUEST_HEADERS,
+                timeout=10,
+                allow_redirects=True,
+            )
+            response.raise_for_status()
+            content_type = response.headers.get("Content-Type", "").lower()
+            if content_type and not any(value in content_type for value in FETCHABLE_CONTENT_TYPES):
+                continue
+
+            page_text = _strip_markup(response.text[:500000])
+            if page_text:
+                fetched_chunks.append(page_text)
+        except requests.RequestException:
+            continue
+
+    return "\n".join(fetched_chunks)
+
+
 def collector(query, operations):
     data = {}
 
@@ -81,7 +130,8 @@ def collector(query, operations):
     cleaned_data = []
 
     if "iocs" in operations:
-        return extract_iocs(query)
+        source_text = fetch_url_text(query) if "fetch_urls" in operations else query
+        return extract_iocs(source_text)
 
     if "duplicates" in operations:
         cleaned_data = duplicates(cleaned_data)

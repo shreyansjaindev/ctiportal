@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 
 import { Alert, AlertDescription } from "@/shared/components/ui/alert"
+import { useProviderSelection } from "@/shared/hooks"
 import * as aggregators from "@/shared/lib/aggregators"
 import { isProviderApplicable } from "@/shared/services/lookup.service"
 import type { LookupResult, LookupType, Provider } from "@/shared/types/intelligence-harvester"
@@ -24,6 +25,7 @@ export function LookalikeEnrichmentPanel({ domain }: LookalikeEnrichmentPanelPro
   const [resultsByType, setResultsByType] = useState<ResultsByType>({})
   const [loadingByType, setLoadingByType] = useState<LoadingByType>({})
   const [errorsByType, setErrorsByType] = useState<ErrorsByType>({})
+  const { getProviderForType } = useProviderSelection()
 
   const providersQuery = useQuery({
     queryKey: ["lookalike-enrichment-providers"],
@@ -48,15 +50,33 @@ export function LookalikeEnrichmentPanel({ domain }: LookalikeEnrichmentPanelPro
     [providersByType]
   )
 
+  function getResolvedSelectedProviders(type: LookupType) {
+    const localSelections = selectedProvidersByType[type]?.filter((providerId) =>
+      (providersByType[type] ?? []).some((provider) => provider.id === providerId)
+    ) ?? []
+    if (localSelections.length > 0) return localSelections
+
+    const savedSelections = getProviderForType(type).filter((providerId) =>
+      (providersByType[type] ?? []).some((provider) => provider.id === providerId)
+    )
+    return savedSelections
+  }
+
   useEffect(() => {
     availableTypes.forEach((type) => {
-      const defaultProviderId = selectedProvidersByType[type]?.[0] ?? providersByType[type]?.[0]?.id
-      if (!defaultProviderId) return
-      if (resultsByType[type]?.[defaultProviderId]) return
       if (loadingByType[type]) return
-      void loadType(type, defaultProviderId)
+
+      const configuredProviderIds = getResolvedSelectedProviders(type)
+      const providerIdsToAutoLoad = configuredProviderIds.length > 0
+        ? configuredProviderIds
+        : (providersByType[type]?.[0]?.id ? [providersByType[type][0].id] : [])
+
+      const nextProviderId = providerIdsToAutoLoad.find((providerId) => !resultsByType[type]?.[providerId])
+      if (!nextProviderId) return
+      if (loadingByType[type]) return
+      void loadType(type, nextProviderId)
     })
-  }, [availableTypes, loadingByType, providersByType, resultsByType, selectedProvidersByType])
+  }, [availableTypes, getProviderForType, loadingByType, providersByType, resultsByType, selectedProvidersByType])
 
   async function loadType(type: LookupType, providerOverride?: string, forceRefresh = false) {
     const providerId = providerOverride ?? selectedProvidersByType[type]?.[0] ?? providersByType[type]?.[0]?.id
@@ -144,7 +164,7 @@ export function LookalikeEnrichmentPanel({ domain }: LookalikeEnrichmentPanelPro
           isFetched={Object.keys(resultsByType[type] ?? {}).length > 0}
           error={errorsByType[type]}
           providersByType={providersByType}
-          selectedProviders={selectedProvidersByType[type] ?? []}
+          selectedProviders={getResolvedSelectedProviders(type)}
           onLoad={(providerId) => {
             void loadType(type, providerId)
           }}
@@ -152,7 +172,7 @@ export function LookalikeEnrichmentPanel({ domain }: LookalikeEnrichmentPanelPro
             void loadType(type, providerId, true)
           }}
           onRetry={() => {
-            void loadType(type, selectedProvidersByType[type]?.[0], true)
+            void loadType(type, getResolvedSelectedProviders(type)[0], true)
           }}
           onExpand={() => setDetailType(type)}
           expanded={detailType === type}

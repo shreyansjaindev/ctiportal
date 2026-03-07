@@ -20,8 +20,10 @@ from scripts.integrations.anomali.threatstream import (
 )
 from scripts.providers.screenshotmachine import bulk_screenshot
 from scripts.utils.ad_users import get_aduser
+from scripts.utils.threat_report_extractor import analyze_threat_report
 from scripts.utils.mha import mha as mha_analyzer
 from scripts.utils.textformatter import collector as text_formatter
+from report_intelligence.services import get_cached_context_analysis, persist_context_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -29,15 +31,13 @@ logger = logging.getLogger(__name__)
 APPS = [
     {"name": "Intelligence Harvester", "path": "/intelligence-harvester"},
     {"name": "Domain Monitoring", "path": "/domain-monitoring"},
-    {"name": "Text Formatter", "path": "/text-formatter"},
-    {"name": "URL Decoder", "path": "/url-decoder"},
-    {"name": "Website Screenshot", "path": "/screenshot"},
+    {"name": "Threat Report Extractor (Experimental)", "path": "/threat-report-extractor"},
+    {"name": "Text Utilities", "path": "/text-utilities"},
+    {"name": "Link Unwrapper", "path": "/link-unwrapper"},
     {"name": "Mail Header Analyzer", "path": "/mail-header-analyzer"},
-    {"name": "Anomali ThreatStream Search", "path": "/threatstream"},
+    {"name": "Anomali ThreatStream", "path": "/threatstream"},
     {"name": "Microsoft Active Directory Validator", "path": "/active-directory"},
 ]
-
-
 class HealthView(APIView):
     """Health check endpoint — public so load balancers and deploy platforms can probe it."""
     permission_classes = []
@@ -91,6 +91,52 @@ class TextFormatterView(APIView):
         except Exception as e:
             logger.error(f"Error in text formatter: {e}", exc_info=True)
             return error("Failed to format text", code="processing_error", status_code=500)
+
+
+class ThreatReportExtractorView(APIView):
+    """Extract structured CTI intelligence from reports, text, and fetched sources"""
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    def post(self, request):
+        try:
+            query = request.data.get("query")
+            url = request.data.get("url")
+            uploaded_file = request.data.get("file")
+            source_kind = "text"
+
+            if uploaded_file is not None:
+                source_kind = "file"
+                query = uploaded_file.read().decode("utf-8", errors="ignore").strip()
+            elif url:
+                source_kind = "url"
+                query = str(url).strip()
+
+            if not query:
+                logger.warning("Threat report extractor called without input")
+                return error("query, url, or file is required", code="validation_error", status_code=400)
+            logger.debug("Threat report extraction request received")
+            if source_kind == "url":
+                cached_context = get_cached_context_analysis(query)
+                if cached_context is not None:
+                    return success(cached_context)
+            context = analyze_threat_report(query, source_kind=source_kind)
+            try:
+                analysis = persist_context_analysis(query, source_kind, context)
+                context.setdefault("meta", {})
+                context["meta"]["report_id"] = analysis.report_id
+                context["meta"]["analysis_id"] = analysis.id
+            except Exception as persistence_error:
+                logger.error(
+                    f"Error persisting threat report extraction: {persistence_error}",
+                    exc_info=True,
+                )
+                context.setdefault("validation_warnings", [])
+                context["validation_warnings"].append("Threat report extraction completed, but the result could not be saved.")
+            return success(context)
+        except Exception as e:
+            logger.error(f"Error in threat report extractor: {e}", exc_info=True)
+            return error("Failed to extract threat report intelligence", code="processing_error", status_code=500)
 
 
 class MailHeaderAnalyzerView(APIView):

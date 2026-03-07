@@ -246,7 +246,7 @@ export function ProviderAutoLoadSetup({
                         </span>
                         {isEnabled && (
                           <span className="text-[11px] text-primary-foreground/80">
-                            {selectedCount} provider{selectedCount === 1 ? "" : "s"} selected
+                            {selectedCount} selected
                           </span>
                         )}
                       </div>

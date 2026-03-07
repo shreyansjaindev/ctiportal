@@ -31,6 +31,12 @@ function fetchWithTimeout(
   const timeoutId = setTimeout(() => controller.abort(), timeout)
 
   return fetch(url, { ...fetchOptions, signal: controller.signal, credentials: "include" })
+    .catch((error) => {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new Error(`Request timed out after ${Math.round(timeout / 1000)} seconds`)
+      }
+      throw error
+    })
     .finally(() => clearTimeout(timeoutId))
 }
 
@@ -158,12 +164,13 @@ export async function apiGet<T>(path: string): Promise<T> {
 export async function apiPost<T>(
   path: string,
   body: BodyInit,
-  contentType = "application/json",
+  contentType: string | null = "application/json",
   options: ApiRequestOptions = {}
 ): Promise<T> {
+  const headers = contentType ? { "Content-Type": contentType } : undefined
   const response = await fetchWithTimeout(`${API_BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": contentType },
+    headers,
     body,
     timeout: options.timeout,
   })
@@ -173,7 +180,7 @@ export async function apiPost<T>(
     if ((error as Error).message === "TOKEN_REFRESHED") {
       const retryResponse = await fetchWithTimeout(`${API_BASE}${path}`, {
         method: "POST",
-        headers: { "Content-Type": contentType },
+        headers,
         body,
         timeout: options.timeout,
       })

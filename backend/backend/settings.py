@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "api.apps.ApiConfig",
     "domain_monitoring.apps.DomainMonitoringConfig",
     "intelligence_harvester.apps.IntelligenceHarvesterConfig",
+    "report_intelligence.apps.ReportIntelligenceConfig",
     "reverse_whois_monitoring.apps.ReverseWhoisMonitoringConfig",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",

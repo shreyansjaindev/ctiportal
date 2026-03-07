@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 
+import { navItems } from "@/shared/components/navigation"
 import { Button } from "@/shared/components/ui/button"
 import {
   Card,
@@ -29,15 +30,16 @@ export default function HomePage() {
     queryFn: () => apiGet<PaginatedResponse<AppItem>>("/applications/"),
   })
   const appsData = appsQuery.data?.items ?? []
+  const navItemByPath = new Map(navItems.map((item) => [item.path, item]))
 
   const subtitleByAppName: Record<string, string> = {
     "Intelligence Harvester": "Investigate indicators and enrich findings.",
     "Domain Monitoring": "Track domain activity and infrastructure changes.",
-    "Text Formatter": "Normalize and clean text for analyst workflows.",
-    "URL Decoder": "Decode and inspect suspicious URLs safely.",
-    "Website Screenshot": "Capture website snapshots for quick review.",
+    "Threat Report Extractor (Experimental)": "Extract victims, TTPs, IOCs, and relationships from reports and articles.",
+    "Text Utilities": "Fang, defang, normalize, and clean analyst input.",
+    "Link Unwrapper": "Reveal the real destination behind wrapped links.",
     "Mail Header Analyzer": "Parse message headers and routing details.",
-    "Anomali ThreatStream Search": "Search ThreatStream intelligence records.",
+    "Anomali ThreatStream": "Search and export ThreatStream intelligence records.",
     "Microsoft Active Directory Validator": "Validate and inspect Active Directory data.",
   }
 
@@ -92,14 +94,23 @@ export default function HomePage() {
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <span
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-muted text-foreground"
-                      >
-                        {app.name
-                          .split(" ")
-                          .map((part) => part[0])
-                          .join("")}
-                      </span>
+                      {(() => {
+                        const navItem = navItemByPath.get(app.path)
+                        const Icon = navItem?.icon
+
+                        return (
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-muted text-foreground">
+                            {Icon ? (
+                              <Icon className="h-5 w-5" />
+                            ) : (
+                              app.name
+                                .split(" ")
+                                .map((part) => part[0])
+                                .join("")
+                            )}
+                          </span>
+                        )
+                      })()}
                     </div>
                     <CardTitle className="text-base">{app.name}</CardTitle>
                     <CardDescription>

@@ -13,6 +13,7 @@ from .views import (
     HealthView,
     UserMeView,
     AppsView,
+    ThreatReportExtractorView,
     TextFormatterView,
     MailHeaderAnalyzerView,
     ScreenshotView,
@@ -41,6 +42,7 @@ urlpatterns = [
 
     # Utility Tools
     path("tools/", include([
+        path("threat-report-extractor/", ThreatReportExtractorView.as_view(), name="tools-threat-report-extractor"),
         path("text-formatting/", TextFormatterView.as_view(), name="tools-text-formatting"),
         path("mail-header-analysis/", MailHeaderAnalyzerView.as_view(), name="tools-mail-header-analysis"),
         path("screenshots/", ScreenshotView.as_view(), name="tools-screenshots"),

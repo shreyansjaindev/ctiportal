@@ -10,8 +10,8 @@ import HomePage from "@/features/home/page"
 import IntelligenceHarvesterPage from "@/features/intelligence-harvester/page"
 import LoginPage from "@/features/login/page"
 import MhaPage from "@/features/mha/page"
-import ScreenshotPage from "@/features/screenshot/page"
 import TextFormatterPage from "@/features/text-formatter/page"
+import ThreatReportExtractorPage from "@/features/threat-report-extractor/page"
 import ThreatstreamPage from "@/features/threatstream/page"
 import UrlDecoderPage from "@/features/url-decoder/page"
 
@@ -50,9 +50,12 @@ export default function App() {
           <Route path="/domain-monitoring" element={<DomainMonitoringPage />} />
           <Route path="/threatstream" element={<ThreatstreamPage />} />
           <Route path="/active-directory" element={<ActiveDirectoryPage />} />
-          <Route path="/text-formatter" element={<TextFormatterPage />} />
-          <Route path="/url-decoder" element={<UrlDecoderPage />} />
-          <Route path="/screenshot" element={<ScreenshotPage />} />
+          <Route path="/threat-report-extractor" element={<ThreatReportExtractorPage />} />
+          <Route path="/text-formatter" element={<Navigate to="/text-utilities" replace />} />
+          <Route path="/text-utilities" element={<TextFormatterPage />} />
+          <Route path="/url-decoder" element={<Navigate to="/link-unwrapper" replace />} />
+          <Route path="/link-unwrapper" element={<UrlDecoderPage />} />
+          <Route path="/screenshot" element={<Navigate to="/intelligence-harvester" replace />} />
           <Route path="/mail-header-analyzer" element={<MhaPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
