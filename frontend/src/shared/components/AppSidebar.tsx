@@ -2,7 +2,7 @@ import * as React from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 
 import { NavUser } from "@/shared/components/NavUser"
-import { Logo } from "@/shared/components/Logo"
+import { Logo } from "@/shared/components/logo"
 import { branding } from "@/shared/lib/branding"
 import {
   Sidebar,

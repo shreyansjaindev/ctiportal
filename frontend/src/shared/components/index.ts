@@ -13,7 +13,7 @@ export { ModeToggle } from './ModeToggle'
 export { LoginForm } from './LoginForm'
 
 // Navigation
-export { Logo } from './Logo'
+export { Logo } from './logo'
 export { NavUser } from './NavUser'
 export { navItems, navGroups } from './navigation'
 
