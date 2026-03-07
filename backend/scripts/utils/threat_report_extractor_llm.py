@@ -6,7 +6,6 @@ import time
 import requests
 
 from scripts.utils.threat_report_extractor_constants import (
-    THREAT_REPORT_EXTRACTOR_API_KEY,
     THREAT_REPORT_EXTRACTOR_APP_NAME,
     THREAT_REPORT_EXTRACTOR_BASE_URL,
     THREAT_REPORT_EXTRACTOR_CACHE_TTL_SECONDS,
@@ -15,6 +14,7 @@ from scripts.utils.threat_report_extractor_constants import (
     THREAT_REPORT_EXTRACTOR_MODEL,
     THREAT_REPORT_EXTRACTOR_RETRY_BACKOFF_SECONDS,
     THREAT_REPORT_EXTRACTOR_SITE_URL,
+    OPENROUTER_API_KEY,
     MITRE_TECHNIQUE_PATTERN,
     MODEL_RESPONSE_CACHE,
     RATE_LIMIT_CACHE,
@@ -158,8 +158,8 @@ def call_llm(source_text, deterministic_iocs, attack_dates, mitre_techniques):
     if not llm_is_configured():
         return None, "Model enrichment is not configured. Set THREAT_REPORT_EXTRACTOR_BASE_URL and THREAT_REPORT_EXTRACTOR_MODEL."
     headers = {"Content-Type": "application/json"}
-    if THREAT_REPORT_EXTRACTOR_API_KEY:
-        headers["Authorization"] = f"Bearer {THREAT_REPORT_EXTRACTOR_API_KEY}"
+    if OPENROUTER_API_KEY:
+        headers["Authorization"] = f"Bearer {OPENROUTER_API_KEY}"
     if "openrouter.ai" in THREAT_REPORT_EXTRACTOR_BASE_URL:
         if THREAT_REPORT_EXTRACTOR_SITE_URL:
             headers["HTTP-Referer"] = THREAT_REPORT_EXTRACTOR_SITE_URL

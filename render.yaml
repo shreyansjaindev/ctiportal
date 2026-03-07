@@ -47,6 +47,22 @@ services:
         fromDatabase:
           name: ctiportal-postgres
           property: port
+      - key: THREAT_REPORT_EXTRACTOR_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: THREAT_REPORT_EXTRACTOR_MODEL
+        value: openrouter/free
+      - key: THREAT_REPORT_EXTRACTOR_FALLBACK_MODELS
+        value: ""
+      - key: THREAT_REPORT_EXTRACTOR_SITE_URL
+        value: https://ctiportal.vercel.app
+      - key: THREAT_REPORT_EXTRACTOR_APP_NAME
+        value: CTIPortal Threat Report Extractor
+      - key: THREAT_REPORT_EXTRACTOR_MAX_RETRIES
+        value: "3"
+      - key: THREAT_REPORT_EXTRACTOR_RETRY_BACKOFF_SECONDS
+        value: "2"
+      - key: OPENROUTER_API_KEY
+        sync: false
 
 databases:
   - name: ctiportal-postgres
